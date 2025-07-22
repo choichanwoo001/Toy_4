@@ -14,11 +14,24 @@ import java.util.List;
 @Controller
 public class HomeController {
 
+    @Autowired
+    private TestService testService;
+
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("title", "메인 페이지");
-        model.addAttribute("contentPath", "index");
-        return "layout/base";
+        model.addAttribute("message", "Spring Boot + Thymeleaf + MySQL 프로젝트가 성공적으로 실행되었습니다!");
+        model.addAttribute("helloWorld", testService.getHelloWorld());
+        model.addAttribute("dbStatus", testService.testDatabaseConnection());
+        
+        List<TestEntity> messages = testService.getAllTestMessages();
+        model.addAttribute("messages", messages);
+        
+        return "home";
     }
-
-}
+    
+    @PostMapping("/save-message")
+    public String saveMessage(@RequestParam String message, Model model) {
+        testService.saveTestMessage(message);
+        return "redirect:/";
+    }
+} 

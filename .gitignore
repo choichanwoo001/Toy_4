@@ -34,7 +34,6 @@ application.log
 *.env
 
 # Application Properties
-application.properties
 application-local.yml
 application-local.properties
 application-prod.yml
@@ -134,6 +133,3 @@ celerybeat.pid
 .mypy_cache/
 .dmypy.json
 dmypy.json 
-
-# 기타
-.history/
