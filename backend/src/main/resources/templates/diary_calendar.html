@@ -6,6 +6,7 @@
     <title>인생, 쓰다 - 일기 기록 및 달력</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png">
     
     <style>
         body {
@@ -124,19 +125,20 @@
             padding: 1.5rem;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             display: flex; /* 내부 요소들을 flex로 정렬 */
             flex-direction: column; /* 세로로 정렬 */
             flex-shrink: 0; /* 이 요소는 줄어들지 않음 */
         }
         .stamp-image-comment {
             position: absolute;
-            top: -15px;
-            right: -15px;
-            width: 90px;
-            height: 90px;
-            transform: rotate(15deg);
-            opacity: 0.8;
+            top: -30px;
+            right: -30px;
+            width: 120px;
+            height: 120px;
+            transform: rotate(10deg);
+            opacity: 0.85;
+            z-index: 10;
         }
         .record-item {
             background-color: white;
@@ -164,7 +166,7 @@
             aspect-ratio: 1 / 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             font-size: 0.9rem;
             cursor: pointer;
@@ -187,12 +189,21 @@
         }
         .stamp-image-calendar {
             position: absolute;
-            bottom: -5px;
-            right: -5px;
-            width: 40px;
-            height: 40px;
-            transform: rotate(10deg);
-            opacity: 0.8;
+            top: 50%;
+            left: 50%;
+            width: 60px;
+            height: 60px;
+            transform: translate(-50%, -50%) rotate(10deg);
+            opacity: 1;
+            filter: drop-shadow(0 2px 6px rgba(60,40,120,0.18)) contrast(1.15) brightness(1.1);
+            pointer-events: none;
+            z-index: 2;
+        }
+        .date-cell .date-number {
+            position: relative;
+            z-index: 3;
+            font-weight: bold;
+            font-size: 1.1em;
         }
         .emotion-icon {
             font-size: 1.3rem;
@@ -239,6 +250,19 @@
             line-height: 1.5;
             font-size: 1.1rem;
         }
+        .modal-bg {
+            position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.3); z-index: 50; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: white; border-radius: 1rem; padding: 2rem; min-width: 350px; max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .modal-close {
+            position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; color: #B87B5C; cursor: pointer;
+        }
+        .emotion-icon-modal { font-size: 2rem; margin-right: 0.5rem; }
+        .stamp-image-modal { width: 60px; height: 60px; margin-left: 1rem; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
@@ -253,80 +277,18 @@
 
     <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
         <div class="lg:w-1/2 container-card flex flex-col left-section-container">
-            <div class="flex justify-between items-center mb-6 flex-shrink-0"> <button class="btn-nav">&lt; 이전 달</button>
-                <h2 class="text-3xl font-semibold text-[#90533B]">2025년 7월</h2>
-                <button class="btn-nav">다음 달 &gt;</button>
+            <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                <button id="prev-month-btn" class="btn-nav">&lt; 이전 달</button>
+                <h2 id="calendar-title" class="text-3xl font-semibold text-[#90533B]">2025년 7월</h2>
+                <button id="next-month-btn" class="btn-nav">다음 달 &gt;</button>
             </div>
-
-            <div class="calendar-grid mb-4"> <div class="text-center font-medium text-[#B87B5C]">일</div>
-                <div class="text-center font-medium text-[#495235]">월</div>
-                <div class="text-center font-medium text-[#495235]">화</div>
-                <div class="text-center font-medium text-[#495235]">수</div>
-                <div class="text-center font-medium text-[#495235]">목</div>
-                <div class="text-center font-medium text-[#495235]">금</div>
-                <div class="text-center font-medium text-[#B87B5C]">토</div>
-
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-
-                <div class="date-cell">1</div>
-                <div class="date-cell">2</div>
-                <div class="date-cell">3</div>
-                <div class="date-cell">4</div>
-                <div class="date-cell">5</div>
-                <div class="date-cell">6</div>
-                <div class="date-cell">7</div>
-                <div class="date-cell">8</div>
-                <div class="date-cell">9</div>
-                <div class="date-cell has-diary">
-                    10
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😊</span>
-                </div>
-                <div class="date-cell has-diary">
-                    11
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😅</span>
-                </div>
-                <div class="date-cell">12</div>
-                <div class="date-cell">13</div>
-                <div class="date-cell">14</div>
-                <div class="date-cell has-diary">
-                    15
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😔</span>
-                </div>
-                <div class="date-cell today has-diary">
-                    16
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😌</span>
-                </div>
-                <div class="date-cell">17</div>
-                <div class="date-cell">18</div>
-                <div class="date-cell">19</div>
-                <div class="date-cell">20</div>
-                <div class="date-cell">21</div>
-                <div class="date-cell">22</div>
-                <div class="date-cell">23</div>
-                <div class="date-cell">24</div>
-                <div class="date-cell">25</div>
-                <div class="date-cell">26</div>
-                <div class="date-cell">27</div>
-                <div class="date-cell">28</div>
-                <div class="date-cell">29</div>
-                <div class="date-cell">30</div>
-                <div class="date-cell">31</div>
+            <div id="calendar-grid" class="calendar-grid mb-4"></div>
+            <div class="text-center text-base text-[#8F9562] mt-4 flex-shrink-0">
+                <p id="calendar-summary">이번 달 일기: 0일 작성 | 연속 기록: 0일</p>
+                <p id="calendar-emotions">주요 감정: -</p>
             </div>
-            <div class="text-center text-base text-[#8F9562] mt-4 flex-shrink-0"> <p>이번 달 일기: 15일 작성 | 연속 기록: 7일</p>
-                <p>주요 감정: 평온, 기쁨, 피로</p>
-            </div>
-
-            <div class="mt-8 flex-grow overflow-y-auto"> <h3 class="text-xl font-semibold text-[#90533B] mb-4">주차별 감정 리포트</h3>
+            <div class="mt-8 flex-grow overflow-y-auto">
+                <h3 class="text-xl font-semibold text-[#90533B] mb-4">주차별 감정 리포트</h3>
                 <div id="weekly-reports-list" class="space-y-3">
                     <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C]">
                         <span class="text-[#495235] font-medium">7월 1주차 리포트 (7/1 ~ 7/7)</span>
@@ -384,7 +346,8 @@
                 <p class="text-sm mt-2">- 알 수 없는 작가 -</p>
             </div>
 
-            <div id="ai-comment-section" class="ai-comment-box mb-8 flex-shrink-0 hidden"> <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-comment">
+            <div id="ai-comment-section" class="ai-comment-box mb-8 flex-shrink-0 hidden">
+                <img src="/images/참잘했어요.png" alt="참잘했어요 스탬프" class="stamp-image-comment">
                 <h3 class="text-2xl font-semibold text-[#90533B] mb-4">선생님의 따뜻한 코멘트</h3>
                 <p id="ai-comment-text" class="text-[#495235] leading-relaxed text-lg">
                     사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
@@ -392,7 +355,7 @@
                     오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
                     꾸준히 자신을 돌아보는 모습이 참 대견해요.
                 </p>
-                </div>
+            </div>
 
             <div id="new-record-section" class="mt-auto flex-shrink-0"> <label for="diary-content" class="block text-xl font-semibold text-[#90533B] mb-3">새로운 기록 남기기</label>
                 <textarea id="diary-content" rows="4" class="w-full input-field resize-y" placeholder="지금 당신의 생각이나 감정을 한두 줄로 자유롭게 기록해주세요."></textarea>
@@ -410,11 +373,21 @@
         </div>
     </section>
 
+    <!-- 일기 상세/작성 모달 -->
+    <div id="diary-modal" class="modal-bg" style="display:none;">
+        <div class="modal-box relative">
+            <span class="modal-close" onclick="closeDiaryModal()">&times;</span>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
     <script>
         // --- Combined Diary/Calendar Page Scripts ---
         const aiCommentSection = document.getElementById('ai-comment-section');
         const newRecordSection = document.getElementById('new-record-section');
         const toggleCommentRecordBtn = document.getElementById('toggle-comment-record-btn');
+        // 코멘트보기 버튼은 주석처리/숨김 처리
+        if (toggleCommentRecordBtn) toggleCommentRecordBtn.style.display = 'none';
         const recordsListScrollable = document.getElementById('today-records-list-scrollable');
         const noRecordsPlaceholder = document.getElementById('no-records-placeholder');
         const saveDiaryBtn = document.getElementById('save-diary-btn');
@@ -467,7 +440,7 @@
                 dailyQuoteBox.classList.remove('hidden'); // 기록 모드일 때 명언 블록 표시
                 aiCommentSection.classList.add('hidden');
                 aiChatButton.classList.add('hidden'); // AI 채팅 버튼 숨김
-                toggleCommentRecordBtn.innerText = '코멘트 보기 (테스트용)';
+                // toggleCommentRecordBtn.innerText = '코멘트 보기 (테스트용)'; // 코멘트보기 버튼은 숨김 처리
 
             } else {
                 // 코멘트 모드: AI 코멘트 섹션 보이고, 새로운 기록 섹션 숨김
@@ -483,7 +456,7 @@
                 } else {
                     aiChatButton.classList.add('hidden');
                 }
-                toggleCommentRecordBtn.innerText = '기록 남기기 (테스트용)';
+                // toggleCommentRecordBtn.innerText = '기록 남기기 (테스트용)'; // 코멘트보기 버튼은 숨김 처리
             }
         }
 
@@ -548,6 +521,156 @@
             }
             updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정 (숨겨져 있어도 내용 미리 준비)
         });
+
+        // --- 동적 달력/일기/모달 스크립트 ---
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+        const userId = /*[[${user != null}]]*/ false ? '[[${user.userId}]]' : 1; // Thymeleaf에서 유저ID 주입, 없으면 1
+        let currentDiaries = [];
+        let selectedDate = null;
+
+        function renderCalendar(year, month, diaryData) {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+            const days = ['일','월','화','수','목','금','토'];
+            days.forEach(d => {
+                const div = document.createElement('div');
+                div.className = 'text-center font-medium';
+                div.textContent = d;
+                calendarGrid.appendChild(div);
+            });
+            const firstDay = new Date(year, month-1, 1).getDay();
+            const lastDate = new Date(year, month, 0).getDate();
+            const today = new Date();
+            for(let i=0; i<firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'date-cell bg-gray-100 cursor-default border-none shadow-none';
+                calendarGrid.appendChild(empty);
+            }
+            for(let d=1; d<=lastDate; d++) {
+                const cell = document.createElement('div');
+                cell.className = 'date-cell';
+                // 날짜 숫자 중앙 표시
+                const numSpan = document.createElement('span');
+                numSpan.className = 'date-number';
+                numSpan.textContent = d;
+                cell.appendChild(numSpan);
+                // 일기 데이터가 있으면 표시
+                const diary = diaryData.find(item => new Date(item.createdAt).getDate() === d);
+                if (diary) {
+                    cell.classList.add('has-diary');
+                    // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
+                    const img = document.createElement('img');
+                    img.src = '/images/참잘했어요.png';
+                    img.alt = '참잘했어요 스탬프';
+                    img.className = 'stamp-image-calendar';
+                    cell.appendChild(img);
+                    if (diary.emotion) {
+                        const span = document.createElement('span');
+                        span.className = 'emotion-icon';
+                        span.textContent = diary.emotion;
+                        cell.appendChild(span);
+                    }
+                }
+                if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
+                    cell.classList.add('today');
+                }
+                const isFuture = (year > today.getFullYear()) ||
+                    (year === today.getFullYear() && month > today.getMonth()+1) ||
+                    (year === today.getFullYear() && month === today.getMonth()+1 && d > today.getDate());
+                if (isFuture) {
+                    cell.style.pointerEvents = 'none';
+                    cell.style.opacity = '0.5';
+                    cell.style.background = '#f3f3f3';
+                } else {
+                    cell.onclick = function() {
+                        selectDiaryDate(year, month, d, diaryData);
+                    };
+                }
+                calendarGrid.appendChild(cell);
+            }
+        }
+        function selectDiaryDate(year, month, day, diaryData) {
+            selectedDate = new Date(year, month-1, day);
+            // 해당 날짜의 모든 기록(시간별 등) 필터링
+            const records = diaryData.filter(item => {
+                const d = new Date(item.createdAt);
+                return d.getFullYear() === year && d.getMonth()+1 === month && d.getDate() === day;
+            });
+            renderRecordsList(records, year, month, day);
+        }
+        function renderRecordsList(records, year, month, day) {
+            const recordsList = document.getElementById('today-records-list-scrollable');
+            recordsList.innerHTML = '';
+            if (records.length === 0) {
+                recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>이 날짜의 기록이 없습니다. 기록을 남겨보세요!</p>`;
+            } else {
+                records.slice().reverse().forEach(rec => {
+                    const time = new Date(rec.createdAt).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+                    recordsList.innerHTML += `<div class='record-item'>
+                        <span class='text-[#8F9562] text-sm mr-2'>[${time}]</span>
+                        <span>${rec.content}</span>
+                        <span class='ml-2'>${rec.emotion ? '감정: '+rec.emotion : ''}</span>
+                        <!-- appliedStamp 이미지는 표시하지 않음 -->
+                    </div>`;
+                });
+            }
+            // 오른쪽 상단에 날짜 표시(선택적)
+            const header = document.querySelector('.right-section-container h2');
+            if (header) header.textContent = `${year}년 ${month}월 ${day}일 기록`;
+
+            // 오늘 날짜면 스크롤을 맨 아래로 이동
+            const today = new Date();
+            if (year === today.getFullYear() && month === today.getMonth()+1 && day === today.getDate()) {
+                setTimeout(() => { recordsList.scrollTop = recordsList.scrollHeight; }, 0);
+            }
+
+            // 오늘 이전 날짜면 기록 입력창 숨기고 코멘트만 보이게, 일기 없는 날은 코멘트 숨김
+            const isPast = (year < today.getFullYear()) ||
+                (year === today.getFullYear() && month < today.getMonth()+1) ||
+                (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
+            const newRecordSection = document.getElementById('new-record-section');
+            const saveDiaryBtn = document.getElementById('save-diary-btn');
+            const aiCommentSection = document.getElementById('ai-comment-section');
+            if (isPast) {
+                if (newRecordSection) newRecordSection.classList.add('hidden');
+                if (saveDiaryBtn) saveDiaryBtn.classList.add('hidden');
+                if (aiCommentSection) {
+                    if (records.length > 0) aiCommentSection.classList.remove('hidden');
+                    else aiCommentSection.classList.add('hidden');
+                }
+            } else {
+                if (newRecordSection) newRecordSection.classList.remove('hidden');
+                if (saveDiaryBtn) saveDiaryBtn.classList.remove('hidden');
+                if (aiCommentSection) aiCommentSection.classList.add('hidden');
+            }
+        }
+        document.getElementById('prev-month-btn').onclick = function() {
+            if (--currentMonth < 1) { currentMonth = 12; currentYear--; }
+            fetchAndRender();
+        };
+        document.getElementById('next-month-btn').onclick = function() {
+            if (++currentMonth > 12) { currentMonth = 1; currentYear++; }
+            fetchAndRender();
+        };
+        function fetchAndRender() {
+            document.getElementById('calendar-title').textContent = `${currentYear}년 ${currentMonth}월`;
+            fetch(`/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentDiaries = data.data || [];
+                    renderCalendar(currentYear, currentMonth, currentDiaries);
+                    // 기본: 오늘 날짜의 기록 표시
+                    const today = new Date();
+                    if (currentYear === today.getFullYear() && currentMonth === today.getMonth()+1) {
+                        selectDiaryDate(currentYear, currentMonth, today.getDate(), currentDiaries);
+                    } else {
+                        renderRecordsList([], currentYear, currentMonth, 1);
+                    }
+                });
+        }
+        // 최초 렌더링
+        fetchAndRender();
     </script>
 </body>
 </html>
