@@ -133,3 +133,8 @@ celerybeat.pid
 .mypy_cache/
 .dmypy.json
 dmypy.json 
+
+# 기타
+.history/
+application.properties
+.application.properties
