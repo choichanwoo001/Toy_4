@@ -5,20 +5,17 @@ import com.example.backend.service.MyPageService;
 import com.example.backend.dto.MyPageSummaryDto;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+@RequiredArgsConstructor
 @Controller
 @RequestMapping("/mypage")
 public class MyPageController {
     private final MyPageService myPageService;
 
-    @Autowired
-    public MyPageController(MyPageService myPageService) {
-        this.myPageService = myPageService;
-    }
-
+    // 마이페이지 매핑
     @GetMapping
     public String myPage(Model model) {
         model.addAttribute("title", "마이페이지");
