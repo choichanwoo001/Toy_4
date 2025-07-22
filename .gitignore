@@ -136,5 +136,3 @@ dmypy.json
 
 # 기타
 .history/
-application.properties
-.application.properties
