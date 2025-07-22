@@ -34,4 +34,9 @@ public class HomeController {
         testService.saveTestMessage(message);
         return "redirect:/";
     }
+
+    @GetMapping("/diary-calendar")
+    public String diaryCalendar() {
+        return "diary_calendar";
+    }
 } 
