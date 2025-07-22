@@ -3,6 +3,8 @@ package com.example.backend.controller;
 import com.example.backend.entity.Diary;
 import com.example.backend.service.DiaryService;
 import com.example.backend.dto.ApiResponse;
+import com.example.backend.entity.User;
+import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -11,11 +13,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import jakarta.servlet.http.HttpSession;
 
 @Controller
 public class DiaryController {
     @Autowired
     private DiaryService diaryService;
+    @Autowired
+    private UserRepository userRepository;
 
     // ===================== REST API =====================
 
@@ -54,9 +59,19 @@ public class DiaryController {
     // ===================== Thymeleaf =====================
 
     // 달력/일기 페이지 렌더링 (Thymeleaf)
+    /**
+     * userId 파라미터로 유저 닉네임을 보여주는 것은 테스트용입니다.
+     * 실제 서비스에서는 로그인/세션 기반으로 user 정보를 전달합니다.
+     */
     @GetMapping("/diary-calendar")
-    public String diaryCalendarPage(Model model) {
-        // 필요시 model에 데이터 추가
+    public String diaryCalendarPage(@RequestParam(required = false) Long userId, Model model, HttpSession session) {
+        User user = null;
+        if (userId != null) { // 테스트용: 쿼리 파라미터로 유저 정보 전달
+            user = userRepository.findById(userId).orElse(null);
+        } else { // 실제 서비스: 세션에서 유저 정보 전달
+            user = (User) session.getAttribute("user");
+        }
+        model.addAttribute("user", user);
         return "diary_calendar";
     }
 

@@ -245,6 +245,10 @@
     <header class="w-full max-w-4xl text-center mb-10">
         <h1 class="text-5xl font-bold text-[#90533B] mb-2">인생, 쓰다</h1>
         <p class="text-2xl text-[#495235]">일기 기록 및 달력</p>
+        <!-- 유저 닉네임 표시 (테스트용: 쿼리 파라미터로 전달 시) -->
+        <div th:if="${user != null}" class="mt-2 text-lg text-[#8F9562] font-semibold">
+            환영합니다, <span th:text="${user.userNickname}"></span>님!
+        </div>
     </header>
 
     <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
