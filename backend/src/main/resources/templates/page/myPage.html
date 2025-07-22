@@ -1,20 +1,13 @@
-<!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>인생, 쓰다 - 마이페이지</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/myPage.css">
-</head>
-<body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
-    <header class="w-full max-w-4xl text-center mb-10">
+<div th:fragment="content" class="w-full max-w-3xl mx-auto">
+    <link rel="stylesheet" th:href="@{/css/myPage.css}" />
+    <script th:src="@{/js/myPage.js}" defer></script>
+
+    <div class="w-full max-w-4xl text-center mb-10">
         <h1 class="text-5xl font-bold text-[#90533B] mb-2">인생, 쓰다</h1>
         <p class="text-2xl text-[#495235]">마이페이지</p>
-    </header>
+    </div>
 
-    <main class="w-full max-w-3xl container-card space-y-8">
+    <div class="w-full max-w-3xl container-card space-y-8">
         <section>
             <h2 class="section-title">내 정보</h2>
             <div class="flex flex-col items-center mb-6">
@@ -51,7 +44,7 @@
                 <div class="info-item flex-col items-start">
                     <span class="info-label mb-2">최근 AI 코멘트</span>
                     <div class="flex items-center text-sm text-[#495235] bg-[#F4DDB8] p-3 rounded-lg border border-[#B87B5C] w-full">
-                        <img th:src="@{/${summary.recentStampImage}}" alt="참 잘했어요 스탬프" class="stamp-image-preview mr-3">
+                        <img th:src="@{'/' + ${summary.recentStampImage}}" alt="참 잘했어요 스탬프" class="stamp-image-preview mr-3">
                         <span th:text="${summary.recentAiComment}">제자님, 오늘도 하루를 잘 기록했네요! 작은 노력이 큰 변화를 만든답니다.</span>
                     </div>
                 </div>
@@ -63,7 +56,7 @@
             <h2 class="section-title">리포트 및 상담</h2>
             <div class="space-y-3">
                 <button class="btn-action bg-[#DA983C] hover:bg-[#B87B5C]">나의 감정 리포트 보러 가기</button>
-                <button class="btn-action bg-[#8F9562] hover:bg-[#495235]">선생님과 대화하기</button>
+                <a href="/chat" class="btn-action bg-[#8F9562] hover:bg-[#495235] block text-center">선생님과 대화하기</a>
             </div>
         </section>
 
@@ -73,8 +66,7 @@
                 <div class="flex items-center space-x-4">
                     <span class="info-label whitespace-nowrap">선생님께 코멘트 받을 시간:</span>
                     <select id="comment-hour" class="time-select"></select>
-                    <span class="text-xl font-bold text-[#495235]">:</span>
-                    <select id="comment-minute" class="time-select"></select>
+                    <span class="info-label">시</span>
                 </div>
                 <button id="save-comment-time-btn" class="btn-action bg-[#DA983C] hover:bg-[#90533B]">시간 저장</button>
             </div>
@@ -102,9 +94,5 @@
                 <button class="btn-link text-red-500 hover:text-red-700">회원 탈퇴</button>
             </div>
         </section>
-
-    </main>
-
-    <script src="/js/myPage.js"></script>
-</body>
-</html>
+    </div>
+</div>

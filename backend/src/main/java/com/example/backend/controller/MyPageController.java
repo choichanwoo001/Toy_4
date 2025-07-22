@@ -21,9 +21,11 @@ public class MyPageController {
 
     @GetMapping
     public String myPage(Model model) {
+        model.addAttribute("title", "마이페이지");
+        model.addAttribute("contentPath", "myPage");
         // 실제 구현 시 로그인 사용자 ID 사용
         MyPageSummaryDto summary = myPageService.getMyPageSummary(1L);
         model.addAttribute("summary", summary);
-        return "myPage";
+        return "layout/base";
     }
 }
