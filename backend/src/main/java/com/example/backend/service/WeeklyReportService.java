@@ -51,8 +51,6 @@ public class WeeklyReportService {
                                         .build())
                                 .toList()
                 )
-                // js에서 고정적으로 출력 ToDo: js에서 고정적으로 출력할지 여기로 옮길지 고민
-//                .aiReflection()
                 .dayLabels(List.of("월", "화", "수", "목", "금", "토", "일"))
                 .emotionCharts(getDummyChart())
                 .build();
