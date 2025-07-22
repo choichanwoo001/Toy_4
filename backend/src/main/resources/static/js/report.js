@@ -115,6 +115,9 @@ nextWeekBtn.addEventListener('click', () => {
     currentWeekOffset--;
     updateReportContent(currentWeekOffset);
 });
+document.getElementById('go-chat').addEventListener('click', () => {
+    window.location.href = '/chat';
+});
 
 // 📌 페이지 진입 시 기본 리포트 로딩
 window.addEventListener('load', () => {
