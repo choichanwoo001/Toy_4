@@ -1,0 +1,29 @@
+package com.example.backend.controller;
+
+
+import com.example.backend.service.MyPageService;
+import com.example.backend.dto.MyPageSummaryDto;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+@RequestMapping("/mypage")
+public class MyPageController {
+    private final MyPageService myPageService;
+
+    @Autowired
+    public MyPageController(MyPageService myPageService) {
+        this.myPageService = myPageService;
+    }
+
+    @GetMapping
+    public String myPage(Model model) {
+        // 실제 구현 시 로그인 사용자 ID 사용
+        MyPageSummaryDto summary = myPageService.getMyPageSummary(1L);
+        model.addAttribute("summary", summary);
+        return "myPage";
+    }
+}
