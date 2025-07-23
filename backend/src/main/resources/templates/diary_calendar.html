@@ -289,20 +289,7 @@
             </div>
             <div class="mt-8 flex-grow overflow-y-auto">
                 <h3 class="text-xl font-semibold text-[#90533B] mb-4">주차별 감정 리포트</h3>
-                <div id="weekly-reports-list" class="space-y-3">
-                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C]">
-                        <span class="text-[#495235] font-medium">7월 1주차 리포트 (7/1 ~ 7/7)</span>
-                        <button class="btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm" onclick="alert('7월 1주차 리포트 페이지로 이동합니다!')">리포트 보기</button>
-                    </div>
-                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C]">
-                        <span class="text-[#495235] font-medium">7월 2주차 리포트 (7/8 ~ 7/14)</span>
-                        <button class="btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm" onclick="alert('7월 2주차 리포트 페이지로 이동합니다!')">리포트 보기</button>
-                    </div>
-                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C] opacity-70">
-                        <span class="text-[#8F9562] font-medium">7월 3주차 리포트 (7/15 ~ 7/21)</span>
-                        <span class="text-[#B87B5C] text-sm">아직 준비 중</span>
-                    </div>
-                </div>
+                <div id="weekly-reports-list" class="space-y-3"></div>
             </div>
         </div>
 
@@ -460,12 +447,23 @@
             }
         }
 
+        // 시간 포맷: 오전/오후 00:00
+        function formatAMPM(date) {
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            const isAM = hours < 12;
+            let period = isAM ? '오전' : '오후';
+            hours = hours % 12;
+            if (hours === 0) hours = 12;
+            return `${period} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
         // "생각 기록하기" 버튼 클릭 이벤트
         saveDiaryBtn.addEventListener('click', function() {
             const content = diaryContent.value.trim();
             if (content) {
                 const now = new Date();
-                const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const time = formatAMPM(now);
                 
                 const newRecordItem = document.createElement('div');
                 newRecordItem.className = 'record-item';
@@ -532,21 +530,53 @@
         function renderCalendar(year, month, diaryData) {
             const calendarGrid = document.getElementById('calendar-grid');
             calendarGrid.innerHTML = '';
-            const days = ['일','월','화','수','목','금','토'];
+            const days = ['월','화','수','목','금','토','일'];
             days.forEach(d => {
                 const div = document.createElement('div');
                 div.className = 'text-center font-medium';
                 div.textContent = d;
                 calendarGrid.appendChild(div);
             });
-            const firstDay = new Date(year, month-1, 1).getDay();
+            
+            // 월요일이 0, 일요일이 6이 되도록 조정
+            let firstDay = new Date(year, month-1, 1).getDay();
+            firstDay = firstDay === 0 ? 6 : firstDay - 1; // 일요일(0)을 6으로, 월요일(1)을 0으로 변환
+            
             const lastDate = new Date(year, month, 0).getDate();
             const today = new Date();
+            
+            // 이전 달의 마지막 날짜들 계산
+            const prevMonth = month === 1 ? 12 : month - 1;
+            const prevYear = month === 1 ? year - 1 : year;
+            const prevMonthLastDate = new Date(prevYear, prevMonth, 0).getDate();
+            
+            // 이전 달의 날짜들을 흐릿하게 표시
             for(let i=0; i<firstDay; i++) {
-                const empty = document.createElement('div');
-                empty.className = 'date-cell bg-gray-100 cursor-default border-none shadow-none';
-                calendarGrid.appendChild(empty);
+                const prevDate = prevMonthLastDate - firstDay + i + 1;
+                const cell = document.createElement('div');
+                cell.className = 'date-cell';
+                cell.style.opacity = '0.3';
+                cell.style.background = '#f8f8f8';
+                cell.style.cursor = 'default';
+                cell.style.pointerEvents = 'none';
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'date-number';
+                // 이전 달의 유효한 날짜 범위를 벗어나지 않도록 체크
+                if (prevDate > 0 && prevDate <= prevMonthLastDate) {
+                    numSpan.textContent = prevDate;
+                } else {
+                    numSpan.textContent = ''; // 빈 칸으로 표시
+                }
+                // 디버깅용 콘솔 로그 (나중에 제거)
+                console.log(`prevDate: ${prevDate}, prevMonthLastDate: ${prevMonthLastDate}, firstDay: ${firstDay}, i: ${i}`);
+                numSpan.style.color = '#999';
+                cell.appendChild(numSpan);
+                
+                calendarGrid.appendChild(cell);
             }
+            
+            // 현재 달의 날짜들
             for(let d=1; d<=lastDate; d++) {
                 const cell = document.createElement('div');
                 cell.className = 'date-cell';
@@ -589,6 +619,28 @@
                 }
                 calendarGrid.appendChild(cell);
             }
+            
+            // 다음 달의 날짜들을 흐릿하게 표시
+            const totalCells = 35; // 5주 x 7일 = 35개 셀
+            const filledCells = firstDay + lastDate;
+            const remainingCells = totalCells - filledCells;
+            
+            for(let i=1; i<=remainingCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'date-cell';
+                cell.style.opacity = '0.3';
+                cell.style.background = '#f8f8f8';
+                cell.style.cursor = 'default';
+                cell.style.pointerEvents = 'none';
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'date-number';
+                numSpan.textContent = i;
+                numSpan.style.color = '#999';
+                cell.appendChild(numSpan);
+                
+                calendarGrid.appendChild(cell);
+            }
         }
         function selectDiaryDate(year, month, day, diaryData) {
             selectedDate = new Date(year, month-1, day);
@@ -606,7 +658,7 @@
                 recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>이 날짜의 기록이 없습니다. 기록을 남겨보세요!</p>`;
             } else {
                 records.slice().reverse().forEach(rec => {
-                    const time = new Date(rec.createdAt).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+                    const time = formatAMPM(new Date(rec.createdAt));
                     recordsList.innerHTML += `<div class='record-item'>
                         <span class='text-[#8F9562] text-sm mr-2'>[${time}]</span>
                         <span>${rec.content}</span>
@@ -660,6 +712,8 @@
                 .then(data => {
                     currentDiaries = data.data || [];
                     renderCalendar(currentYear, currentMonth, currentDiaries);
+                    updateCalendarSummary(currentDiaries, currentYear, currentMonth);
+                    renderWeeklyReports(currentDiaries, currentYear, currentMonth);
                     // 기본: 오늘 날짜의 기록 표시
                     const today = new Date();
                     if (currentYear === today.getFullYear() && currentMonth === today.getMonth()+1) {
@@ -668,6 +722,136 @@
                         renderRecordsList([], currentYear, currentMonth, 1);
                     }
                 });
+        }
+
+        // 주차별 감정 리포트 동적 생성
+        // 주차별 리포트 수정부분입니다! 수민님참고!
+        function renderWeeklyReports(diaryData, year, month) {
+            const reportsList = document.getElementById('weekly-reports-list');
+            reportsList.innerHTML = '';
+            
+            // 1. 해당 월 1일이 속한 주의 월요일 찾기 (전월 포함)
+            const firstDate = new Date(year, month-1, 1);
+            let firstMonday = new Date(firstDate);
+            let dayOfWeek = firstDate.getDay(); // 0:일, 1:월, ... 6:토
+            
+            // 1일이 월요일이 아니면, 그 주의 월요일을 전월로 이동해서 찾음
+            if (dayOfWeek !== 1) {
+                // 1일에서 dayOfWeek-1 만큼 빼면 그 주 월요일
+                let diff = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+                firstMonday.setDate(firstDate.getDate() - diff);
+            }
+            
+            // 2. 각 주차별로 월~일 구간 계산 (전월 포함하여 전체 주차 표시)
+            const lastDateNum = new Date(year, month, 0).getDate();
+            let weekStart = new Date(firstMonday);
+            let weekIdx = 1;
+            
+            while (true) {
+                let weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                
+                // 주차의 시작일과 종료일
+                let startDay = weekStart.getDate();
+                let endDay = weekEnd.getDate();
+                let startMonth = weekStart.getMonth() + 1;
+                let endMonth = weekEnd.getMonth() + 1;
+                let startYear = weekStart.getFullYear();
+                let endYear = weekEnd.getFullYear();
+                
+                // 주차가 해당 월에 속하는지 확인 (시작일이나 종료일 중 하나라도 해당 월에 속하면)
+                if (startMonth === month || endMonth === month) {
+                    // 주차의 시작일과 종료일
+                    let startDay = weekStart.getDate();
+                    let endDay = weekEnd.getDate();
+                    let startMonth = weekStart.getMonth() + 1;
+                    let endMonth = weekEnd.getMonth() + 1;
+                    let startYear = weekStart.getFullYear();
+                    let endYear = weekEnd.getFullYear();
+                    
+                    // 일요일이 포함된 월을 기준으로 리포트 월 결정
+                    let reportMonth = endMonth; // 일요일이 있는 월
+                    let reportYear = endYear;
+                    
+                    // 해당 월의 몇 번째 주차인지 계산
+                    let reportWeekIdx = 1;
+                    let tempWeekStart = new Date(reportYear, reportMonth-1, 1);
+                    let tempDayOfWeek = tempWeekStart.getDay();
+                    
+                    // 해당 월 1일이 속한 주의 월요일 찾기
+                    if (tempDayOfWeek !== 1) {
+                        let diff = (tempDayOfWeek === 0) ? 6 : (tempDayOfWeek - 1);
+                        tempWeekStart.setDate(tempWeekStart.getDate() - diff);
+                    }
+                    
+                    // 현재 주차가 해당 월의 몇 번째 주차인지 계산
+                    while (tempWeekStart.getTime() < weekEnd.getTime()) {
+                        tempWeekStart.setDate(tempWeekStart.getDate() + 7);
+                        if (tempWeekStart.getTime() <= weekEnd.getTime()) {
+                            reportWeekIdx++;
+                        }
+                    }
+                    
+                    // 일요일이 포함된 월이 현재 보고 있는 월과 같은 경우에만 리포트 표시
+                    if (reportMonth === month) {
+                        // 텍스트 예: 7월 1주차 리포트 (6/30 ~ 7/6)
+                        let weekLabel = `${reportMonth}월 ${reportWeekIdx}주차 리포트 (${startMonth}/${startDay} ~ ${endMonth}/${endDay})`;
+                        
+                        // 리포트 블록 생성
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C]';
+                        const span = document.createElement('span');
+                        span.className = 'text-[#495235] font-medium';
+                        span.textContent = weekLabel;
+                        div.appendChild(span);
+                        const btn = document.createElement('button');
+                        btn.className = 'btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm';
+                        btn.textContent = '리포트 보기';
+                        btn.onclick = () => alert(`${weekLabel} 페이지로 이동합니다!`);
+                        div.appendChild(btn);
+                        reportsList.appendChild(div);
+                    }
+                }
+                
+                // 다음 주로 이동
+                weekStart.setDate(weekStart.getDate() + 7);
+                weekIdx++;
+                
+                // 주차 시작일이 해당 월을 완전히 벗어나면 종료
+                if (weekStart.getMonth() > month-1) break;
+            }
+        }
+        // 달력 요약(이번 달 일기, 연속 기록) 갱신 함수
+        function updateCalendarSummary(diaryData, year, month) {
+            // 1. 날짜별로 일기 작성 여부 집계
+            const daysWithDiary = new Set();
+            diaryData.forEach(item => {
+                const d = new Date(item.createdAt);
+                if (d.getFullYear() === year && d.getMonth()+1 === month) {
+                    daysWithDiary.add(d.getDate());
+                }
+            });
+            const diaryCount = daysWithDiary.size;
+
+            // 2. 연속 기록 계산
+            // 날짜 배열로 변환 후 정렬
+            const sortedDays = Array.from(daysWithDiary).sort((a, b) => a - b);
+            let maxStreak = 0, curStreak = 0, prevDay = null;
+            sortedDays.forEach(day => {
+                if (prevDay !== null && day === prevDay + 1) {
+                    curStreak++;
+                } else {
+                    curStreak = 1;
+                }
+                if (curStreak > maxStreak) maxStreak = curStreak;
+                prevDay = day;
+            });
+
+            // 3. DOM에 반영
+            const summary = document.getElementById('calendar-summary');
+            if (summary) {
+                summary.textContent = `이번 달 일기: ${diaryCount}일 작성 | 연속 기록: ${maxStreak}일`;
+            }
         }
         // 최초 렌더링
         fetchAndRender();
