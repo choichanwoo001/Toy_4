@@ -1,553 +1,151 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>인생, 쓰다 - 일기 기록 및 달력</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" th:href="@{/css/header.css}" />
+    <link rel="stylesheet" th:href="@{/css/diary_calendar.css}" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #F4DDB8; /* WHEAT */
-            color: #495235; /* DARK FERN */
-        }
-        .container-card {
-            background-color: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            border: 1px solid #B87B5C; /* BROWN SUGAR */
-        }
-        .section-title {
-            font-size: 1.75rem; /* text-3xl */
-            font-weight: 600; /* font-semibold */
-            color: #90533B; /* CHESTNUT */
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid #B87B5C; /* BROWN SUGAR */
-            padding-bottom: 0.5rem;
-        }
-        .info-item { /* 기존 CSS에서 사용된 info-item 스타일 유지 */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px dashed #E0E0E0;
-        }
-        .info-item:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-weight: 500;
-            color: #495235;
-        }
-        .info-value {
-            color: #8F9562;
-            font-weight: 400;
-        }
-        /* Common button styles */
-        .btn-main {
-            background-color: #DA983C; /* HARVEST GOLD */
-            color: white;
-            padding: 1rem 2.5rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 1.25rem;
-            transition: background-color 0.3s ease-in-out, transform 0.2s ease-in-out;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .btn-main:hover {
-            background-color: #90533B; /* CHESTNUT */
-            transform: translateY(-2px);
-        }
-        .btn-nav { /* for calendar nav */
-            background-color: #B87B5C;
-            color: white;
-            padding: 0.6rem 1.2rem;
-            border-radius: 0.6rem;
-            font-weight: 500;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .btn-nav:hover {
-            background-color: #90533B;
-        }
-        /* New toggle button style */
-        .btn-toggle {
-            background-color: #8F9562; /* MOSS GREEN */
-            color: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            transition: background-color 0.2s ease-in-out;
-            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-        }
-        .btn-toggle:hover {
-            background-color: #495235; /* DARK FERN */
-        }
-        /* AI Chat button moved to action area */
-        .btn-ai-chat-action {
-            background-color: #8F9562; /* MOSS GREEN */
-            color: white;
-            padding: 1rem 2.5rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 1.25rem;
-            transition: background-color 0.2s ease-in-out;
-            width: 100%; /* 너비를 꽉 채우도록 */
-        }
-        .btn-ai-chat-action:hover {
-            background-color: #495235; /* DARK FERN */
-        }
-
-        /* Input field style */
-        .input-field {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #B87B5C;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            color: #495235;
-            background-color: white;
-        }
-        .input-field:focus {
-            outline: none;
-            border-color: #DA983C;
-            box-shadow: 0 0 0 2px rgba(218, 152, 60, 0.2);
-        }
-
-        /* AI Comment Box */
-        .ai-comment-box {
-            background-color: #F4DDB8;
-            border: 1px solid #8F9562;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            position: relative;
-            overflow: hidden;
-            display: flex; /* 내부 요소들을 flex로 정렬 */
-            flex-direction: column; /* 세로로 정렬 */
-            flex-shrink: 0; /* 이 요소는 줄어들지 않음 */
-        }
-        .stamp-image-comment {
-            position: absolute;
-            top: -15px;
-            right: -15px;
-            width: 90px;
-            height: 90px;
-            transform: rotate(15deg);
-            opacity: 0.8;
-        }
-        .record-item {
-            background-color: white;
-            border: 1px solid #B87B5C;
-            border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
-            color: #495235;
-        }
-
-        /* Calendar Styles */
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 0.5rem;
-            height: 380px; /* 이 값은 달력 내용과 여백에 따라 조정될 수 있습니다. */
-            flex-shrink: 0; /* 부모 flex 컨테이너 내에서 줄어들지 않도록 함 */
-        }
-        .date-cell {
-            background-color: white;
-            border: 1px solid #B87B5C;
-            border-radius: 0.75rem;
-            padding: 0.75rem;
-            aspect-ratio: 1 / 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
-            position: relative;
-            overflow: hidden;
-            color: #495235;
-        }
-        .date-cell:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-        }
-        .date-cell.has-diary {
-            background-color: #F4DDB8;
-            border-color: #8F9562;
-        }
-        .date-cell.today {
-            border: 2px solid #DA983C;
-            font-weight: bold;
-        }
-        .stamp-image-calendar {
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            width: 40px;
-            height: 40px;
-            transform: rotate(10deg);
-            opacity: 0.8;
-        }
-        .emotion-icon {
-            font-size: 1.3rem;
-            margin-top: 0.3rem;
-            color: #90533B;
-        }
-        /* Left Section: Calendar container */
-        .left-section-container {
-            flex-grow: 1; 
-            min-height: 550px; 
-            height: 800px; /* 고정 높이 설정 (스크린샷 비율에 맞춰 조정) */
-            overflow-y: auto; /* 리포트 목록이 많아지면 스크롤되도록 */
-        }
-
-        /* Right Section container */
-        .right-section-container {
-            flex-grow: 1; /* 남은 공간을 채우도록 성장 */
-            min-height: 550px; /* 왼쪽과 비슷한 최소 높이 보장 */
-            height: 800px; /* 왼쪽과 동일하게 고정 높이 설정 */
-        }
-        /* 스크롤 가능한 기록 목록의 직접적인 부모를 지정 */
-        .records-list-wrapper {
-            max-height: 250px; /* 초기 높이 제한. 이 값은 디자인에 따라 조정하세요. */
-            overflow-y: auto; /* 내부의 기록들만 스크롤되도록 */
-            padding: 1rem; /* 상자처럼 패딩 추가 */
-            padding-bottom: 1.5rem; /* 하단 패딩을 더 늘림 */
-            border: 1px solid #B87B5C; /* 얇은 테두리 추가 */
-            border-radius: 0.5rem; /* 모서리 둥글게 */
-            margin-bottom: 1rem; /* 하단 여백 추가 */
-            flex-shrink: 0; /* 이 래퍼가 줄어들지 않도록 함 */
-            background-color: white; /* 배경색도 하얀색으로 통일 */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 은은한 그림자 */
-        }
-        /* 오늘의 명언 블록 스타일 */
-        .daily-quote-box {
-            background-color: #F4DDB8; /* WHEAT */
-            border: 1px dashed #DA983C; /* HARVEST GOLD */
-            border-radius: 0.75rem;
-            padding: 1rem 1.5rem;
-            margin-bottom: 1.5rem; /* 새로운 기록 남기기 섹션과의 간격 */
-            text-align: center;
-            font-style: italic;
-            color: #90533B; /* CHESTNUT */
-            line-height: 1.5;
-            font-size: 1.1rem;
-        }
-    </style>
+    <script th:src="@{/js/diary_calendar.js}" defer></script>
 </head>
-<body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
-    <header class="w-full max-w-4xl text-center mb-10">
-        <h1 class="text-5xl font-bold text-[#90533B] mb-2">인생, 쓰다</h1>
-        <p class="text-2xl text-[#495235]">일기 기록 및 달력</p>
-        <!-- 유저 닉네임 표시 (테스트용: 쿼리 파라미터로 전달 시) -->
-        <div th:if="${user != null}" class="mt-2 text-lg text-[#8F9562] font-semibold">
-            환영합니다, <span th:text="${user.userNickname}"></span>님!
+<body>
+    <!-- 헤더 네비게이션 -->
+    <div th:replace="~{layout/header :: navbar}"></div>
+    
+    <!-- 메인 컨텐츠 영역 -->
+    <div class="contents_area">
+        <div class="wrap_1280">
+            <div class="text-center mb-10">
+                <h1 class="text-5xl font-bold text-[#90533B] mb-2">일기 기록 및 달력</h1>
+                <p class="text-2xl text-[#495235]">당신의 소중한 순간들을 기록하세요</p>
+            </div>
+
+            <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
+                <div class="lg:w-1/2 container-card left-section-container">
+                    <div class="flex justify-between items-center mb-6">
+                        <button id="prev-month-btn" class="btn-nav">&lt; 이전 달</button>
+                        <h2 id="calendar-title" class="text-3xl font-semibold text-[#90533B]">2025년 7월</h2>
+                        <button id="next-month-btn" class="btn-nav">다음 달 &gt;</button>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid mb-4"></div>
+                    <div class="text-center text-base text-[#8F9562] mt-4">
+                        <div class="calendar-info-section">
+                            <p id="calendar-summary">이번 달 일기: 0일 작성 | 연속 기록: 0일</p>
+                            <p id="calendar-emotions">주요 감정: -</p>
+                        </div>
+                    </div>
+                    <div class="mt-8 weekly-reports-section">
+                        <h3 class="text-xl font-semibold text-[#90533B] mb-4">주차별 감정 리포트</h3>
+                        <div id="weekly-reports-list" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <div class="lg:w-1/2 container-card flex flex-col right-section-container"> 
+                    <!-- 기록 목록 섹션 (스크롤 가능) -->
+                    <div class="flex-shrink-0 mb-4"> 
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="block text-xl font-semibold text-[#90533B]">오늘의 짧은 기록들</h2>
+                            <button id="search-toggle-btn" class="text-[#8F9562] hover:text-[#495235] transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Search Bar -->
+                        <div id="search-bar" class="mb-3 hidden">
+                            <input type="text" id="search-input" class="w-full input-field" placeholder="기록 내용을 검색해보세요...">
+                        </div>
+                    </div>
+                    
+                    <!-- 스크롤 가능한 기록 목록 -->
+                    <div class="records-list-wrapper flex-1"> 
+                        <div id="today-records-list-scrollable" class="space-y-2"> 
+                            <div class="record-item">
+                                <span class="text-[#8F9562] text-sm mr-2">[10:30]</span>
+                                오늘 아침 햇살이 너무 좋아서 기분 좋게 일어났어요.
+                            </div>
+                            <div class="record-item">
+                                <span class="text-[#8F9562] text-sm mr-2">[14:15]</span>
+                                점심으로 맛있는 파스타를 먹었는데, 정말 행복했어요!
+                            </div>
+                            <div class="record-item">
+                                <span class="text-[#8F9562] text-sm mr-2">[16:00]</span>
+                                오후에는 친구와 카페에서 수다를 떨었는데, 즐거웠어요!
+                            </div>
+                            <div class="record-item">
+                                <span class="text-[#8F9562] text-sm mr-2">[18:30]</span>
+                                저녁에 산책을 다녀왔는데, 시원한 바람이 정말 좋았어요.
+                            </div>
+                            <div class="record-item">
+                                <span class="text-[#8F9562] text-sm mr-2">[20:00]</span>
+                                오늘 하루도 정말 보람찼어요. 내일도 좋은 하루가 될 것 같아요!
+                            </div>
+                            <div id="no-records-placeholder" class="text-center text-[#8F9562] py-8 hidden">
+                                아직 오늘의 기록이 없습니다.<br>첫 번째 기록을 남겨보세요!
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 오늘의 명언 블록 -->
+                    <div class="daily-quote-box">
+                        <p id="daily-quote-text">오늘의 작은 기록이 내일의 큰 변화를 만듭니다.</p>
+                    </div>
+
+                    <!-- 새로운 기록 남기기 섹션 -->
+                    <div id="new-record-section" class="flex-shrink-0">
+                        <h3 class="text-lg font-semibold text-[#90533B] mb-3">새로운 기록 남기기</h3>
+                        
+                        <!-- 감정 선택 버튼들 -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-[#495235] mb-2">오늘의 감정을 선택해주세요:</label>
+                            <div class="flex gap-2 flex-wrap">
+                                <button class="emotion-btn" data-emotion="😊">😊</button>
+                                <button class="emotion-btn" data-emotion="😢">😢</button>
+                                <button class="emotion-btn" data-emotion="😡">😡</button>
+                                <button class="emotion-btn" data-emotion="😌">😌</button>
+                                <button class="emotion-btn" data-emotion="🤔">🤔</button>
+                                <button class="emotion-btn" data-emotion="😍">😍</button>
+                                <button class="emotion-btn" data-emotion="😴">😴</button>
+                                <button class="emotion-btn" data-emotion="😎">😎</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 기록 입력 필드 -->
+                        <div class="mb-4">
+                            <textarea id="diary-content" class="input-field" rows="3" placeholder="오늘의 생각이나 감정을 자유롭게 기록해보세요..."></textarea>
+                        </div>
+                        
+                        <!-- 저장 버튼 -->
+                        <button id="save-diary-btn" class="btn-main w-full">생각 기록하기</button>
+                    </div>
+
+                    <!-- AI 코멘트 섹션 (기본적으로 숨김) -->
+                    <div id="ai-comment-section" class="flex-shrink-0 hidden">
+                        <div class="ai-comment-box">
+                            <img src="/images/참잘했어요.png" alt="참잘했어요 스탬프" class="stamp-image-comment">
+                            <p id="ai-comment-text" class="text-[#495235] leading-relaxed mb-3">
+                                사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
+                                작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
+                                오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
+                                꾸준히 자신을 돌아보는 모습이 참 대견해요.
+                            </p>
+                            <p id="emotion-keywords" class="text-[#8F9562] text-sm font-medium">
+                                오늘의 감정 키워드: #기쁨 #평온 #대견함 #일상
+                            </p>
+                        </div>
+                        
+                        <!-- AI와 채팅하기 버튼 -->
+                        <button id="ai-chat-button" class="btn-ai-chat-action mt-4">
+                            AI와 채팅하기
+                        </button>
+                    </div>
+
+
+                </div>
+            </section>
         </div>
-    </header>
-
-    <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
-        <div class="lg:w-1/2 container-card flex flex-col left-section-container">
-            <div class="flex justify-between items-center mb-6 flex-shrink-0"> <button class="btn-nav">&lt; 이전 달</button>
-                <h2 class="text-3xl font-semibold text-[#90533B]">2025년 7월</h2>
-                <button class="btn-nav">다음 달 &gt;</button>
-            </div>
-
-            <div class="calendar-grid mb-4"> <div class="text-center font-medium text-[#B87B5C]">일</div>
-                <div class="text-center font-medium text-[#495235]">월</div>
-                <div class="text-center font-medium text-[#495235]">화</div>
-                <div class="text-center font-medium text-[#495235]">수</div>
-                <div class="text-center font-medium text-[#495235]">목</div>
-                <div class="text-center font-medium text-[#495235]">금</div>
-                <div class="text-center font-medium text-[#B87B5C]">토</div>
-
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-                <div class="date-cell bg-gray-100 cursor-default border-none shadow-none"></div>
-
-                <div class="date-cell">1</div>
-                <div class="date-cell">2</div>
-                <div class="date-cell">3</div>
-                <div class="date-cell">4</div>
-                <div class="date-cell">5</div>
-                <div class="date-cell">6</div>
-                <div class="date-cell">7</div>
-                <div class="date-cell">8</div>
-                <div class="date-cell">9</div>
-                <div class="date-cell has-diary">
-                    10
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😊</span>
-                </div>
-                <div class="date-cell has-diary">
-                    11
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😅</span>
-                </div>
-                <div class="date-cell">12</div>
-                <div class="date-cell">13</div>
-                <div class="date-cell">14</div>
-                <div class="date-cell has-diary">
-                    15
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😔</span>
-                </div>
-                <div class="date-cell today has-diary">
-                    16
-                    <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-calendar">
-                    <span class="emotion-icon">😌</span>
-                </div>
-                <div class="date-cell">17</div>
-                <div class="date-cell">18</div>
-                <div class="date-cell">19</div>
-                <div class="date-cell">20</div>
-                <div class="date-cell">21</div>
-                <div class="date-cell">22</div>
-                <div class="date-cell">23</div>
-                <div class="date-cell">24</div>
-                <div class="date-cell">25</div>
-                <div class="date-cell">26</div>
-                <div class="date-cell">27</div>
-                <div class="date-cell">28</div>
-                <div class="date-cell">29</div>
-                <div class="date-cell">30</div>
-                <div class="date-cell">31</div>
-            </div>
-            <div class="text-center text-base text-[#8F9562] mt-4 flex-shrink-0"> <p>이번 달 일기: 15일 작성 | 연속 기록: 7일</p>
-                <p>주요 감정: 평온, 기쁨, 피로</p>
-            </div>
-
-            <div class="mt-8 flex-grow overflow-y-auto"> <h3 class="text-xl font-semibold text-[#90533B] mb-4">주차별 감정 리포트</h3>
-                <div id="weekly-reports-list" class="space-y-3">
-                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C]">
-                        <span class="text-[#495235] font-medium">7월 1주차 리포트 (7/1 ~ 7/7)</span>
-                        <button class="btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm" onclick="alert('7월 1주차 리포트 페이지로 이동합니다!')">리포트 보기</button>
-                    </div>
-                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C]">
-                        <span class="text-[#495235] font-medium">7월 2주차 리포트 (7/8 ~ 7/14)</span>
-                        <button class="btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm" onclick="alert('7월 2주차 리포트 페이지로 이동합니다!')">리포트 보기</button>
-                    </div>
-                    <div class="flex items-center justify-between bg-white p-4 rounded-lg border border-[#B87B5C] opacity-70">
-                        <span class="text-[#8F9562] font-medium">7월 3주차 리포트 (7/15 ~ 7/21)</span>
-                        <span class="text-[#B87B5C] text-sm">아직 준비 중</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="lg:w-1/2 container-card flex flex-col right-section-container"> 
-            <div class="mb-4 flex-shrink-0"> <h2 class="block text-xl font-semibold text-[#90533B] mb-3">오늘의 짧은 기록들</h2>
-                <div class="records-list-wrapper"> <div id="today-records-list-scrollable" class="space-y-2"> <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[10:30]</span>
-                            오늘 아침 햇살이 너무 좋아서 기분 좋게 일어났어요.
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[14:15]</span>
-                            점심으로 맛있는 파스타를 먹었는데, 정말 행복했어요!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[16:00]</span>
-                            오후에는 친구와 카페에서 수다를 떨었는데, 즐거웠어요!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[18:30]</span>
-                            저녁으로 간단하게 샐러드를 먹었어요. 건강한 느낌!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[20:00]</span>
-                            좋아하는 드라마를 보면서 하루를 마무리하는 중입니다.
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[21:00]</span>
-                            새로운 책을 읽기 시작했는데, 내용이 정말 흥미로워요!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[22:30]</span>
-                            내일 일정을 정리하며 잠자리에 들 준비를 합니다.
-                        </div>
-                        <p id="no-records-placeholder" class="text-[#8F9562] text-center py-4 hidden">아직 오늘의 기록이 없어요. 첫 기록을 남겨보세요!</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="daily-quote-box mb-8 flex-shrink-0">
-                <p id="daily-quote-text">"당신의 작은 노력이 모여 큰 변화를 만듭니다."</p>
-                <p class="text-sm mt-2">- 알 수 없는 작가 -</p>
-            </div>
-
-            <div id="ai-comment-section" class="ai-comment-box mb-8 flex-shrink-0 hidden"> <img src="참잘했어요.jpg" alt="참 잘했어요 스탬프" class="stamp-image-comment">
-                <h3 class="text-2xl font-semibold text-[#90533B] mb-4">선생님의 따뜻한 코멘트</h3>
-                <p id="ai-comment-text" class="text-[#495235] leading-relaxed text-lg">
-                    사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
-                    작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
-                    오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
-                    꾸준히 자신을 돌아보는 모습이 참 대견해요.
-                </p>
-                </div>
-
-            <div id="new-record-section" class="mt-auto flex-shrink-0"> <label for="diary-content" class="block text-xl font-semibold text-[#90533B] mb-3">새로운 기록 남기기</label>
-                <textarea id="diary-content" rows="4" class="w-full input-field resize-y" placeholder="지금 당신의 생각이나 감정을 한두 줄로 자유롭게 기록해주세요."></textarea>
-            </div>
-            
-            <div class="flex flex-col gap-4 mt-6 flex-shrink-0"> <button id="ai-chat-button" class="btn-ai-chat-action hidden"> AI와 채팅하기
-                </button>
-                <div class="flex justify-center items-center gap-4"> <button id="save-diary-btn" class="btn-main flex-grow"> 생각 기록하기
-                    </button>
-                    <button id="toggle-comment-record-btn" class="btn-toggle">
-                        코멘트 보기 (테스트용)
-                    </button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <script>
-        // --- Combined Diary/Calendar Page Scripts ---
-        const aiCommentSection = document.getElementById('ai-comment-section');
-        const newRecordSection = document.getElementById('new-record-section');
-        const toggleCommentRecordBtn = document.getElementById('toggle-comment-record-btn');
-        const recordsListScrollable = document.getElementById('today-records-list-scrollable');
-        const noRecordsPlaceholder = document.getElementById('no-records-placeholder');
-        const saveDiaryBtn = document.getElementById('save-diary-btn');
-        const diaryContent = document.getElementById('diary-content');
-        const aiChatButton = document.getElementById('ai-chat-button'); // AI 채팅 버튼
-        const dailyQuoteBox = document.querySelector('.daily-quote-box'); // 오늘의 명언 블록
-
-        // 초기 상태: 새로운 기록 남기기 섹션 보이고 코멘트 섹션 숨기기
-        let isRecordMode = true; // true: 기록 모드, false: 코멘트 모드
-
-        const dailyQuotes = [
-            "오늘의 작은 기록이 내일의 큰 변화를 만듭니다.",
-            "당신의 감정은 소중하며, 기록될 가치가 있습니다.",
-            "지나간 하루는 되돌릴 수 없지만, 기록은 영원합니다.",
-            "가장 어두운 밤에 가장 밝은 별이 빛난다."
-        ];
-        let currentDailyQuoteIndex = 0;
-
-        function updateDailyQuote() {
-            const quoteTextElement = document.getElementById('daily-quote-text');
-            if (quoteTextElement) {
-                quoteTextElement.innerText = dailyQuotes[currentDailyQuoteIndex];
-                currentDailyQuoteIndex = (currentDailyQuoteIndex + 1) % dailyQuotes.length;
-            }
-        }
-
-
-        function updateAIComment(allTodayRecords) {
-            const aiCommentText = document.getElementById('ai-comment-text');
-            const emotionKeywords = document.getElementById('emotion-keywords');
-            
-            if (allTodayRecords.length > 0) {
-                aiCommentText.innerText = `사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
-                작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
-                오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
-                꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
-                emotionKeywords.innerText = '오늘의 감정 키워드: #기쁨 #평온 #대견함 #일상';
-            } else {
-                aiCommentText.innerText = '아직 오늘의 기록이 없어서 선생님의 코멘트가 준비되지 않았어요. 첫 기록을 남겨보세요!';
-                emotionKeywords.innerText = '';
-            }
-        }
-
-        // 현재 모드에 따라 섹션 가시성 및 버튼 텍스트 업데이트
-        function updateSectionVisibility() {
-            if (isRecordMode) {
-                // 기록 모드: 새로운 기록 섹션 보이고, AI 코멘트 섹션 숨김
-                newRecordSection.classList.remove('hidden');
-                saveDiaryBtn.classList.remove('hidden');
-                dailyQuoteBox.classList.remove('hidden'); // 기록 모드일 때 명언 블록 표시
-                aiCommentSection.classList.add('hidden');
-                aiChatButton.classList.add('hidden'); // AI 채팅 버튼 숨김
-                toggleCommentRecordBtn.innerText = '코멘트 보기 (테스트용)';
-
-            } else {
-                // 코멘트 모드: AI 코멘트 섹션 보이고, 새로운 기록 섹션 숨김
-                newRecordSection.classList.add('hidden');
-                saveDiaryBtn.classList.add('hidden');
-                dailyQuoteBox.classList.add('hidden'); // 코멘트 모드일 때 명언 블록 숨김
-                aiCommentSection.classList.remove('hidden');
-                
-                // 코멘트가 있는 경우에만 AI 채팅 버튼 표시
-                const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-                if (allRecords.length > 0) { // 예시 기록이 하나라도 있으면 AI 코멘트가 있다고 간주
-                    aiChatButton.classList.remove('hidden'); 
-                } else {
-                    aiChatButton.classList.add('hidden');
-                }
-                toggleCommentRecordBtn.innerText = '기록 남기기 (테스트용)';
-            }
-        }
-
-        // "생각 기록하기" 버튼 클릭 이벤트
-        saveDiaryBtn.addEventListener('click', function() {
-            const content = diaryContent.value.trim();
-            if (content) {
-                const now = new Date();
-                const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                
-                const newRecordItem = document.createElement('div');
-                newRecordItem.className = 'record-item';
-                newRecordItem.innerHTML = `<span class="text-[#8F9562] text-sm mr-2">[${time}]</span>${content}`;
-                recordsListScrollable.prepend(newRecordItem); // Add to top of the list
-
-                diaryContent.value = ''; // Clear input
-                noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
-
-                const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-                updateAIComment(allRecords); // AI 코멘트 업데이트
-
-                recordsListScrollable.scrollTop = 0; // 스크롤을 최상단으로 이동
-                
-            } else {
-                alert('기록할 내용을 입력해주세요.');
-            }
-        });
-
-        // "코멘트/기록 전환" 버튼 클릭 이벤트
-        toggleCommentRecordBtn.addEventListener('click', function() {
-            isRecordMode = !isRecordMode; // 모드 토글
-            updateSectionVisibility(); // 가시성 업데이트
-            
-            // 코멘트 모드로 전환 시, AI 코멘트 내용 다시 계산
-            if (!isRecordMode) {
-                const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-                updateAIComment(allRecords);
-            }
-        });
-
-        // "AI와 채팅하기" 버튼 클릭 이벤트
-        aiChatButton.addEventListener('click', function() {
-            alert('AI 채팅 페이지로 이동합니다!');
-            // 실제 구현 시 window.location.href = '/chat'; 등으로 페이지 이동
-        });
-
-
-        // 초기 로드 시 설정
-        document.addEventListener('DOMContentLoaded', function() {
-            // 초기 상태는 기록 모드로 시작하며, 코멘트 블록은 숨겨집니다.
-            isRecordMode = true; 
-            updateSectionVisibility();
-            updateDailyQuote(); // 초기 명언 설정
-            setInterval(updateDailyQuote, 10000); // 10초마다 명언 변경 (선택 사항)
-
-            // 초기 기록이 없는 경우 placeholder 표시
-            const initialRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-            if (initialRecords.length === 0) {
-                noRecordsPlaceholder.classList.remove('hidden');
-            } else {
-                noRecordsPlaceholder.classList.add('hidden');
-            }
-            updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정 (숨겨져 있어도 내용 미리 준비)
-        });
-    </script>
+    </div>
 </body>
-</html>
+</html> 
