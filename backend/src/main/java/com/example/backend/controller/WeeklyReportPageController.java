@@ -13,7 +13,6 @@ public class WeeklyReportPageController {
     @GetMapping("/report")
     public String showReportPage(Model model) {
         model.addAttribute("contentPath", "report");
-//        return "layout/base";
-        return "page/report";
+        return "layout/base";
     }
 }
