@@ -15,7 +15,10 @@ const mainRegistrationFormSection = document.getElementById('registration-form-s
 // 로그인 상태 변수
 let isLoggedIn = false;
 
-// 서버에서 로그인 상태 확인
+/**
+ * 서버에서 현재 로그인 상태를 확인하는 함수
+ * 세션 정보를 통해 사용자가 로그인되어 있는지 확인
+ */
 async function checkLoginStatus() {
     try {
         const response = await fetch('/api/check-login-status', {
@@ -35,7 +38,10 @@ async function checkLoginStatus() {
     }
 }
 
-// 로그아웃 함수
+/**
+ * 사용자 로그아웃 처리 함수
+ * 서버에 로그아웃 요청을 보내고 로컬 상태를 업데이트
+ */
 async function logout() {
     try {
         const response = await fetch('/logout', {
@@ -56,6 +62,10 @@ async function logout() {
     }
 }
 
+/**
+ * 로그인/회원가입 폼을 표시하는 함수
+ * @param {string} formType - 'login' 또는 'register'
+ */
 function showForm(formType) {
     if (formType === 'login') {
         mainLoginFormSection.classList.remove('hidden');
@@ -70,6 +80,10 @@ function showForm(formType) {
     }
 }
 
+/**
+ * 로그인/회원가입 폼을 숨기는 함수
+ * @param {string} formType - 'login' 또는 'register'
+ */
 function hideForm(formType) {
     if (formType === 'login') {
         mainLoginFormSection.classList.add('hidden');
@@ -78,6 +92,11 @@ function hideForm(formType) {
     }
 }
 
+/**
+ * 로그인 상태에 따라 인증 버튼을 렌더링하는 함수
+ * 로그인 상태면 '일기 쓰러 가기'와 '로그아웃' 버튼 표시
+ * 비로그인 상태면 '로그인'과 '회원가입' 버튼 표시
+ */
 function renderAuthButtons() {
     if (isLoggedIn) {
         mainAuthButtonsDiv.innerHTML = `
@@ -92,6 +111,10 @@ function renderAuthButtons() {
     }
 }
 
+/**
+ * 메인 페이지의 인용구를 순환하여 표시하는 함수
+ * 미리 정의된 인용구 배열에서 다음 인용구를 표시
+ */
 function displayNextQuote() {
     if (mainQuoteDisplay) {
         mainQuoteDisplay.textContent = `"${mainQuotes[currentQuoteIndex]}"`;
@@ -99,6 +122,10 @@ function displayNextQuote() {
     }
 }
 
+/**
+ * 메인 페이지 초기화 함수
+ * URL 파라미터 확인, 로그인 상태 체크, 인용구 표시, 폼 초기화를 수행
+ */
 function initializeMainPage() {
     // URL 파라미터 확인 (로그인/회원가입 성공 여부)
     const urlParams = new URLSearchParams(window.location.search);
@@ -139,7 +166,11 @@ function initializeMainPage() {
     }
 }
 
-// 메시지 표시 함수
+/**
+ * 사용자에게 알림 메시지를 표시하는 함수
+ * @param {string} message - 표시할 메시지
+ * @param {string} type - 'success' 또는 'error'
+ */
 function showMessage(message, type) {
     // 간단한 알림 메시지 표시
     const messageDiv = document.createElement('div');
@@ -181,7 +212,11 @@ let emailTouched = false;
 let passwordTouched = false;
 let confirmPasswordTouched = false;
 
-// 닉네임 중복 검사 (실제 서버 API 호출)
+/**
+ * 서버에서 닉네임 중복 여부를 확인하는 함수
+ * @param {string} nickname - 확인할 닉네임
+ * @returns {boolean} 중복되지 않으면 true, 중복되면 false
+ */
 async function checkNicknameAvailability(nickname) {
     try {
         const response = await fetch('/api/check-nickname', {
@@ -203,7 +238,11 @@ async function checkNicknameAvailability(nickname) {
     }
 }
 
-// 이메일 중복 검사 (실제 서버 API 호출)
+/**
+ * 서버에서 이메일 중복 여부를 확인하는 함수
+ * @param {string} email - 확인할 이메일
+ * @returns {boolean} 중복되지 않으면 true, 중복되면 false
+ */
 async function checkEmailAvailability(email) {
     try {
         const response = await fetch('/api/check-email', {
@@ -225,11 +264,20 @@ async function checkEmailAvailability(email) {
     }
 }
 
+/**
+ * 이메일 형식이 올바른지 검증하는 함수
+ * @param {string} email - 검증할 이메일
+ * @returns {boolean} 올바른 형식이면 true, 아니면 false
+ */
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
 
+/**
+ * 닉네임 입력 필드의 실시간 검증을 처리하는 함수
+ * 길이 검사, 중복 검사를 수행하고 UI 상태를 업데이트
+ */
 async function handleNicknameInput() {
     const nicknameInput = document.getElementById('reg-name');
     const nicknameError = document.getElementById('nickname-error');
@@ -287,6 +335,10 @@ async function handleNicknameInput() {
     }, 500);
 }
 
+/**
+ * 이메일 입력 필드의 실시간 검증을 처리하는 함수
+ * 형식 검사, 중복 검사를 수행하고 UI 상태를 업데이트
+ */
 async function handleEmailInput() {
     const emailInput = document.getElementById('reg-email');
     const emailError = document.getElementById('email-error');
@@ -344,6 +396,10 @@ async function handleEmailInput() {
     }, 500);
 }
 
+/**
+ * 비밀번호 입력 필드의 실시간 검증을 처리하는 함수
+ * 길이 검사(8-20자)를 수행하고 UI 상태를 업데이트
+ */
 function handlePasswordInput() {
     const passwordInput = document.getElementById('reg-password');
     const passwordError = document.getElementById('password-error');
@@ -375,6 +431,10 @@ function handlePasswordInput() {
     updateSubmitButton();
 }
 
+/**
+ * 비밀번호 확인 입력 필드의 실시간 검증을 처리하는 함수
+ * 비밀번호와 일치 여부를 검사하고 UI 상태를 업데이트
+ */
 function handleConfirmPasswordInput() {
     const passwordInput = document.getElementById('reg-password');
     const confirmPasswordInput = document.getElementById('reg-confirm-password');
@@ -412,12 +472,20 @@ function handleConfirmPasswordInput() {
     updateSubmitButton();
 }
 
+/**
+ * 약관 동의 체크박스 상태 변경을 처리하는 함수
+ * 체크박스 상태에 따라 폼 유효성을 업데이트
+ */
 function handleTermsAgreement() {
     const termsCheckbox = document.getElementById('terms-agree');
     isTermsAgreed = termsCheckbox.checked;
     updateSubmitButton();
 }
 
+/**
+ * 회원가입 폼의 제출 버튼 상태를 업데이트하는 함수
+ * 모든 필수 필드가 유효한 경우에만 버튼을 활성화
+ */
 function updateSubmitButton() {
     const submitButton = document.getElementById('register-submit-btn');
     const isFormValid = isNicknameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid && isTermsAgreed;
@@ -431,6 +499,11 @@ function updateSubmitButton() {
     }
 }
 
+/**
+ * 회원가입 폼 제출 시 최종 유효성 검사를 수행하는 함수
+ * @param {Event} event - 폼 제출 이벤트
+ * @returns {boolean} 모든 검증을 통과하면 true, 아니면 false
+ */
 function validateRegistrationForm(event) {
     console.log('validateRegistrationForm 호출됨');
     
@@ -467,7 +540,10 @@ function validateRegistrationForm(event) {
     return true;
 }
 
-// 로그인 폼 초기화 함수
+/**
+ * 로그인 폼을 초기 상태로 리셋하는 함수
+ * 모든 입력 필드를 비우고 에러 상태를 제거
+ */
 function resetLoginForm() {
     const loginForm = document.querySelector('#login-form-section form');
     if (loginForm) {
@@ -475,7 +551,10 @@ function resetLoginForm() {
     }
 }
 
-// 회원가입 폼 초기화 함수
+/**
+ * 회원가입 폼을 초기 상태로 리셋하는 함수
+ * 모든 입력 필드, 상태 변수, 에러 메시지를 초기화
+ */
 function resetRegistrationForm() {
     // 모든 입력 필드 초기화
     const inputs = document.querySelectorAll('#registration-form input');
