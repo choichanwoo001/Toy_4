@@ -21,7 +21,7 @@ public class MyPageController {
         model.addAttribute("title", "마이페이지");
         model.addAttribute("contentPath", "myPage");
         // 실제 구현 시 로그인 사용자 ID 사용
-        MyPageSummaryDto summary = myPageService.getMyPageSummary(1L);
+        MyPageSummaryDto summary = myPageService.getMyPageSummary(2L);
         model.addAttribute("summary", summary);
         return "layout/base";
     }

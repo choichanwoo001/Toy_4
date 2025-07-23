@@ -1,24 +1,77 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.MyPageSummaryDto;
+import com.example.backend.entity.DailyComment;
+import com.example.backend.entity.Diary;
+import com.example.backend.entity.User;
+import com.example.backend.repository.CommentEmotionMappingRepository;
+import com.example.backend.repository.DailyCommentRepository;
+import com.example.backend.repository.DiaryRepository;
+import com.example.backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.time.LocalDate;
-import java.util.Arrays;
+import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class MyPageService {
+    private final UserRepository userRepository;
+    private final DiaryRepository diaryRepository;
+    private final DailyCommentRepository dailyCommentRepository;
+    private final CommentEmotionMappingRepository commentEmotionMappingRepository;
 
+    @Transactional
     public MyPageSummaryDto getMyPageSummary(Long userId) {
-        // 실제 구현 시 DB에서 userId로 데이터 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        int totalDiaryCount = diaryRepository.countByUser(user);
+        int consecutiveDiaryDays = calculateConsecutiveDiaryDays(user);
+        DailyComment recentComment = dailyCommentRepository.findTopByUserOrderByCreatedAtDesc(user);
+        List<String> mainEmotions = List.of();
+        String recentAiComment = null;
+        String recentStampImage = null;
+        if (recentComment != null) {
+            mainEmotions = commentEmotionMappingRepository.findEmotionsByDailyComment(recentComment);
+            recentAiComment = recentComment.getContent();
+            if (recentComment.getDiary() != null) {
+                recentStampImage = recentComment.getDiary().getAppliedStamp();
+            }
+        }
+        // mainEmotions를 '#행복 #피로' 형식의 1개 문자열 리스트로 가공
+        String mainEmotionsStr = mainEmotions.stream()
+            .map(e -> "#" + e)
+            .reduce((a, b) -> a + " " + b)
+            .orElse("");
+        
         MyPageSummaryDto dto = new MyPageSummaryDto();
-        dto.setNickname("홍길동");
-        dto.setEmail("hong@email.com");
-        dto.setJoinDate(LocalDate.of(2023, 1, 1));
-        dto.setTotalDiaryCount(123);
-        dto.setConsecutiveDiaryDays(7);
-        dto.setMainEmotions(Arrays.asList("#기쁨", "#평온", "#성장"));
-        dto.setRecentAiComment("제자님, 오늘도 하루를 잘 기록했네요! 작은 노력이 큰 변화를 만든답니다.");
-        dto.setRecentStampImage("참잘했어요.jpg");
+        dto.setNickname(user.getUserNickname());
+        dto.setEmail(user.getUserEmail());
+        dto.setJoinDate(user.getUserCreatedAt().toLocalDate());
+        dto.setTotalDiaryCount(totalDiaryCount);
+        dto.setConsecutiveDiaryDays(consecutiveDiaryDays);
+        dto.setMainEmotions(List.of(mainEmotionsStr));
+        dto.setRecentAiComment(recentAiComment != null ? recentAiComment : "AI 코멘트가 없습니다.");
+        dto.setRecentStampImage(recentStampImage != null ? recentStampImage : "default_stamp.png");
         return dto;
+    }
+
+    // 어제까지 연속 일기 작성 일수 계산
+    private int calculateConsecutiveDiaryDays(User user) {
+        List<Diary> diaries = diaryRepository.findByUserOrderByCreatedAtDesc(user);
+        if (diaries.isEmpty()) {
+            return 0;
+        }
+        java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+        int streak = 0;
+        for (com.example.backend.entity.Diary diary : diaries) {
+            java.time.LocalDate diaryDate = diary.getCreatedAt().toLocalDate();
+            if (diaryDate.equals(yesterday.minusDays(streak))) {
+                streak++;
+            } else if (diaryDate.isBefore(yesterday.minusDays(streak))) {
+                break;
+            }
+        }
+        return streak;
     }
 }
