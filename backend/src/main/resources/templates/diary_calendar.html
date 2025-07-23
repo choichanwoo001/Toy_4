@@ -198,6 +198,11 @@
             filter: drop-shadow(0 2px 6px rgba(60,40,120,0.18)) contrast(1.15) brightness(1.1);
             pointer-events: none;
             z-index: 2;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .stamp-image-calendar.loading {
+            opacity: 0;
         }
         .date-cell .date-number {
             position: relative;
@@ -263,6 +268,142 @@
         }
         .emotion-icon-modal { font-size: 2rem; margin-right: 0.5rem; }
         .stamp-image-modal { width: 60px; height: 60px; margin-left: 1rem; }
+        
+        /* Skeleton Loading Styles */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .skeleton-calendar {
+            height: 380px;
+            width: 100%;
+        }
+        
+        .skeleton-record {
+            height: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .skeleton-text {
+            height: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .skeleton-text:last-child {
+            width: 60%;
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 1rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #DA983C;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Animation for record items */
+        .record-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .record-item.fade-out {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+        
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        
+        /* Enhanced hover effects for calendar */
+        .date-cell {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .date-cell:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        
+        .date-cell.selected {
+            border: 3px solid #DA983C;
+            background-color: #F4DDB8;
+            transform: scale(1.1);
+            z-index: 5;
+        }
+        
+        /* Emotion button styles */
+        .emotion-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #B87B5C;
+            border-radius: 50%;
+            background: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .emotion-btn:hover {
+            transform: scale(1.1);
+            border-color: #DA983C;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .emotion-btn.selected {
+            background-color: #F4DDB8;
+            border-color: #DA983C;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
@@ -294,7 +435,21 @@
         </div>
 
         <div class="lg:w-1/2 container-card flex flex-col right-section-container"> 
-            <div class="mb-4 flex-shrink-0"> <h2 class="block text-xl font-semibold text-[#90533B] mb-3">오늘의 짧은 기록들</h2>
+            <div class="mb-4 flex-shrink-0"> 
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="block text-xl font-semibold text-[#90533B]">오늘의 짧은 기록들</h2>
+                    <button id="search-toggle-btn" class="text-[#8F9562] hover:text-[#495235] transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Search Bar -->
+                <div id="search-bar" class="mb-3 hidden">
+                    <input type="text" id="search-input" class="w-full input-field" placeholder="기록 내용을 검색해보세요...">
+                </div>
+                
                 <div class="records-list-wrapper"> <div id="today-records-list-scrollable" class="space-y-2"> <div class="record-item">
                             <span class="text-[#8F9562] text-sm mr-2">[10:30]</span>
                             오늘 아침 햇살이 너무 좋아서 기분 좋게 일어났어요.
@@ -323,7 +478,19 @@
                             <span class="text-[#8F9562] text-sm mr-2">[22:30]</span>
                             내일 일정을 정리하며 잠자리에 들 준비를 합니다.
                         </div>
-                        <p id="no-records-placeholder" class="text-[#8F9562] text-center py-4 hidden">아직 오늘의 기록이 없어요. 첫 기록을 남겨보세요!</p>
+                        <div id="no-records-placeholder" class="text-center py-8 hidden">
+                            <div class="mb-4">
+                                <svg class="w-16 h-16 mx-auto text-[#8F9562] opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-[#495235] mb-2">아직 기록이 없어요</h3>
+                            <p class="text-[#8F9562] mb-4">오늘의 첫 번째 기록을 남겨보세요!</p>
+                            <div class="text-sm text-[#B87B5C]">
+                                <p>✨ 작은 순간도 소중한 기록이 됩니다</p>
+                                <p>📝 지금 당신의 생각을 자유롭게 적어보세요</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -344,7 +511,24 @@
                 </p>
             </div>
 
-            <div id="new-record-section" class="mt-auto flex-shrink-0"> <label for="diary-content" class="block text-xl font-semibold text-[#90533B] mb-3">새로운 기록 남기기</label>
+            <div id="new-record-section" class="mt-auto flex-shrink-0"> 
+                <label for="diary-content" class="block text-xl font-semibold text-[#90533B] mb-3">새로운 기록 남기기</label>
+                
+                <!-- Emotion Selection -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-[#495235] mb-2">오늘의 감정</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="emotion-btn" data-emotion="😊" title="행복">😊</button>
+                        <button class="emotion-btn" data-emotion="😢" title="슬픔">😢</button>
+                        <button class="emotion-btn" data-emotion="😡" title="화남">😡</button>
+                        <button class="emotion-btn" data-emotion="😌" title="평온">😌</button>
+                        <button class="emotion-btn" data-emotion="🤔" title="고민">🤔</button>
+                        <button class="emotion-btn" data-emotion="😴" title="피곤">😴</button>
+                        <button class="emotion-btn" data-emotion="😍" title="사랑">😍</button>
+                        <button class="emotion-btn" data-emotion="😤" title="스트레스">😤</button>
+                    </div>
+                </div>
+                
                 <textarea id="diary-content" rows="4" class="w-full input-field resize-y" placeholder="지금 당신의 생각이나 감정을 한두 줄로 자유롭게 기록해주세요."></textarea>
             </div>
             
@@ -370,6 +554,97 @@
 
     <script>
         // --- Combined Diary/Calendar Page Scripts ---
+        
+        // Loading state management
+        let isLoading = false;
+        
+        // Skeleton UI functions
+        function showCalendarSkeleton() {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = `
+                <div class="skeleton skeleton-calendar"></div>
+            `;
+        }
+        
+        function showRecordsSkeleton() {
+            const recordsList = document.getElementById('today-records-list-scrollable');
+            recordsList.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const skeletonItem = document.createElement('div');
+                skeletonItem.className = 'skeleton skeleton-record';
+                recordsList.appendChild(skeletonItem);
+            }
+        }
+        
+        function showWeeklyReportsSkeleton() {
+            const reportsList = document.getElementById('weekly-reports-list');
+            reportsList.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const skeletonItem = document.createElement('div');
+                skeletonItem.className = 'skeleton skeleton-record';
+                reportsList.appendChild(skeletonItem);
+            }
+        }
+        
+        function hideSkeletons() {
+            // Skeletons will be replaced by actual content
+        }
+        
+        // Lazy loading for images
+        function lazyLoadImage(img) {
+            if (img.dataset.src) {
+                img.classList.add('loading');
+                img.src = img.dataset.src;
+                img.onload = function() {
+                    img.classList.remove('loading');
+                    img.removeAttribute('data-src');
+                };
+                img.onerror = function() {
+                    img.classList.remove('loading');
+                    img.style.display = 'none';
+                };
+            }
+        }
+        
+        // Intersection Observer for lazy loading
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    lazyLoadImage(img);
+                    observer.unobserve(img);
+                }
+            });
+        });
+        
+        // Error handling
+        function showErrorMessage(message) {
+            // Create error notification
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+            errorDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 5000);
+        }
+        
         const aiCommentSection = document.getElementById('ai-comment-section');
         const newRecordSection = document.getElementById('new-record-section');
         const toggleCommentRecordBtn = document.getElementById('toggle-comment-record-btn');
@@ -381,6 +656,49 @@
         const diaryContent = document.getElementById('diary-content');
         const aiChatButton = document.getElementById('ai-chat-button'); // AI 채팅 버튼
         const dailyQuoteBox = document.querySelector('.daily-quote-box'); // 오늘의 명언 블록
+        
+        // Emotion selection
+        let selectedEmotion = null;
+        const emotionButtons = document.querySelectorAll('.emotion-btn');
+        
+        emotionButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove previous selection
+                emotionButtons.forEach(b => b.classList.remove('selected'));
+                // Add selection to current button
+                this.classList.add('selected');
+                selectedEmotion = this.dataset.emotion;
+            });
+        });
+        
+        // Search functionality
+        const searchToggleBtn = document.getElementById('search-toggle-btn');
+        const searchBar = document.getElementById('search-bar');
+        const searchInput = document.getElementById('search-input');
+        let allRecords = []; // Store all records for search
+        
+        searchToggleBtn.addEventListener('click', function() {
+            searchBar.classList.toggle('hidden');
+            if (!searchBar.classList.contains('hidden')) {
+                searchInput.focus();
+            }
+        });
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const recordItems = document.querySelectorAll('.record-item');
+            
+            recordItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    item.style.opacity = '1';
+                } else {
+                    item.style.display = 'none';
+                    item.style.opacity = '0.3';
+                }
+            });
+        });
 
         // 초기 상태: 새로운 기록 남기기 섹션 보이고 코멘트 섹션 숨기기
         let isRecordMode = true; // true: 기록 모드, false: 코멘트 모드
@@ -467,10 +785,19 @@
                 
                 const newRecordItem = document.createElement('div');
                 newRecordItem.className = 'record-item';
-                newRecordItem.innerHTML = `<span class="text-[#8F9562] text-sm mr-2">[${time}]</span>${content}`;
+                
+                // Include emotion if selected
+                const emotionDisplay = selectedEmotion ? ` <span class="text-lg">${selectedEmotion}</span>` : '';
+                newRecordItem.innerHTML = `<span class="text-[#8F9562] text-sm mr-2">[${time}]</span>${content}${emotionDisplay}`;
+                
                 recordsListScrollable.prepend(newRecordItem); // Add to top of the list
 
                 diaryContent.value = ''; // Clear input
+                
+                // Reset emotion selection
+                emotionButtons.forEach(b => b.classList.remove('selected'));
+                selectedEmotion = null;
+                
                 noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
 
                 const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
@@ -591,10 +918,14 @@
                     cell.classList.add('has-diary');
                     // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
                     const img = document.createElement('img');
-                    img.src = '/images/참잘했어요.png';
+                    img.dataset.src = '/images/참잘했어요.png';
                     img.alt = '참잘했어요 스탬프';
-                    img.className = 'stamp-image-calendar';
+                    img.className = 'stamp-image-calendar loading';
                     cell.appendChild(img);
+                    
+                    // Observe for lazy loading
+                    imageObserver.observe(img);
+                    
                     if (diary.emotion) {
                         const span = document.createElement('span');
                         span.className = 'emotion-icon';
@@ -643,7 +974,23 @@
             }
         }
         function selectDiaryDate(year, month, day, diaryData) {
+            // Remove previous selection
+            const prevSelected = document.querySelector('.date-cell.selected');
+            if (prevSelected) {
+                prevSelected.classList.remove('selected');
+            }
+            
             selectedDate = new Date(year, month-1, day);
+            
+            // Add selection to current date
+            const currentCells = document.querySelectorAll('.date-cell');
+            currentCells.forEach(cell => {
+                const cellDate = cell.querySelector('.date-number');
+                if (cellDate && cellDate.textContent == day) {
+                    cell.classList.add('selected');
+                }
+            });
+            
             // 해당 날짜의 모든 기록(시간별 등) 필터링
             const records = diaryData.filter(item => {
                 const d = new Date(item.createdAt);
@@ -706,9 +1053,21 @@
             fetchAndRender();
         };
         function fetchAndRender() {
+            // Show loading state
+            isLoading = true;
+            showCalendarSkeleton();
+            showRecordsSkeleton();
+            showWeeklyReportsSkeleton();
+            
             document.getElementById('calendar-title').textContent = `${currentYear}년 ${currentMonth}월`;
+            
             fetch(`/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     currentDiaries = data.data || [];
                     renderCalendar(currentYear, currentMonth, currentDiaries);
@@ -721,6 +1080,12 @@
                     } else {
                         renderRecordsList([], currentYear, currentMonth, 1);
                     }
+                    isLoading = false;
+                })
+                .catch(error => {
+                    console.error('Error fetching diary data:', error);
+                    showErrorMessage('데이터를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.');
+                    isLoading = false;
                 });
         }
 
