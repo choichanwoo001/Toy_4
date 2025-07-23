@@ -155,7 +155,7 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 0.5rem;
-            height: 380px; /* 이 값은 달력 내용과 여백에 따라 조정될 수 있습니다. */
+            height: 320px; /* 달력 높이를 줄여서 주차별 리포트 공간 확보 */
             flex-shrink: 0; /* 부모 flex 컨테이너 내에서 줄어들지 않도록 함 */
         }
         .date-cell {
@@ -228,17 +228,19 @@
             flex-grow: 1; /* 남은 공간을 채우도록 성장 */
             min-height: 550px; /* 왼쪽과 비슷한 최소 높이 보장 */
             height: 800px; /* 왼쪽과 동일하게 고정 높이 설정 */
+            display: flex;
+            flex-direction: column;
         }
         /* 스크롤 가능한 기록 목록의 직접적인 부모를 지정 */
         .records-list-wrapper {
-            max-height: 250px; /* 초기 높이 제한. 이 값은 디자인에 따라 조정하세요. */
+            min-height: 200px; /* 최소 높이 보장 */
+            max-height: 350px; /* 최대 높이 제한 - 스크롤 생기도록 */
             overflow-y: auto; /* 내부의 기록들만 스크롤되도록 */
             padding: 1rem; /* 상자처럼 패딩 추가 */
             padding-bottom: 1.5rem; /* 하단 패딩을 더 늘림 */
             border: 1px solid #B87B5C; /* 얇은 테두리 추가 */
             border-radius: 0.5rem; /* 모서리 둥글게 */
             margin-bottom: 1rem; /* 하단 여백 추가 */
-            flex-shrink: 0; /* 이 래퍼가 줄어들지 않도록 함 */
             background-color: white; /* 배경색도 하얀색으로 통일 */
             box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 은은한 그림자 */
         }
@@ -404,6 +406,101 @@
             border-color: #DA983C;
             transform: scale(1.1);
         }
+        
+        /* ===================== NEW EMOTION STATS STYLES ===================== */
+        /* 2025-01-XX: 주요 감정 표시 스타일 추가 */
+        .emotion-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .emotion-stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background-color: #F4DDB8;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #90533B;
+            border: 1px solid #B87B5C;
+            margin: 0 0.25rem;
+        }
+        
+        .emotion-stat-count {
+            font-size: 0.8rem;
+            color: #8F9562;
+            font-weight: 500;
+        }
+        
+        /* 달력 하단 정보 섹션 스타일 */
+        .calendar-info-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .calendar-info-section p {
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        /* 주차별 리포트 섹션 스타일 */
+        .weekly-reports-section {
+            min-height: 150px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .weekly-reports-section::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .weekly-reports-section::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .weekly-reports-section::-webkit-scrollbar-thumb {
+            background: #B87B5C;
+            border-radius: 3px;
+        }
+        
+        .weekly-reports-section::-webkit-scrollbar-thumb:hover {
+            background: #90533B;
+        }
+        
+        /* 왼쪽 섹션 스크롤 제거 */
+        .left-section-container {
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 오른쪽 섹션 스크롤바 스타일 (브라운 계열 유지) */
+        .records-list-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .records-list-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .records-list-wrapper::-webkit-scrollbar-thumb {
+            background: #B87B5C;
+            border-radius: 3px;
+        }
+        
+        .records-list-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #90533B;
+        }
+        /* ===================== END NEW EMOTION STATS STYLES ===================== */
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
@@ -417,25 +514,28 @@
     </header>
 
     <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
-        <div class="lg:w-1/2 container-card flex flex-col left-section-container">
-            <div class="flex justify-between items-center mb-6 flex-shrink-0">
+        <div class="lg:w-1/2 container-card left-section-container">
+            <div class="flex justify-between items-center mb-6">
                 <button id="prev-month-btn" class="btn-nav">&lt; 이전 달</button>
                 <h2 id="calendar-title" class="text-3xl font-semibold text-[#90533B]">2025년 7월</h2>
                 <button id="next-month-btn" class="btn-nav">다음 달 &gt;</button>
             </div>
             <div id="calendar-grid" class="calendar-grid mb-4"></div>
-            <div class="text-center text-base text-[#8F9562] mt-4 flex-shrink-0">
-                <p id="calendar-summary">이번 달 일기: 0일 작성 | 연속 기록: 0일</p>
-                <p id="calendar-emotions">주요 감정: -</p>
+            <div class="text-center text-base text-[#8F9562] mt-4">
+                <div class="calendar-info-section">
+                    <p id="calendar-summary">이번 달 일기: 0일 작성 | 연속 기록: 0일</p>
+                    <p id="calendar-emotions">주요 감정: -</p>
+                </div>
             </div>
-            <div class="mt-8 flex-grow overflow-y-auto">
+            <div class="mt-8 weekly-reports-section">
                 <h3 class="text-xl font-semibold text-[#90533B] mb-4">주차별 감정 리포트</h3>
                 <div id="weekly-reports-list" class="space-y-3"></div>
             </div>
         </div>
 
         <div class="lg:w-1/2 container-card flex flex-col right-section-container"> 
-            <div class="mb-4 flex-shrink-0"> 
+            <!-- 기록 목록 섹션 (스크롤 가능) -->
+            <div class="flex-shrink-0 mb-4"> 
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="block text-xl font-semibold text-[#90533B]">오늘의 짧은 기록들</h2>
                     <button id="search-toggle-btn" class="text-[#8F9562] hover:text-[#495235] transition-colors">
@@ -449,58 +549,61 @@
                 <div id="search-bar" class="mb-3 hidden">
                     <input type="text" id="search-input" class="w-full input-field" placeholder="기록 내용을 검색해보세요...">
                 </div>
-                
-                <div class="records-list-wrapper"> <div id="today-records-list-scrollable" class="space-y-2"> <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[10:30]</span>
-                            오늘 아침 햇살이 너무 좋아서 기분 좋게 일어났어요.
+            </div>
+            
+            <!-- 스크롤 가능한 기록 목록 -->
+            <div class="records-list-wrapper flex-1"> 
+                <div id="today-records-list-scrollable" class="space-y-2"> 
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[10:30]</span>
+                        오늘 아침 햇살이 너무 좋아서 기분 좋게 일어났어요.
+                    </div>
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[14:15]</span>
+                        점심으로 맛있는 파스타를 먹었는데, 정말 행복했어요!
+                    </div>
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[16:00]</span>
+                        오후에는 친구와 카페에서 수다를 떨었는데, 즐거웠어요!
+                    </div>
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[18:30]</span>
+                        저녁으로 간단하게 샐러드를 먹었어요. 건강한 느낌!
+                    </div>
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[20:00]</span>
+                        좋아하는 드라마를 보면서 하루를 마무리하는 중입니다.
+                    </div>
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[21:00]</span>
+                        새로운 책을 읽기 시작했는데, 내용이 정말 흥미로워요!
+                    </div>
+                    <div class="record-item">
+                        <span class="text-[#8F9562] text-sm mr-2">[22:30]</span>
+                        내일 일정을 정리하며 잠자리에 들 준비를 합니다.
+                    </div>
+                    <div id="no-records-placeholder" class="text-center py-8 hidden">
+                        <div class="mb-4">
+                            <svg class="w-16 h-16 mx-auto text-[#8F9562] opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
                         </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[14:15]</span>
-                            점심으로 맛있는 파스타를 먹었는데, 정말 행복했어요!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[16:00]</span>
-                            오후에는 친구와 카페에서 수다를 떨었는데, 즐거웠어요!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[18:30]</span>
-                            저녁으로 간단하게 샐러드를 먹었어요. 건강한 느낌!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[20:00]</span>
-                            좋아하는 드라마를 보면서 하루를 마무리하는 중입니다.
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[21:00]</span>
-                            새로운 책을 읽기 시작했는데, 내용이 정말 흥미로워요!
-                        </div>
-                        <div class="record-item">
-                            <span class="text-[#8F9562] text-sm mr-2">[22:30]</span>
-                            내일 일정을 정리하며 잠자리에 들 준비를 합니다.
-                        </div>
-                        <div id="no-records-placeholder" class="text-center py-8 hidden">
-                            <div class="mb-4">
-                                <svg class="w-16 h-16 mx-auto text-[#8F9562] opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </div>
-                            <h3 class="text-lg font-semibold text-[#495235] mb-2">아직 기록이 없어요</h3>
-                            <p class="text-[#8F9562] mb-4">오늘의 첫 번째 기록을 남겨보세요!</p>
-                            <div class="text-sm text-[#B87B5C]">
-                                <p>✨ 작은 순간도 소중한 기록이 됩니다</p>
-                                <p>📝 지금 당신의 생각을 자유롭게 적어보세요</p>
-                            </div>
+                        <h3 class="text-lg font-semibold text-[#495235] mb-2">아직 기록이 없어요</h3>
+                        <p class="text-[#8F9562] mb-4">오늘의 첫 번째 기록을 남겨보세요!</p>
+                        <div class="text-sm text-[#B87B5C]">
+                            <p>✨ 작은 순간도 소중한 기록이 됩니다</p>
+                            <p>📝 지금 당신의 생각을 자유롭게 적어보세요</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="daily-quote-box mb-8 flex-shrink-0">
+            <div class="daily-quote-box mb-4 flex-shrink-0">
                 <p id="daily-quote-text">"당신의 작은 노력이 모여 큰 변화를 만듭니다."</p>
                 <p class="text-sm mt-2">- 알 수 없는 작가 -</p>
             </div>
 
-            <div id="ai-comment-section" class="ai-comment-box mb-8 flex-shrink-0 hidden">
+            <div id="ai-comment-section" class="ai-comment-box mb-4 flex-shrink-0 hidden">
                 <img src="/images/참잘했어요.png" alt="참잘했어요 스탬프" class="stamp-image-comment">
                 <h3 class="text-2xl font-semibold text-[#90533B] mb-4">선생님의 따뜻한 코멘트</h3>
                 <p id="ai-comment-text" class="text-[#495235] leading-relaxed text-lg">
@@ -511,7 +614,7 @@
                 </p>
             </div>
 
-            <div id="new-record-section" class="mt-auto flex-shrink-0"> 
+            <div id="new-record-section" class="flex-shrink-0 mt-auto"> 
                 <label for="diary-content" class="block text-xl font-semibold text-[#90533B] mb-3">새로운 기록 남기기</label>
                 
                 <!-- Emotion Selection -->
@@ -529,12 +632,14 @@
                     </div>
                 </div>
                 
-                <textarea id="diary-content" rows="4" class="w-full input-field resize-y" placeholder="지금 당신의 생각이나 감정을 한두 줄로 자유롭게 기록해주세요."></textarea>
+                <textarea id="diary-content" rows="3" class="w-full input-field resize-y" placeholder="지금 당신의 생각이나 감정을 한두 줄로 자유롭게 기록해주세요."></textarea>
             </div>
             
-            <div class="flex flex-col gap-4 mt-6 flex-shrink-0"> <button id="ai-chat-button" class="btn-ai-chat-action hidden"> AI와 채팅하기
+            <div class="flex flex-col gap-4 mt-4 flex-shrink-0"> 
+                <button id="ai-chat-button" class="btn-ai-chat-action hidden"> AI와 채팅하기
                 </button>
-                <div class="flex justify-center items-center gap-4"> <button id="save-diary-btn" class="btn-main flex-grow"> 생각 기록하기
+                <div class="flex justify-center items-center gap-4"> 
+                    <button id="save-diary-btn" class="btn-main flex-grow"> 생각 기록하기
                     </button>
                     <button id="toggle-comment-record-btn" class="btn-toggle">
                         코멘트 보기 (테스트용)
@@ -645,6 +750,34 @@
             }, 5000);
         }
         
+        // Success message handling
+        function showSuccessMessage(message) {
+            // Create success notification
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+            successDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (successDiv.parentElement) {
+                    successDiv.remove();
+                }
+            }, 3000);
+        }
+        
         const aiCommentSection = document.getElementById('ai-comment-section');
         const newRecordSection = document.getElementById('new-record-section');
         const toggleCommentRecordBtn = document.getElementById('toggle-comment-record-btn');
@@ -724,15 +857,29 @@
             const aiCommentText = document.getElementById('ai-comment-text');
             const emotionKeywords = document.getElementById('emotion-keywords');
             
+            // null 체크 추가 - 존재하지 않는 요소에 대한 안전한 처리
+            if (!aiCommentText) {
+                console.warn('ai-comment-text element not found');
+                return;
+            }
+            
             if (allTodayRecords.length > 0) {
                 aiCommentText.innerText = `사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
                 작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
                 오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
                 꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
-                emotionKeywords.innerText = '오늘의 감정 키워드: #기쁨 #평온 #대견함 #일상';
+                
+                // emotionKeywords가 존재할 때만 설정
+                if (emotionKeywords) {
+                    emotionKeywords.innerText = '오늘의 감정 키워드: #기쁨 #평온 #대견함 #일상';
+                }
             } else {
                 aiCommentText.innerText = '아직 오늘의 기록이 없어서 선생님의 코멘트가 준비되지 않았어요. 첫 기록을 남겨보세요!';
-                emotionKeywords.innerText = '';
+                
+                // emotionKeywords가 존재할 때만 설정
+                if (emotionKeywords) {
+                    emotionKeywords.innerText = '';
+                }
             }
         }
 
@@ -780,30 +927,89 @@
         saveDiaryBtn.addEventListener('click', function() {
             const content = diaryContent.value.trim();
             if (content) {
-                const now = new Date();
-                const time = formatAMPM(now);
+                // Show loading state
+                saveDiaryBtn.disabled = true;
+                saveDiaryBtn.textContent = '저장 중...';
                 
-                const newRecordItem = document.createElement('div');
-                newRecordItem.className = 'record-item';
+                // Prepare data for API call
+                const formData = new FormData();
+                formData.append('userId', userId);
+                formData.append('content', content);
+                formData.append('appliedStamp', '참잘했어요'); // 기본 스탬프
+                if (selectedEmotion) {
+                    formData.append('emotion', selectedEmotion);
+                }
                 
-                // Include emotion if selected
-                const emotionDisplay = selectedEmotion ? ` <span class="text-lg">${selectedEmotion}</span>` : '';
-                newRecordItem.innerHTML = `<span class="text-[#8F9562] text-sm mr-2">[${time}]</span>${content}${emotionDisplay}`;
-                
-                recordsListScrollable.prepend(newRecordItem); // Add to top of the list
+                // Call backend API
+                fetch('/api/diaries', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API Response:', data); // 디버깅용 로그 추가
+                    console.log('Response type:', typeof data);
+                    console.log('Response keys:', Object.keys(data));
+                    
+                    // success 필드 또는 isSuccess 필드 확인 (JSON 직렬화 문제 대응)
+                    const isSuccess = data.success === true || data.isSuccess === true;
+                    console.log('Is success:', isSuccess);
+                    
+                    if (isSuccess) {
+                        // Success: Add to UI
+                        const now = new Date();
+                        const time = formatAMPM(now);
+                        
+                        const newRecordItem = document.createElement('div');
+                        newRecordItem.className = 'record-item';
+                        
+                        // Include emotion if selected
+                        const emotionDisplay = selectedEmotion ? ` <span class="text-lg">${selectedEmotion}</span>` : '';
+                        newRecordItem.innerHTML = `<span class="text-[#8F9562] text-sm mr-2">[${time}]</span>${content}${emotionDisplay}`;
+                        
+                        recordsListScrollable.prepend(newRecordItem); // Add to top of the list
 
-                diaryContent.value = ''; // Clear input
-                
-                // Reset emotion selection
-                emotionButtons.forEach(b => b.classList.remove('selected'));
-                selectedEmotion = null;
-                
-                noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
+                        diaryContent.value = ''; // Clear input
+                        
+                        // Reset emotion selection
+                        emotionButtons.forEach(b => b.classList.remove('selected'));
+                        selectedEmotion = null;
+                        
+                        noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
 
-                const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-                updateAIComment(allRecords); // AI 코멘트 업데이트
+                        const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
+                        updateAIComment(allRecords); // AI 코멘트 업데이트
 
-                recordsListScrollable.scrollTop = 0; // 스크롤을 최상단으로 이동
+                        recordsListScrollable.scrollTop = 0; // 스크롤을 최상단으로 이동
+                        
+                        // Refresh calendar data
+                        fetchAndRender();
+                        
+                        // ===================== NEW EMOTION STATS UPDATE =====================
+                        // 2025-01-XX: 일기 저장 후 감정 통계 즉시 업데이트
+                        updateEmotionStats(currentYear, currentMonth);
+                        // ===================== END NEW EMOTION STATS UPDATE =====================
+                        
+                        // Show success message
+                        showSuccessMessage('기록이 성공적으로 저장되었습니다!');
+                    } else {
+                        throw new Error(data.message || '저장에 실패했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving diary:', error);
+                    showErrorMessage('기록 저장에 실패했습니다. 다시 시도해주세요.');
+                })
+                .finally(() => {
+                    // Reset button state
+                    saveDiaryBtn.disabled = false;
+                    saveDiaryBtn.textContent = '생각 기록하기';
+                });
                 
             } else {
                 alert('기록할 내용을 입력해주세요.');
@@ -1073,6 +1279,12 @@
                     renderCalendar(currentYear, currentMonth, currentDiaries);
                     updateCalendarSummary(currentDiaries, currentYear, currentMonth);
                     renderWeeklyReports(currentDiaries, currentYear, currentMonth);
+                    
+                    // ===================== NEW EMOTION STATS CALL =====================
+                    // 2025-01-XX: 감정 통계 API 호출 추가
+                    updateEmotionStats(currentYear, currentMonth);
+                    // ===================== END NEW EMOTION STATS CALL =====================
+                    
                     // 기본: 오늘 날짜의 기록 표시
                     const today = new Date();
                     if (currentYear === today.getFullYear() && currentMonth === today.getMonth()+1) {
@@ -1218,6 +1430,57 @@
                 summary.textContent = `이번 달 일기: ${diaryCount}일 작성 | 연속 기록: ${maxStreak}일`;
             }
         }
+        
+        // ===================== NEW EMOTION STATS FUNCTION =====================
+        // 2025-01-XX: 월별 감정 통계 표시 기능 추가
+        // 주요 감정 표시 함수
+        function updateEmotionStats(year, month) {
+            fetch(`/api/diaries/emotions?userId=${userId}&year=${year}&month=${month}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Emotion Stats Response:', data);
+                    
+                    if (data.success && data.data) {
+                        const emotionStats = data.data;
+                        const topEmotions = emotionStats.topEmotions || [];
+                        
+                        // 주요 감정 표시 업데이트
+                        const emotionsElement = document.getElementById('calendar-emotions');
+                        if (emotionsElement) {
+                            if (topEmotions.length > 0) {
+                                const emotionDisplay = topEmotions.map(item => 
+                                    `<span class="emotion-stat-item">
+                                        <span>${item.emotion}</span>
+                                        <span class="emotion-stat-count">${item.count}회</span>
+                                    </span>`
+                                ).join('');
+                                emotionsElement.innerHTML = `주요 감정: ${emotionDisplay}`;
+                            } else {
+                                emotionsElement.textContent = '주요 감정: 기록된 감정이 없습니다';
+                            }
+                        }
+                    } else {
+                        console.warn('Failed to get emotion stats:', data.message);
+                        const emotionsElement = document.getElementById('calendar-emotions');
+                        if (emotionsElement) {
+                            emotionsElement.textContent = '주요 감정: 데이터를 불러올 수 없습니다';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching emotion stats:', error);
+                    const emotionsElement = document.getElementById('calendar-emotions');
+                    if (emotionsElement) {
+                        emotionsElement.textContent = '주요 감정: 오류가 발생했습니다';
+                    }
+                });
+        }
+        // ===================== END NEW EMOTION STATS FUNCTION =====================
         // 최초 렌더링
         fetchAndRender();
     </script>
