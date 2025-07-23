@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="/css/header.css">
     
     <style>
         body {
@@ -500,18 +501,84 @@
         .records-list-wrapper::-webkit-scrollbar-thumb:hover {
             background: #90533B;
         }
+        
+        /* 헤더 스타일 조정 */
+        .header {
+            background-color: #F4DDB8;
+            border-bottom: 2px solid #B87B5C;
+        }
+        
+        .nav-logo h1 {
+            color: #90533B;
+            font-weight: bold;
+        }
+        
+        .nav-link {
+            color: #495235;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background-color: #B87B5C;
+            color: white;
+        }
+        
+        .nav-link.active {
+            background-color: #90533B;
+            color: white;
+        }
+        
+        .nav-link.active:hover {
+            background-color: #8F9562;
+            color: white;
+        }
+        
+        /* 메인 컨텐츠 영역 조정 */
+        .contents_area {
+            background-color: #F4DDB8;
+            min-height: calc(100vh - 80px);
+        }
         /* ===================== END NEW EMOTION STATS STYLES ===================== */
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
-    <header class="w-full max-w-4xl text-center mb-10">
-        <h1 class="text-5xl font-bold text-[#90533B] mb-2">인생, 쓰다</h1>
-        <p class="text-2xl text-[#495235]">일기 기록 및 달력</p>
-        <!-- 유저 닉네임 표시 (테스트용: 쿼리 파라미터로 전달 시) -->
-        <div th:if="${user != null}" class="mt-2 text-lg text-[#8F9562] font-semibold">
-            환영합니다, <span th:text="${user.userNickname}"></span>님!
-        </div>
+<body>
+    <!-- 헤더 네비게이션 -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <a href="/" class="logo-link">
+                        <h1>인생, 쓰다</h1>
+                    </a>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="/" class="nav-link">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/diary-calendar" class="nav-link active">일기 달력</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/chat" class="nav-link">AI 채팅</a>
+                    </li>
+                </ul>
+                <div class="nav-user">
+                    <!-- 유저 닉네임 표시 -->
+                    <div th:if="${user != null}" class="text-[#8F9562] font-semibold">
+                        <span th:text="${user.userNickname}"></span>님
+                    </div>
+                </div>
+            </div>
+        </nav>
     </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <div class="contents_area">
+        <div class="wrap_1280">
+            <div class="text-center mb-10">
+                <h1 class="text-5xl font-bold text-[#90533B] mb-2">일기 기록 및 달력</h1>
+                <p class="text-2xl text-[#495235]">당신의 소중한 순간들을 기록하세요</p>
+            </div>
 
     <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
         <div class="lg:w-1/2 container-card left-section-container">
@@ -1484,5 +1551,7 @@
         // 최초 렌더링
         fetchAndRender();
     </script>
+        </div>
+    </div>
 </body>
 </html>
