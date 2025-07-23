@@ -1,6 +1,9 @@
-let currentWeekOffset = 0; // 0 = 이번 주, -1 = 지난 주 등
+// 📌 상태 변수
+let validOffsets = [];
+let currentIndex = 0;
 let emotionChartInstance = null;
 
+// 📌 DOM 요소
 const currentWeekDisplay = document.getElementById('current-week-display');
 const prevWeekBtn = document.getElementById('prev-week-btn');
 const nextWeekBtn = document.getElementById('next-week-btn');
@@ -9,8 +12,28 @@ const reportMainKeywords = document.getElementById('report-main-keywords');
 const diagnosisBasisBubbles = document.getElementById('diagnosis-basis-bubbles');
 const recommendationList = document.getElementById('recommendation-list');
 
+// 📌 유틸 함수: 월요일 기준 주차 문자열 생성
+function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
+
+function getWeekFromOffset(offset) {
+    const today = new Date();
+    const baseMonday = getMonday(today);
+    const targetMonday = new Date(baseMonday);
+    targetMonday.setDate(baseMonday.getDate() + offset * 7);
+
+    const yyyy = targetMonday.getFullYear();
+    const mm = String(targetMonday.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetMonday.getDate()).padStart(2, '0');
+    return `${yyyy}년 ${mm}월 ${dd}일 주차`;
+}
+
 // 📌 API 호출 함수
-async function loadWeeklyReport(weekOffset = 0) {
+async function loadWeeklyReport(weekOffset) {
     try {
         const response = await fetch(`/api/report?userId=1&weekOffset=${weekOffset}`);
         if (!response.ok) throw new Error('리포트 데이터를 불러오지 못했습니다.');
@@ -21,12 +44,14 @@ async function loadWeeklyReport(weekOffset = 0) {
     }
 }
 
-// 📌 주차별 리포트 렌더링
+// 📌 리포트 렌더링
 async function updateReportContent(weekOffset) {
     const report = await loadWeeklyReport(weekOffset);
+    const isEmptyReport = !report
+        || (!report.emotionSummary && report.evidenceSentences.length === 0 && report.recommendations.length === 0);
 
-    if (!report) {
-        currentWeekDisplay.innerText = "리포트 없음";
+    if (isEmptyReport) {
+        currentWeekDisplay.innerText = `${report?.week ?? getWeekFromOffset(weekOffset)} (리포트 없음)`;
         reportEmotionSummary.innerText = "선생님의 감정 진단 (현상)";
         reportMainKeywords.innerText = "";
         diagnosisBasisBubbles.innerHTML = '<p class="text-[#8F9562] text-center py-4">해당 주차의 리포트가 아직 준비되지 않았습니다.</p>';
@@ -40,12 +65,9 @@ async function updateReportContent(weekOffset) {
         return;
     }
 
-    // 텍스트 반영
     currentWeekDisplay.innerText = report.week;
     reportEmotionSummary.innerText = report.emotionSummary;
-    // reportMainKeywords.innerText = `주요 감정 키워드: ${report.keywords}`;
 
-    // 진단 근거
     diagnosisBasisBubbles.innerHTML = '';
     report.evidenceSentences.forEach(text => {
         const span = document.createElement('span');
@@ -54,7 +76,6 @@ async function updateReportContent(weekOffset) {
         diagnosisBasisBubbles.appendChild(span);
     });
 
-    // 추천 행동
     recommendationList.innerHTML = '';
     report.recommendations.forEach(rec => {
         const li = document.createElement('li');
@@ -65,7 +86,6 @@ async function updateReportContent(weekOffset) {
         recommendationList.appendChild(li);
     });
 
-    // 차트
     if (emotionChartInstance) emotionChartInstance.destroy();
     const ctx = document.getElementById('emotionTrendChart').getContext('2d');
     emotionChartInstance = new Chart(ctx, {
@@ -96,8 +116,8 @@ async function updateReportContent(weekOffset) {
     });
 
     // 버튼 상태
-    prevWeekBtn.disabled = false;
-    nextWeekBtn.disabled = (currentWeekOffset >= 0);
+    prevWeekBtn.disabled = currentIndex >= validOffsets.length - 1;
+    nextWeekBtn.disabled = currentIndex <= 0;
 
     prevWeekBtn.classList.toggle('opacity-50', prevWeekBtn.disabled);
     prevWeekBtn.classList.toggle('cursor-not-allowed', prevWeekBtn.disabled);
@@ -105,21 +125,40 @@ async function updateReportContent(weekOffset) {
     nextWeekBtn.classList.toggle('cursor-not-allowed', nextWeekBtn.disabled);
 }
 
+// 📌 주차 목록 로딩
+async function initReportPage() {
+    const res = await fetch('/api/report/weeks?userId=1');
+    validOffsets = await res.json();
+
+    if (validOffsets.length === 0) {
+        currentWeekDisplay.innerText = '리포트 없음';
+        return;
+    }
+
+    currentIndex = 0;
+    updateReportContent(validOffsets[currentIndex]);
+}
+
 // 📌 버튼 이벤트
 prevWeekBtn.addEventListener('click', () => {
-    currentWeekOffset++;
-    updateReportContent(currentWeekOffset);
+    if (currentIndex < validOffsets.length - 1) {
+        currentIndex++;
+        updateReportContent(validOffsets[currentIndex]);
+    }
 });
+
 nextWeekBtn.addEventListener('click', () => {
-    if (currentWeekOffset > 0) return;
-    currentWeekOffset--;
-    updateReportContent(currentWeekOffset);
+    if (currentIndex > 0) {
+        currentIndex--;
+        updateReportContent(validOffsets[currentIndex]);
+    }
 });
+
 document.getElementById('go-chat').addEventListener('click', () => {
     window.location.href = '/chat';
 });
 
-// 📌 페이지 진입 시 기본 리포트 로딩
+// 📌 초기 실행
 window.addEventListener('load', () => {
-    updateReportContent(currentWeekOffset);
+    initReportPage();
 });

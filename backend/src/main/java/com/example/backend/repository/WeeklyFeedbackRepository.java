@@ -4,6 +4,7 @@ import com.example.backend.entity.WeeklyFeedback;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -14,4 +15,8 @@ public interface WeeklyFeedbackRepository extends JpaRepository<WeeklyFeedback, 
     //                                       @Param("end") String feedbackEnd);
     // 아래와 같은 코드
     Optional<WeeklyFeedback> findByUser_UserIdAndFeedbackStartAndFeedbackEnd(Long userId, String start, String end);
+
+    List<WeeklyFeedback> findAllByUser_UserId(Long userId);
+
+    Optional<WeeklyFeedback> findByUser_UserIdAndWeekOffset(Long userId, int weekOffset);
 }

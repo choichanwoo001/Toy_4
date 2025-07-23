@@ -27,6 +27,8 @@ public class WeeklyFeedback {
     @Column(name = "emotion_summary", columnDefinition = "TEXT")
     private String emotionSummary;
 
+    private int weekOffset;
+
     @Column(name = "feedback_start")
     private String feedbackStart;
 
