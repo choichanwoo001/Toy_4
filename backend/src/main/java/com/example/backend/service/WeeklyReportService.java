@@ -10,6 +10,7 @@ import com.example.backend.repository.DailyCommentRepository;
 import com.example.backend.repository.WeeklyFeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,9 @@ public class WeeklyReportService {
     private final DailyCommentRepository commentRepo;
     private final CommentEmotionMappingRepository mappingRepo;
 
+    @Transactional(readOnly = true)
     public ReportResponseDto getWeeklyReport(Long userId, int weekOffset) {
-        // ✅ JS 기준 맞춤: offset 방향 통일
+        //  JS 기준 맞춤: offset 방향 통일
         LocalDate targetDate = LocalDate.now().plusWeeks(-weekOffset);
         Optional<WeeklyFeedback> optional = feedbackRepository.findByUser_UserIdAndWeekOffset(userId, weekOffset);
 
@@ -37,7 +40,7 @@ public class WeeklyReportService {
 
         WeeklyFeedback feedback = optional.get();
 
-        LocalDate monday = LocalDate.parse(feedback.getFeedbackStart()); // ✅ 정확한 방법
+        LocalDate monday = LocalDate.parse(feedback.getFeedbackStart());
         LocalDate sunday = LocalDate.parse(feedback.getFeedbackEnd());
 
         List<DailyComment> comments = commentRepo
@@ -48,7 +51,7 @@ public class WeeklyReportService {
         return ReportResponseDto.builder()
                 .week(formatWeekString(LocalDate.parse(feedback.getFeedbackStart())))
                 .emotionSummary(feedback.getEmotionSummary())
-                .keywords("#감정키워드")
+                .keywords(extractTopEmotionKeywords(mappings, 3)) // ✅ 여기에 적용
                 .evidenceSentences(feedback.getFeedbackProofs().stream().map(fp -> fp.getDetail()).toList())
                 .recommendations(feedback.getRecommendActivities().stream()
                         .map(a -> ReportResponseDto.RecommendationDto.builder()
@@ -79,6 +82,21 @@ public class WeeklyReportService {
                 monday.getMonthValue(), monday.getDayOfMonth(),
                 sunday.getMonthValue(), sunday.getDayOfMonth()
         );
+    }
+
+    private String extractTopEmotionKeywords(List<CommentEmotionMapping> mappings, int topN) {
+        Map<String, Integer> emotionCount = new HashMap<>();
+
+        for (CommentEmotionMapping m : mappings) {
+            String emotion = m.getEmotionData().getName();
+            emotionCount.put(emotion, emotionCount.getOrDefault(emotion, 0) + 1);
+        }
+
+        return emotionCount.entrySet().stream()
+                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())) // 내림차순 정렬
+                .limit(topN)
+                .map(e -> "#" + e.getKey())
+                .collect(Collectors.joining(" "));
     }
 
     private List<EmotionChartDto> getEmotionCharts(List<CommentEmotionMapping> mappings) {
@@ -127,6 +145,7 @@ public class WeeklyReportService {
         return result;
     }
 
+    @Transactional(readOnly = true)
     public List<WeeklyFeedback> getAllFeedbacks(Long userId) {
         return feedbackRepository.findAllByUser_UserId(userId);
     }
