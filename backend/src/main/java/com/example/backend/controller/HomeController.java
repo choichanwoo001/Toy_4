@@ -1,37 +1,27 @@
 package com.example.backend.controller;
 
-import com.example.backend.entity.TestEntity;
-import com.example.backend.service.TestService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
-
+/**
+ * 홈페이지 관련 컨트롤러
+ * 메인 페이지 렌더링을 처리
+ */
 @Controller
 public class HomeController {
 
-    @Autowired
-    private TestService testService;
-
+    /**
+     * 메인 페이지를 렌더링하는 메서드
+     * @param model 뷰에 전달할 데이터 모델
+     * @return 메인 페이지 템플릿 경로
+     */
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("message", "Spring Boot + Thymeleaf + MySQL 프로젝트가 성공적으로 실행되었습니다!");
-        model.addAttribute("helloWorld", testService.getHelloWorld());
-        model.addAttribute("dbStatus", testService.testDatabaseConnection());
-        
-        List<TestEntity> messages = testService.getAllTestMessages();
-        model.addAttribute("messages", messages);
-        
-        return "home";
+        model.addAttribute("title", "메인 페이지");
+        model.addAttribute("contentPath", "index");
+        return "layout/base";
     }
+
     
-    @PostMapping("/save-message")
-    public String saveMessage(@RequestParam String message, Model model) {
-        testService.saveTestMessage(message);
-        return "redirect:/";
-    }
-} 
+}
