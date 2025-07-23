@@ -121,7 +121,6 @@ function showSuccessMessage(message) {
 // Global variables
 const aiCommentSection = document.getElementById('ai-comment-section');
 const newRecordSection = document.getElementById('new-record-section');
-const toggleCommentRecordBtn = document.getElementById('toggle-comment-record-btn');
 const recordsListScrollable = document.getElementById('today-records-list-scrollable');
 const noRecordsPlaceholder = document.getElementById('no-records-placeholder');
 const saveDiaryBtn = document.getElementById('save-diary-btn');
@@ -135,6 +134,19 @@ const emotionButtons = document.querySelectorAll('.emotion-btn');
 
 emotionButtons.forEach(btn => {
     btn.addEventListener('click', function() {
+        // 과거 날짜 체크
+        const today = new Date();
+        const isPast = selectedDate && (
+            selectedDate.getFullYear() < today.getFullYear() ||
+            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
+            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
+        );
+        
+        if (isPast) {
+            showErrorMessage('과거 날짜에는 감정을 선택할 수 없습니다.');
+            return;
+        }
+        
         // Remove previous selection
         emotionButtons.forEach(b => b.classList.remove('selected'));
         // Add selection to current button
@@ -172,8 +184,8 @@ searchInput.addEventListener('input', function() {
     });
 });
 
-// 초기 상태: 새로운 기록 남기기 섹션 보이고 코멘트 섹션 숨기기
-let isRecordMode = true; // true: 기록 모드, false: 코멘트 모드
+// 초기 상태: 새로운 기록 남기기 섹션만 보이도록 설정
+// 코멘트 보기 기능은 완전히 제거됨
 
 const dailyQuotes = [
     "오늘의 작은 기록이 내일의 큰 변화를 만듭니다.",
@@ -202,14 +214,43 @@ function updateAIComment(allTodayRecords) {
     }
     
     if (allTodayRecords.length > 0) {
-        aiCommentText.innerText = `사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
-        작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
-        오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
-        꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
+        // 기록에서 감정 추출
+        const emotions = allTodayRecords
+            .map(record => record.emotion)
+            .filter(emotion => emotion && emotion.trim() !== '')
+            .slice(0, 3); // 최대 3개까지만 표시
+        
+        // 감정 키워드 생성
+        const emotionKeywordsList = emotions.length > 0 
+            ? emotions.map(emotion => `#${getEmotionKeyword(emotion)}`).join(' ')
+            : '#기쁨 #평온 #대견함';
+        
+        // 과거 날짜인지 확인
+        const today = new Date();
+        const isPast = selectedDate && (
+            selectedDate.getFullYear() < today.getFullYear() ||
+            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
+            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
+        );
+        
+        if (isPast) {
+            // 과거 날짜에 대한 따뜻한 코멘트
+            const dateStr = `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`;
+            aiCommentText.innerText = `사랑하는 제자님, ${dateStr}의 소중한 기록들을 다시 읽어보니 그때의 마음이 생생하게 느껴져요.
+            제자님이 그날 느끼신 감정들과 생각들이 지금도 선생님 마음에 따뜻하게 남아있어요.
+            그때의 기록들이 지금의 제자님을 더욱 풍요롭게 만들어주고 있네요.
+            꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
+        } else {
+            // 오늘 날짜에 대한 코멘트
+            aiCommentText.innerText = `사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
+            작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
+            오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
+            꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
+        }
         
         // emotionKeywords가 존재할 때만 설정
         if (emotionKeywords) {
-            emotionKeywords.innerText = '오늘의 감정 키워드: #기쁨 #평온 #대견함 #일상';
+            emotionKeywords.innerText = `오늘의 감정 키워드: ${emotionKeywordsList}`;
         }
     } else {
         aiCommentText.innerText = '아직 오늘의 기록이 없어서 선생님의 코멘트가 준비되지 않았어요. 첫 기록을 남겨보세요!';
@@ -221,30 +262,29 @@ function updateAIComment(allTodayRecords) {
     }
 }
 
-// 현재 모드에 따라 섹션 가시성 및 버튼 텍스트 업데이트
+// 감정 이모지를 키워드로 변환하는 함수
+function getEmotionKeyword(emotion) {
+    const emotionMap = {
+        '😊': '기쁨',
+        '😢': '슬픔',
+        '😡': '화남',
+        '😌': '평온',
+        '🤔': '고민',
+        '😍': '사랑',
+        '😴': '피곤',
+        '😎': '자신감'
+    };
+    return emotionMap[emotion] || '감정';
+}
+
+// 섹션 가시성 관리 - 코멘트 보기 기능 제거로 단순화
 function updateSectionVisibility() {
-    if (isRecordMode) {
-        // 기록 모드: 새로운 기록 섹션 보이고, AI 코멘트 섹션 숨김
-        newRecordSection.classList.remove('hidden');
-        saveDiaryBtn.classList.remove('hidden');
-        dailyQuoteBox.classList.remove('hidden'); // 기록 모드일 때 명언 블록 표시
-        aiCommentSection.classList.add('hidden');
-        aiChatButton.classList.add('hidden'); // AI 채팅 버튼 숨김
-    } else {
-        // 코멘트 모드: AI 코멘트 섹션 보이고, 새로운 기록 섹션 숨김
-        newRecordSection.classList.add('hidden');
-        saveDiaryBtn.classList.add('hidden');
-        dailyQuoteBox.classList.add('hidden'); // 코멘트 모드일 때 명언 블록 숨김
-        aiCommentSection.classList.remove('hidden');
-        
-        // 코멘트가 있는 경우에만 AI 채팅 버튼 표시
-        const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-        if (allRecords.length > 0) { // 예시 기록이 하나라도 있으면 AI 코멘트가 있다고 간주
-            aiChatButton.classList.remove('hidden'); 
-        } else {
-            aiChatButton.classList.add('hidden');
-        }
-    }
+    // 항상 새로운 기록 섹션만 보이도록 설정
+    newRecordSection.classList.remove('hidden');
+    saveDiaryBtn.classList.remove('hidden');
+    dailyQuoteBox.classList.remove('hidden');
+    aiCommentSection.classList.add('hidden');
+    aiChatButton.classList.add('hidden');
 }
 
 // 시간 포맷: 오전/오후 00:00
@@ -260,6 +300,19 @@ function formatAMPM(date) {
 
 // "생각 기록하기" 버튼 클릭 이벤트
 saveDiaryBtn.addEventListener('click', function() {
+    // 과거 날짜 체크 - 추가 보안
+    const today = new Date();
+    const isPast = selectedDate && (
+        selectedDate.getFullYear() < today.getFullYear() ||
+        (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
+        (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
+    );
+    
+    if (isPast) {
+        showErrorMessage('과거 날짜에는 기록할 수 없습니다.');
+        return;
+    }
+    
     const content = diaryContent.value.trim();
     if (content) {
         // Show loading state
@@ -351,19 +404,8 @@ saveDiaryBtn.addEventListener('click', function() {
     }
 });
 
-// "코멘트/기록 전환" 버튼 클릭 이벤트
-if (toggleCommentRecordBtn) {
-    toggleCommentRecordBtn.addEventListener('click', function() {
-        isRecordMode = !isRecordMode; // 모드 토글
-        updateSectionVisibility(); // 가시성 업데이트
-        
-        // 코멘트 모드로 전환 시, AI 코멘트 내용 다시 계산
-        if (!isRecordMode) {
-            const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
-            updateAIComment(allRecords);
-        }
-    });
-}
+// 코멘트/기록 전환 버튼 관련 코드 제거됨
+// 이제 항상 기록 모드만 유지됨
 
 // "AI와 채팅하기" 버튼 클릭 이벤트
 aiChatButton.addEventListener('click', function() {
@@ -373,8 +415,7 @@ aiChatButton.addEventListener('click', function() {
 
 // 초기 로드 시 설정
 document.addEventListener('DOMContentLoaded', function() {
-    // 초기 상태는 기록 모드로 시작하며, 코멘트 블록은 숨겨집니다.
-    isRecordMode = true; 
+    // 코멘트 보기 기능 제거로 항상 기록 모드만 유지
     updateSectionVisibility();
     updateDailyQuote(); // 초기 명언 설정
     setInterval(updateDailyQuote, 10000); // 10초마다 명언 변경 (선택 사항)
@@ -547,8 +588,18 @@ function selectDiaryDate(year, month, day, diaryData) {
 function renderRecordsList(records, year, month, day) {
     const recordsList = document.getElementById('today-records-list-scrollable');
     recordsList.innerHTML = '';
+    
+    const today = new Date();
+    const isPast = (year < today.getFullYear()) ||
+        (year === today.getFullYear() && month < today.getMonth()+1) ||
+        (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
+    
     if (records.length === 0) {
-        recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>이 날짜의 기록이 없습니다. 기록을 남겨보세요!</p>`;
+        if (isPast) {
+            recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>${month}월 ${day}일에는 기록이 없었어요.<br>그날의 소중한 순간들을 기록해보세요!</p>`;
+        } else {
+            recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>이 날짜의 기록이 없습니다. 기록을 남겨보세요!</p>`;
+        }
     } else {
         records.slice().reverse().forEach(rec => {
             const time = formatAMPM(new Date(rec.createdAt));
@@ -565,28 +616,78 @@ function renderRecordsList(records, year, month, day) {
     if (header) header.textContent = `${year}년 ${month}월 ${day}일 기록`;
 
     // 오늘 날짜면 스크롤을 맨 아래로 이동
-    const today = new Date();
     if (year === today.getFullYear() && month === today.getMonth()+1 && day === today.getDate()) {
         setTimeout(() => { recordsList.scrollTop = recordsList.scrollHeight; }, 0);
     }
 
-    // 오늘 이전 날짜면 기록 입력창 숨기고 코멘트만 보이게, 일기 없는 날은 코멘트 숨김
-    const isPast = (year < today.getFullYear()) ||
-        (year === today.getFullYear() && month < today.getMonth()+1) ||
-        (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
+    // 오늘 이전 날짜면 기록 입력창 완전히 비활성화
     const newRecordSection = document.getElementById('new-record-section');
     const saveDiaryBtn = document.getElementById('save-diary-btn');
     const aiCommentSection = document.getElementById('ai-comment-section');
+    
     if (isPast) {
-        if (newRecordSection) newRecordSection.classList.add('hidden');
-        if (saveDiaryBtn) saveDiaryBtn.classList.add('hidden');
+        // 과거 날짜: 기록 입력 완전 비활성화
+        if (newRecordSection) {
+            newRecordSection.classList.add('hidden');
+            // 추가로 입력 필드도 비활성화
+            const diaryContent = document.getElementById('diary-content');
+            if (diaryContent) {
+                diaryContent.disabled = true;
+                diaryContent.placeholder = '과거 날짜에는 기록할 수 없습니다.';
+            }
+            // 감정 버튼들도 비활성화
+            const emotionButtons = document.querySelectorAll('.emotion-btn');
+            emotionButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+        }
+        if (saveDiaryBtn) {
+            saveDiaryBtn.classList.add('hidden');
+            saveDiaryBtn.disabled = true;
+        }
+        
+        // 과거 날짜에서 기록이 있는 경우에만 AI 코멘트 표시
         if (aiCommentSection) {
-            if (records.length > 0) aiCommentSection.classList.remove('hidden');
-            else aiCommentSection.classList.add('hidden');
+            if (records.length > 0) {
+                aiCommentSection.classList.remove('hidden');
+                // AI 코멘트 내용 업데이트
+                updateAIComment(records);
+                // AI와 채팅하기 버튼도 활성화
+                if (aiChatButton) {
+                    aiChatButton.classList.remove('hidden');
+                }
+            } else {
+                aiCommentSection.classList.add('hidden');
+                // AI와 채팅하기 버튼도 숨김
+                if (aiChatButton) {
+                    aiChatButton.classList.add('hidden');
+                }
+            }
         }
     } else {
-        if (newRecordSection) newRecordSection.classList.remove('hidden');
-        if (saveDiaryBtn) saveDiaryBtn.classList.remove('hidden');
+        // 오늘 또는 미래 날짜: 기록 입력 활성화
+        if (newRecordSection) {
+            newRecordSection.classList.remove('hidden');
+            // 입력 필드 활성화
+            const diaryContent = document.getElementById('diary-content');
+            if (diaryContent) {
+                diaryContent.disabled = false;
+                diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+            }
+            // 감정 버튼들 활성화
+            const emotionButtons = document.querySelectorAll('.emotion-btn');
+            emotionButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+        }
+        if (saveDiaryBtn) {
+            saveDiaryBtn.classList.remove('hidden');
+            saveDiaryBtn.disabled = false;
+        }
         if (aiCommentSection) aiCommentSection.classList.add('hidden');
     }
 }
