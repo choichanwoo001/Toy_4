@@ -51,7 +51,7 @@ public class WeeklyReportService {
         return ReportResponseDto.builder()
                 .week(formatWeekString(LocalDate.parse(feedback.getFeedbackStart())))
                 .emotionSummary(feedback.getEmotionSummary())
-                .keywords(extractTopEmotionKeywords(mappings, 3)) // ✅ 여기에 적용
+                .keywords(extractTopEmotionKeywords(mappings, 3)) // 3개만 출력
                 .evidenceSentences(feedback.getFeedbackProofs().stream().map(fp -> fp.getDetail()).toList())
                 .recommendations(feedback.getRecommendActivities().stream()
                         .map(a -> ReportResponseDto.RecommendationDto.builder()
@@ -66,19 +66,18 @@ public class WeeklyReportService {
 
     // 주차 문자열 생성 유틸
     public String formatWeekString(LocalDate monday) {
-        YearMonth ym = YearMonth.of(monday.getYear(), monday.getMonthValue());
-
-        // 이번 달의 첫 번째 월요일
-        LocalDate firstMonday = monday.withDayOfMonth(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
-
-        // 몇 번째 주인지 계산
-        long weekOfMonth = ChronoUnit.WEEKS.between(firstMonday, monday) + 1;
-
+        // 기준이 되는 일요일을 계산
         LocalDate sunday = monday.with(DayOfWeek.SUNDAY);
+
+        // 해당 달의 첫 일요일
+        LocalDate firstSunday = sunday.withDayOfMonth(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+        // 몇 번째 주인지 계산 (일요일 기준)
+        long weekOfMonth = ChronoUnit.WEEKS.between(firstSunday, sunday) + 1;
 
         return String.format(
                 "%d년 %d월 %d주차 (%d월 %d일 ~ %d월 %d일)",
-                monday.getYear(), monday.getMonthValue(), weekOfMonth,
+                sunday.getYear(), sunday.getMonthValue(), weekOfMonth,
                 monday.getMonthValue(), monday.getDayOfMonth(),
                 sunday.getMonthValue(), sunday.getDayOfMonth()
         );
