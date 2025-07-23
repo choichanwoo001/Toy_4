@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인생, 쓰다 - 포인트 샵</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #F4DDB8; /* WHEAT */
+            color: #495235; /* DARK FERN */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        .container-card {
+            background-color: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #B87B5C; /* BROWN SUGAR */
+            width: 100%;
+            max-width: 900px; /* 넓은 화면을 위해 max-width 증가 */
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative; /* 뒤로 가기 버튼 위치 조정을 위해 추가 */
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #90533B; /* CHESTNUT */
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            font-size: 1.2rem;
+            color: #495235; /* DARK FERN */
+        }
+        .section-title {
+            font-size: 1.75rem; /* text-3xl */
+            font-weight: 600; /* font-semibold */
+            color: #90533B; /* CHESTNUT */
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #B87B5C; /* BROWN SUGAR */
+            padding-bottom: 0.5rem;
+            display: flex; /* 제목과 버튼을 한 줄에 정렬 */
+            justify-content: space-between; /* 양 끝 정렬 */
+            align-items: flex-end; /* 하단 정렬 */
+        }
+        .section-title h2 { /* 제목 텍스트만 선택 */
+            margin-bottom: 0; /* flex 적용으로 인한 기본 마진 제거 */
+        }
+        .info-item { /* 기존 CSS에서 사용된 info-item 스타일 유지 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px dashed #E0E0E0;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 500;
+            color: #495235;
+        }
+        .info-value {
+            color: #8F9562;
+            font-weight: 400;
+        }
+        /* Common button styles */
+        .btn-main {
+            background-color: #DA983C; /* HARVEST GOLD */
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+            transition: background-color 0.3s ease-in-out, transform 0.2s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn-main:hover {
+            background-color: #90533B; /* CHESTNUT */
+            transform: translateY(-2px);
+        }
+        .btn-nav { /* for report nav */
+            background-color: #B87B5C;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.6rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-nav:hover {
+            background-color: #90533B;
+        }
+        /* New toggle button style (공통 버튼으로 사용) */
+        .btn-view-toggle { /* 이름을 btn-toggle-view에서 btn-view-toggle로 변경 및 용도 확장 */
+            background-color: #8F9562; /* MOSS GREEN */
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+            white-space: nowrap;
+        }
+        .btn-view-toggle:hover {
+            background-color: #495235; /* DARK FERN */
+        }
+        /* '내가 보유한 도장 보기' 버튼 (상점 뷰) 크기 조정 */
+        #go-to-my-stamps-btn-in-shop {
+            padding: 0.4rem 0.8rem; /* 기존 0.6rem 1.2rem의 절반 정도로 축소 */
+            font-size: 0.8rem; /* 글씨 크기도 작게 */
+            font-weight: 500;
+        }
+        /* '상점으로 돌아가기' 버튼 (내가 보유한 도장 뷰의 section-title 옆) */
+        #go-to-shop-btn-in-my-stamps-section-title {
+            padding: 0.4rem 0.8rem; /* '내가 보유한 도장 보기'와 동일한 크기 */
+            font-size: 0.8rem;
+            font-weight: 500;
+            background-color: #B87B5C; /* 상점 돌아가기 버튼의 색상 */
+        }
+        #go-to-shop-btn-in-my-stamps-section-title:hover {
+            background-color: #90533B;
+        }
+
+        .point-display {
+            background-color: #F4DDB8;
+            border: 1px solid #DA983C;
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #90533B;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .shop-item-card, .owned-stamp-card {
+            background-color: white;
+            border: 1px solid #B87B5C;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            position: relative;
+            display: flex; /* 내부 요소 정렬을 위해 flex 추가 */
+            flex-direction: column; /* 세로 정렬 */
+            justify-content: space-between; /* 내용과 버튼을 상하로 분리 */
+        }
+        .shop-item-card:hover, .owned-stamp-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .stamp-preview-image-shop {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #DA983C;
+            padding: 5px;
+        }
+        .btn-buy, .btn-apply {
+            background-color: #DA983C;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+            width: 100%; /* 버튼 너비를 카드의 100%로 */
+            margin-top: auto; /* 하단에 붙도록 */
+        }
+        .btn-buy:hover, .btn-apply:hover {
+            background-color: #90533B;
+        }
+        .btn-buy.disabled {
+            background-color: #B87B5C;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .btn-apply.active { /* 적용 중 상태 버튼 스타일 */
+            background-color: #495235; /* DARK FERN (적용 중임을 나타내는 다른 색상) */
+            cursor: default;
+        }
+        .btn-nav-arrow { /* 뒤로 가기 화살표 버튼 */
+            background-color: transparent;
+            border: none;
+            color: #B87B5C; /* BROWN SUGAR */
+            font-size: 2.5rem; /* 크게 */
+            /* position: absolute; (top-control-area 내에서는 필요 없음) */
+            /* top: 50%; left: 0; transform: translateY(-50%); (top-control-area 내에서는 필요 없음) */
+            cursor: pointer;
+            padding: 0.5rem;
+            line-height: 1; /* 텍스트 높이 */
+            z-index: 10; /* 다른 요소 위에 표시 */
+        }
+        .btn-nav-arrow:hover {
+            color: #90533B; /* CHESTNUT */
+        }
+
+        .limited-badge {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            background-color: #DA983C;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            z-index: 10;
+        }
+
+        /* 팝업 스타일 */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 1px solid #B87B5C;
+            max-width: 400px;
+            width: 90%;
+        }
+        .popup-content h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #90533B;
+            margin-bottom: 1rem;
+        }
+        .popup-content p {
+            font-size: 1.1rem;
+            color: #495235;
+            margin-bottom: 1.5rem;
+        }
+        .popup-content button {
+            background-color: #DA983C;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .popup-content button:hover {
+            background-color: #90533B;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-card">
+        <header>
+            <h1>인생, 쓰다</h1>
+            <p>포인트 샵</p>
+        </header>
+
+        <div id="top-control-area" class="flex justify-between items-center mb-8">
+            <button id="back-arrow-btn" class="btn-nav-arrow hidden">←</button>
+            <div class="flex-grow flex justify-center"> <div class="point-display">
+                    <span role="img" aria-label="coin">💰</span>
+                    현재 포인트: <span id="current-points" class="ml-2 text-[#DA983C]">1,250</span> P
+                </div>
+            </div>
+            </div>
+
+        <div id="shop-items-section">
+            <div class="section-title">
+                <h2>도장 상점</h2>
+                <button id="go-to-my-stamps-btn-in-shop" class="btn-view-toggle">내가 보유한 도장 보기</button>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="shop-item-card" data-stamp-id="stamp0">
+                    <span class="limited-badge">한정판</span>
+                    <img src="https://placehold.co/100x100/DA983C/FFFFFF?text=지장" alt="지장 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">지장</h3>
+                    <p class="text-[#495235] mb-4">특별한 날에만 만날 수 있는 한정판 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">1500 P</p>
+                    <button class="btn-buy" data-cost="1500" data-stamp-name="지장">구매하기</button>
+                </div>
+
+                <div class="shop-item-card" data-stamp-id="stamp1">
+                    <img src="http://googleusercontent.com/file_content/4" alt="참 잘했어요 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">참 잘했어요 도장</h3>
+                    <p class="text-[#495235] mb-4">기본적인 격려 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">500 P</p>
+                    <button class="btn-buy" data-cost="500" data-stamp-name="참 잘했어요">구매하기</button>
+                </div>
+
+                <div class="shop-item-card" data-stamp-id="stamp2">
+                    <img src="https://placehold.co/100x100/8F9562/FFFFFF?text=최고예요" alt="최고예요 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">최고예요 도장</h3>
+                    <p class="text-[#495235] mb-4">특별한 성취를 축하하는 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">800 P</p>
+                    <button class="btn-buy" data-cost="800" data-stamp-name="최고예요">구매하기</button>
+                </div>
+
+                <div class="shop-item-card" data-stamp-id="stamp3">
+                    <img src="https://placehold.co/100x100/B87B5C/FFFFFF?text=칭찬해요" alt="칭찬해요 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">칭찬해요 도장</h3>
+                    <p class="text-[#495235] mb-4">노력에 대한 칭찬을 담은 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">700 P</p>
+                    <button class="btn-buy" data-cost="700" data-stamp-name="칭찬해요">구매하기</button>
+                </div>
+
+                <div class="shop-item-card" data-stamp-id="stamp4">
+                    <img src="https://placehold.co/100x100/495235/FFFFFF?text=잘했어요" alt="잘했어요 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">잘했어요 도장</h3>
+                    <p class="text-[#495235] mb-4">꾸준함에 대한 격려 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">600 P</p>
+                    <button class="btn-buy" data-cost="600" data-stamp-name="잘했어요">구매하기</button>
+                </div>
+
+                <div class="shop-item-card" data-stamp-id="stamp5">
+                    <img src="https://placehold.co/100x100/90533B/FFFFFF?text=고마워요" alt="고마워요 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">고마워요 도장</h3>
+                    <p class="text-[#495235] mb-4">감사의 마음을 전하는 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">900 P</p>
+                    <button class="btn-buy" data-cost="900" data-stamp-name="고마워요">구매하기</button>
+                </div>
+
+                <div class="shop-item-card" data-stamp-id="stamp6">
+                    <img src="https://placehold.co/100x100/DA983C/FFFFFF?text=특별한날" alt="특별한 날 도장" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">특별한 날 도장</h3>
+                    <p class="text-[#495235] mb-4">기념하고 싶은 날에 사용하는 도장입니다.</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">1200 P</p>
+                    <button class="btn-buy" data-cost="1200" data-stamp-name="특별한 날">구매하기</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="my-stamps-collection-section" class="hidden">
+            <div class="section-title">
+                <h2>내가 보유한 도장</h2>
+                <button id="go-to-shop-btn-in-my-stamps-section-title" class="btn-view-toggle">상점으로 돌아가기</button>
+            </div>
+            
+            <div id="owned-stamps-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </div>
+    </div>
+
+    <div id="point-insufficient-popup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <h3>포인트 부족</h3>
+            <p>포인트가 부족합니다. 현재 포인트: <span id="popup-current-points"></span> P</p>
+            <button id="close-popup-btn">확인</button>
+        </div>
+    </div>
+
+    <script>
+        // API 기반 데이터
+        let currentPoints = 0;
+        let myStamps = [];
+        let activeStampId = null;
+
+        // 포인트 불러오기
+        function loadUserPoints() {
+            fetch('/pointshop/api/points')
+                .then(res => res.json())
+                .then(point => {
+                    currentPoints = point;
+                    updatePointsDisplay();
+                });
+        }
+
+        // 도장 목록 불러오기 (필터 적용)
+        function loadStamps(filter = 'all') {
+            fetch(`/pointshop/api/stamps?filter=${filter}`)
+                .then(res => res.json())
+                .then(data => renderShopItems(data));
+        }
+
+        // 내 도장 목록 불러오기
+        function loadMyStamps() {
+            fetch('/pointshop/api/my-stamps')
+                .then(res => res.json())
+                .then(data => {
+                    myStamps = data;
+                    renderOwnedStamps(data);
+                });
+        }
+
+        // 포인트 표시 업데이트
+        function updatePointsDisplay() {
+            const currentPointsDisplay = document.getElementById('current-points');
+            const popupCurrentPoints = document.getElementById('popup-current-points');
+            if (currentPointsDisplay) {
+                currentPointsDisplay.innerText = currentPoints.toLocaleString();
+            }
+            if (popupCurrentPoints) {
+                popupCurrentPoints.innerText = currentPoints.toLocaleString();
+            }
+        }
+
+        // 도장 상점 렌더링
+        function renderShopItems(data) {
+            const shopGrid = document.querySelector('#shop-items-section .grid');
+            shopGrid.innerHTML = '';
+            data.forEach(item => {
+                const { stamp, status } = item;
+                const card = document.createElement('div');
+                card.className = 'shop-item-card';
+                card.dataset.stampId = stamp.stampId;
+                let badge = '';
+                if (stamp.status === 'LIMITED') {
+                    badge = '<span class="limited-badge">한정판</span>';
+                }
+                let buttonHtml = '';
+                if (status === 'owned') {
+                    buttonHtml = '<button class="btn-buy disabled">보유 중</button>';
+                } else if (status === 'insufficient') {
+                    buttonHtml = '<button class="btn-buy">포인트 부족</button>';
+                } else {
+                    buttonHtml = `<button class="btn-buy" data-stamp-id="${stamp.stampId}">구매하기</button>`;
+                }
+                card.innerHTML = `
+                    ${badge}
+                    <img src="/${stamp.image}" alt="${stamp.name}" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">${stamp.name}</h3>
+                    <p class="text-[#495235] mb-4">${stamp.description}</p>
+                    <p class="text-lg font-bold text-[#DA983C] mb-4">${stamp.price.toLocaleString()} P</p>
+                    ${buttonHtml}
+                `;
+                shopGrid.appendChild(card);
+            });
+            // 구매 버튼 이벤트 연결
+            document.querySelectorAll('.btn-buy').forEach(button => {
+                if (button.classList.contains('disabled')) return;
+                button.addEventListener('click', function() {
+                    const card = this.closest('.shop-item-card');
+                    const stampId = card.dataset.stampId;
+                    if (this.innerText === '포인트 부족') {
+                        document.getElementById('point-insufficient-popup').classList.remove('hidden');
+                        return;
+                    }
+                    onBuyButtonClick(stampId);
+                });
+            });
+        }
+
+        // 구매하기 API 연동
+        function onBuyButtonClick(stampId) {
+            fetch('/pointshop/api/buy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `stampId=${stampId}`
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    alert('구매 성공!');
+                    loadStamps();
+                    loadUserPoints();
+                    loadMyStamps();
+                } else {
+                    alert(result.message || '구매 실패');
+                }
+            });
+        }
+
+        // 내 도장 목록 렌더링
+        function renderOwnedStamps(data) {
+            const ownedStampsGrid = document.getElementById('owned-stamps-grid');
+            ownedStampsGrid.innerHTML = '';
+            if (!data || data.length === 0) {
+                ownedStampsGrid.innerHTML = '<p class="col-span-full text-center text-[#8F9562] py-4">아직 보유한 도장이 없어요. 상점에서 새로운 도장을 구매해보세요!</p>';
+                return;
+            }
+            data.forEach(us => {
+                const card = document.createElement('div');
+                card.className = 'owned-stamp-card';
+                card.innerHTML = `
+                    <img src="/${us.image}" alt="${us.name}" class="stamp-preview-image-shop">
+                    <h3 class="text-xl font-semibold text-[#90533B] mb-2">${us.name}</h3>
+                    <p class="text-[#495235] mb-4">${us.description}</p>
+                    <button class="btn-apply" data-user-stamp-id="${us.userStampId}">적용하기</button>
+                `;
+                ownedStampsGrid.appendChild(card);
+            });
+            // 적용하기 버튼 이벤트 연결
+            document.querySelectorAll('.btn-apply').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userStampId = this.dataset.userStampId;
+                    onApplyStamp(userStampId);
+                });
+            });
+        }
+
+        // 적용하기 API 연동
+        function onApplyStamp(userStampId) {
+            fetch('/pointshop/api/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `userStampId=${userStampId}`
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    alert('적용 성공!');
+                    loadMyStamps();
+                } else {
+                    alert(result.message || '적용 실패');
+                }
+            });
+        }
+
+        // 팝업 닫기 버튼
+        document.getElementById('close-popup-btn').addEventListener('click', function() {
+            document.getElementById('point-insufficient-popup').classList.add('hidden');
+        });
+
+        // 필터 드롭다운 이벤트
+        document.getElementById('stamp-filter')?.addEventListener('change', function() {
+            loadStamps(this.value);
+        });
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserPoints();
+            loadStamps();
+            loadMyStamps();
+        });
+    </script>
+</body>
+</html>
