@@ -2,7 +2,11 @@ package com.example.backend.service;
 
 import com.example.backend.dto.EmotionChartDto;
 import com.example.backend.dto.ReportResponseDto;
+import com.example.backend.entity.CommentEmotionMapping;
+import com.example.backend.entity.DailyComment;
 import com.example.backend.entity.WeeklyFeedback;
+import com.example.backend.repository.CommentEmotionMappingRepository;
+import com.example.backend.repository.DailyCommentRepository;
 import com.example.backend.repository.WeeklyFeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,17 +16,15 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
-import java.time.temporal.WeekFields;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class WeeklyReportService {
 
     private final WeeklyFeedbackRepository feedbackRepository;
+    private final DailyCommentRepository commentRepo;
+    private final CommentEmotionMappingRepository mappingRepo;
 
     public ReportResponseDto getWeeklyReport(Long userId, int weekOffset) {
         // ✅ JS 기준 맞춤: offset 방향 통일
@@ -34,6 +36,14 @@ public class WeeklyReportService {
         };
 
         WeeklyFeedback feedback = optional.get();
+
+        LocalDate monday = LocalDate.parse(feedback.getFeedbackStart()); // ✅ 정확한 방법
+        LocalDate sunday = LocalDate.parse(feedback.getFeedbackEnd());
+
+        List<DailyComment> comments = commentRepo
+                .findByUser_UserIdAndDiaryDateBetween(userId, monday.atStartOfDay(), sunday.atStartOfDay());
+
+        List<CommentEmotionMapping> mappings = mappingRepo.findByDailyCommentIn(comments);
 
         return ReportResponseDto.builder()
                 .week(formatWeekString(LocalDate.parse(feedback.getFeedbackStart())))
@@ -47,7 +57,7 @@ public class WeeklyReportService {
                                 .build())
                         .toList())
                 .dayLabels(List.of("월", "화", "수", "목", "금", "토", "일"))
-                .emotionCharts(getDummyChart())
+                .emotionCharts(getEmotionCharts(mappings))
                 .build();
     }
 
@@ -71,12 +81,50 @@ public class WeeklyReportService {
         );
     }
 
-    // 차트는 아직 미구현 -> 임시 데이터
-    private List<EmotionChartDto> getDummyChart() {
-        return List.of(
-                new EmotionChartDto("기쁨", List.of(4, 5, 6, 4, 5, 6, 5), "#DA983C", "rgba(218, 152, 60, 0.2)"),
-                new EmotionChartDto("불안", List.of(1, 2, 1, 1, 2, 1, 1), "#B87B5C", "rgba(184, 123, 92, 0.2)")
+    private List<EmotionChartDto> getEmotionCharts(List<CommentEmotionMapping> mappings) {
+        // 1. Map<감정, int[7]> : 요일별 카운트
+        Map<String, int[]> countMap = new HashMap<>();
+        for (CommentEmotionMapping m : mappings) {
+            String emotion = m.getEmotionData().getName();
+            LocalDate date = m.getDailyComment().getDiaryDate().toLocalDate();
+            int dayIndex = date.getDayOfWeek().getValue() - 1;
+
+            countMap.putIfAbsent(emotion, new int[7]);
+            countMap.get(emotion)[dayIndex]++;
+        }
+
+        // 2. 감정별 총합으로 정렬 후 상위 4개만 추출
+        List<Map.Entry<String, int[]>> topEmotions = countMap.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    int sum1 = Arrays.stream(e1.getValue()).sum();
+                    int sum2 = Arrays.stream(e2.getValue()).sum();
+                    return Integer.compare(sum2, sum1); // 내림차순
+                })
+                .limit(4)
+                .toList();
+
+        // 3. 동적으로 색상 배정
+        List<String> borderColors = List.of("#DA983C", "#B87B5C", "#8F9562", "#6B7280");
+        List<String> backgroundColors = List.of(
+                "rgba(218, 152, 60, 0.2)",
+                "rgba(184, 123, 92, 0.2)",
+                "rgba(143, 149, 98, 0.2)",
+                "rgba(107, 114, 128, 0.2)"
         );
+
+        List<EmotionChartDto> result = new ArrayList<>();
+        for (int i = 0; i < topEmotions.size(); i++) {
+            String emotion = topEmotions.get(i).getKey();
+            List<Integer> data = Arrays.stream(topEmotions.get(i).getValue()).boxed().toList();
+            result.add(new EmotionChartDto(
+                    emotion,
+                    data,
+                    borderColors.get(i % borderColors.size()),
+                    backgroundColors.get(i % backgroundColors.size())
+            ));
+        }
+
+        return result;
     }
 
     public List<WeeklyFeedback> getAllFeedbacks(Long userId) {
