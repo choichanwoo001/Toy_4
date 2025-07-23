@@ -21,20 +21,32 @@ let isLoggedIn = false;
  */
 async function checkLoginStatus() {
     try {
+        console.log('로그인 상태 확인 시작');
         const response = await fetch('/api/check-login-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-            }
+            },
+            credentials: 'include' // 쿠키 포함하여 세션 정보 전송
         });
+        
+        console.log('응답 상태:', response.status);
         
         if (response.ok) {
             const loginStatus = await response.text();
+            console.log('서버 응답:', loginStatus);
             isLoggedIn = loginStatus === 'true';
+            console.log('로그인 상태:', isLoggedIn);
+            renderAuthButtons();
+        } else {
+            console.log('로그인 상태 확인 실패:', response.status);
+            isLoggedIn = false;
             renderAuthButtons();
         }
     } catch (error) {
         console.error('로그인 상태 확인 중 오류:', error);
+        isLoggedIn = false;
+        renderAuthButtons();
     }
 }
 
@@ -44,21 +56,32 @@ async function checkLoginStatus() {
  */
 async function logout() {
     try {
+        console.log('로그아웃 시작');
         const response = await fetch('/logout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-            }
+            },
+            credentials: 'include' // 쿠키 포함하여 세션 정보 전송
         });
+        
+        console.log('로그아웃 응답 상태:', response.status);
         
         if (response.ok) {
             isLoggedIn = false;
             renderAuthButtons();
+            showMessage('로그아웃되었습니다.', 'success');
             // 페이지 새로고침
-            window.location.reload();
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            console.error('로그아웃 실패:', response.status);
+            showMessage('로그아웃 중 오류가 발생했습니다.', 'error');
         }
     } catch (error) {
         console.error('로그아웃 중 오류:', error);
+        showMessage('로그아웃 중 오류가 발생했습니다.', 'error');
     }
 }
 
@@ -67,6 +90,11 @@ async function logout() {
  * @param {string} formType - 'login' 또는 'register'
  */
 function showForm(formType) {
+    // 서비스 소개 영역 숨기기
+    if (mainServiceFeaturesSection) {
+        mainServiceFeaturesSection.classList.add('hidden');
+    }
+    
     if (formType === 'login') {
         mainLoginFormSection.classList.remove('hidden');
         mainRegistrationFormSection.classList.add('hidden');
@@ -77,6 +105,44 @@ function showForm(formType) {
         mainLoginFormSection.classList.add('hidden');
         // 회원가입 폼 초기화
         resetRegistrationForm();
+        // 회원가입 폼 이벤트 리스너 설정 (동적으로 추가)
+        setTimeout(() => {
+            const nicknameInput = document.getElementById('reg-name');
+            const emailInput = document.getElementById('reg-email');
+            const passwordInput = document.getElementById('reg-password');
+            const confirmPasswordInput = document.getElementById('reg-confirm-password');
+            const phoneInput = document.getElementById('reg-phone');
+            const termsCheckbox = document.getElementById('terms-agree');
+            
+            if (nicknameInput) {
+                nicknameInput.addEventListener('input', handleNicknameInput);
+                nicknameInput.addEventListener('blur', handleNicknameInput);
+            }
+            
+            if (emailInput) {
+                emailInput.addEventListener('input', handleEmailInput);
+                emailInput.addEventListener('blur', handleEmailInput);
+            }
+            
+            if (passwordInput) {
+                passwordInput.addEventListener('input', handlePasswordInput);
+                passwordInput.addEventListener('blur', handlePasswordInput);
+            }
+            
+            if (confirmPasswordInput) {
+                confirmPasswordInput.addEventListener('input', handleConfirmPasswordInput);
+                confirmPasswordInput.addEventListener('blur', handleConfirmPasswordInput);
+            }
+            
+            if (phoneInput) {
+                phoneInput.addEventListener('input', handlePhoneInput);
+                phoneInput.addEventListener('blur', handlePhoneInput);
+            }
+            
+            if (termsCheckbox) {
+                termsCheckbox.addEventListener('change', handleTermsAgreement);
+            }
+        }, 100);
     }
 }
 
@@ -90,24 +156,32 @@ function hideForm(formType) {
     } else if (formType === 'register') {
         mainRegistrationFormSection.classList.add('hidden');
     }
+    
+    // 서비스 소개 영역 다시 표시
+    if (mainServiceFeaturesSection) {
+        mainServiceFeaturesSection.classList.remove('hidden');
+    }
 }
 
 /**
  * 로그인 상태에 따라 인증 버튼을 렌더링하는 함수
- * 로그인 상태면 '일기 쓰러 가기'와 '로그아웃' 버튼 표시
+ * 로그인 상태면 '일기 쓰러 가기' 버튼 표시
  * 비로그인 상태면 '로그인'과 '회원가입' 버튼 표시
  */
 function renderAuthButtons() {
+    console.log('renderAuthButtons 호출됨, isLoggedIn:', isLoggedIn);
+    
     if (isLoggedIn) {
         mainAuthButtonsDiv.innerHTML = `
-            <button class="btn-main" onclick="window.location.href='/diary'">일기 쓰러 가기</button>
-            <button class="btn-kakao" onclick="logout()">로그아웃</button>
+            <button class="btn-main" onclick="window.location.href='/diary-calendar'">일기 쓰러 가기</button>
         `;
+        console.log('로그인 상태: 일기 쓰러 가기 버튼 표시');
     } else {
         mainAuthButtonsDiv.innerHTML = `
             <button class="btn-main" onclick="showForm('login')">로그인</button>
-            <button class="btn-kakao" onclick="showForm('register')">회원가입</button>
+            <button class="btn-register" onclick="showForm('register')">회원가입</button>
         `;
+        console.log('비로그인 상태: 로그인, 회원가입 버튼 표시');
     }
 }
 
@@ -127,6 +201,30 @@ function displayNextQuote() {
  * URL 파라미터 확인, 로그인 상태 체크, 인용구 표시, 폼 초기화를 수행
  */
 function initializeMainPage() {
+    console.log('initializeMainPage 시작');
+    
+    // 페이지 로드 시 폼들을 숨김 상태로 초기화
+    if (mainLoginFormSection) {
+        mainLoginFormSection.classList.add('hidden');
+    }
+    if (mainRegistrationFormSection) {
+        mainRegistrationFormSection.classList.add('hidden');
+    }
+    
+    // 페이지 로드 시 모든 검증 메시지 숨기기
+    const errorMessages = document.querySelectorAll('.error-message');
+    const successMessages = document.querySelectorAll('.success-message');
+    
+    errorMessages.forEach(message => {
+        message.classList.remove('show');
+        console.log('초기화: 에러 메시지 숨김:', message.textContent);
+    });
+    
+    successMessages.forEach(message => {
+        message.classList.remove('show');
+        console.log('초기화: 성공 메시지 숨김:', message.textContent);
+    });
+    
     // URL 파라미터 확인 (로그인/회원가입 성공 여부)
     const urlParams = new URLSearchParams(window.location.search);
     const loginSuccess = urlParams.get('login');
@@ -134,10 +232,11 @@ function initializeMainPage() {
     
     // 로그인 또는 회원가입 성공 시 즉시 로그인 상태로 설정
     if (loginSuccess === 'true' || registerSuccess === 'true') {
+        console.log('URL 파라미터로 로그인 성공 감지');
         isLoggedIn = true;
         renderAuthButtons();
         
-        // 성공 메시지 표시 (선택사항)
+        // 성공 메시지 표시
         if (loginSuccess === 'true') {
             showMessage('로그인되었습니다!', 'success');
         } else if (registerSuccess === 'true') {
@@ -147,23 +246,16 @@ function initializeMainPage() {
         // URL에서 파라미터 제거
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
-    } else {
+    }
+    else {
         // 일반적인 경우 서버에서 로그인 상태 확인
-        checkLoginStatus().then(() => {
-            renderAuthButtons();
-        });
+        console.log('서버에서 로그인 상태 확인 시작');
+        checkLoginStatus();
     }
     
+    renderAuthButtons();
     displayNextQuote();
     setInterval(displayNextQuote, 5000);
-    
-    // 페이지 로드 시 폼들을 숨김 상태로 초기화
-    if (mainLoginFormSection) {
-        mainLoginFormSection.classList.add('hidden');
-    }
-    if (mainRegistrationFormSection) {
-        mainRegistrationFormSection.classList.add('hidden');
-    }
 }
 
 /**
@@ -204,6 +296,7 @@ let isNicknameValid = false;
 let isEmailValid = false;
 let isPasswordValid = false;
 let isConfirmPasswordValid = false;
+let isPhoneValid = false; // 전화번호 유효성 상태 추가
 let isTermsAgreed = false;
 
 // 사용자가 입력을 시작했는지 추적하는 변수들
@@ -211,6 +304,7 @@ let nicknameTouched = false;
 let emailTouched = false;
 let passwordTouched = false;
 let confirmPasswordTouched = false;
+let phoneTouched = false; // 전화번호 터치 상태 추가
 
 /**
  * 서버에서 닉네임 중복 여부를 확인하는 함수
@@ -275,6 +369,17 @@ function validateEmail(email) {
 }
 
 /**
+ * 전화번호 형식이 올바른지 검증하는 함수
+ * @param {string} phone - 검증할 전화번호
+ * @returns {boolean} 올바른 형식이면 true, 아니면 false
+ */
+function validatePhone(phone) {
+    // 한국 전화번호 형식 검증 (010-XXXX-XXXX)
+    const phoneRegex = /^010-\d{4}-\d{4}$/;
+    return phoneRegex.test(phone);
+}
+
+/**
  * 닉네임 입력 필드의 실시간 검증을 처리하는 함수
  * 길이 검사, 중복 검사를 수행하고 UI 상태를 업데이트
  */
@@ -282,6 +387,12 @@ async function handleNicknameInput() {
     const nicknameInput = document.getElementById('reg-name');
     const nicknameError = document.getElementById('nickname-error');
     const nicknameSuccess = document.getElementById('nickname-success');
+    
+    // 요소가 존재하지 않으면 함수 종료
+    if (!nicknameInput || !nicknameError || !nicknameSuccess) {
+        return;
+    }
+    
     const nickname = nicknameInput.value.trim();
 
     // 사용자가 입력을 시작했음을 표시
@@ -323,6 +434,7 @@ async function handleNicknameInput() {
             nicknameError.classList.remove('show');
             nicknameSuccess.classList.add('show');
             isNicknameValid = true;
+            console.log('닉네임 검증 성공');
         } else {
             nicknameInput.classList.remove('success');
             nicknameInput.classList.add('error');
@@ -330,6 +442,7 @@ async function handleNicknameInput() {
             nicknameError.classList.add('show');
             nicknameSuccess.classList.remove('show');
             isNicknameValid = false;
+            console.log('닉네임 검증 실패');
         }
         updateSubmitButton();
     }, 500);
@@ -343,6 +456,12 @@ async function handleEmailInput() {
     const emailInput = document.getElementById('reg-email');
     const emailError = document.getElementById('email-error');
     const emailSuccess = document.getElementById('email-success');
+    
+    // 요소가 존재하지 않으면 함수 종료
+    if (!emailInput || !emailError || !emailSuccess) {
+        return;
+    }
+    
     const email = emailInput.value.trim();
 
     // 사용자가 입력을 시작했음을 표시
@@ -384,6 +503,7 @@ async function handleEmailInput() {
             emailError.classList.remove('show');
             emailSuccess.classList.add('show');
             isEmailValid = true;
+            console.log('이메일 검증 성공');
         } else {
             emailInput.classList.remove('success');
             emailInput.classList.add('error');
@@ -391,6 +511,7 @@ async function handleEmailInput() {
             emailError.classList.add('show');
             emailSuccess.classList.remove('show');
             isEmailValid = false;
+            console.log('이메일 검증 실패');
         }
         updateSubmitButton();
     }, 500);
@@ -403,6 +524,12 @@ async function handleEmailInput() {
 function handlePasswordInput() {
     const passwordInput = document.getElementById('reg-password');
     const passwordError = document.getElementById('password-error');
+    
+    // 요소가 존재하지 않으면 함수 종료
+    if (!passwordInput || !passwordError) {
+        return;
+    }
+    
     const password = passwordInput.value;
 
     // 사용자가 입력을 시작했음을 표시
@@ -422,11 +549,13 @@ function handlePasswordInput() {
         passwordInput.classList.add('success');
         passwordError.classList.remove('show');
         isPasswordValid = true;
+        console.log('비밀번호 검증 성공');
     } else {
         passwordInput.classList.remove('success');
         passwordInput.classList.add('error');
         passwordError.classList.add('show');
         isPasswordValid = false;
+        console.log('비밀번호 검증 실패');
     }
     updateSubmitButton();
 }
@@ -440,6 +569,12 @@ function handleConfirmPasswordInput() {
     const confirmPasswordInput = document.getElementById('reg-confirm-password');
     const confirmPasswordError = document.getElementById('confirm-password-error');
     const confirmPasswordSuccess = document.getElementById('confirm-password-success');
+    
+    // 요소가 존재하지 않으면 함수 종료
+    if (!passwordInput || !confirmPasswordInput || !confirmPasswordError || !confirmPasswordSuccess) {
+        return;
+    }
+    
     const password = passwordInput.value;
     const confirmPassword = confirmPasswordInput.value;
 
@@ -462,12 +597,14 @@ function handleConfirmPasswordInput() {
         confirmPasswordError.classList.remove('show');
         confirmPasswordSuccess.classList.add('show');
         isConfirmPasswordValid = true;
+        console.log('비밀번호 확인 검증 성공');
     } else {
         confirmPasswordInput.classList.remove('success');
         confirmPasswordInput.classList.add('error');
         confirmPasswordError.classList.add('show');
         confirmPasswordSuccess.classList.remove('show');
         isConfirmPasswordValid = false;
+        console.log('비밀번호 확인 검증 실패');
     }
     updateSubmitButton();
 }
@@ -479,6 +616,55 @@ function handleConfirmPasswordInput() {
 function handleTermsAgreement() {
     const termsCheckbox = document.getElementById('terms-agree');
     isTermsAgreed = termsCheckbox.checked;
+    console.log('약관 동의 상태:', isTermsAgreed);
+    updateSubmitButton();
+}
+
+/**
+ * 전화번호 입력 필드의 실시간 검증을 처리하는 함수
+ * 형식 검사를 수행하고 UI 상태를 업데이트
+ */
+function handlePhoneInput() {
+    const phoneInput = document.getElementById('reg-phone');
+    const phoneError = document.getElementById('phone-error');
+    const phoneSuccess = document.getElementById('phone-success');
+    
+    // 요소가 존재하지 않으면 함수 종료
+    if (!phoneInput || !phoneError || !phoneSuccess) {
+        return;
+    }
+    
+    const phone = phoneInput.value.trim();
+
+    // 사용자가 입력을 시작했음을 표시
+    phoneTouched = true;
+
+    // 전화번호가 비어있으면 검증하지 않음
+    if (!phone) {
+        phoneInput.classList.remove('error', 'success');
+        phoneError.classList.remove('show');
+        phoneSuccess.classList.remove('show');
+        isPhoneValid = false;
+        updateSubmitButton();
+        return;
+    }
+
+    // 전화번호 형식 검사
+    if (validatePhone(phone)) {
+        phoneInput.classList.remove('error');
+        phoneInput.classList.add('success');
+        phoneError.classList.remove('show');
+        phoneSuccess.classList.add('show');
+        isPhoneValid = true;
+        console.log('전화번호 검증 성공');
+    } else {
+        phoneInput.classList.remove('success');
+        phoneInput.classList.add('error');
+        phoneError.classList.add('show');
+        phoneSuccess.classList.remove('show');
+        isPhoneValid = false;
+        console.log('전화번호 검증 실패');
+    }
     updateSubmitButton();
 }
 
@@ -488,14 +674,36 @@ function handleTermsAgreement() {
  */
 function updateSubmitButton() {
     const submitButton = document.getElementById('register-submit-btn');
-    const isFormValid = isNicknameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid && isTermsAgreed;
+    
+    // 버튼이 존재하지 않으면 함수 종료
+    if (!submitButton) {
+        return;
+    }
+    
+    const isFormValid = isNicknameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid && isPhoneValid && isTermsAgreed;
+    
+    console.log('폼 유효성 검사:', {
+        isNicknameValid,
+        isEmailValid,
+        isPasswordValid,
+        isConfirmPasswordValid,
+        isPhoneValid,
+        isTermsAgreed,
+        isFormValid
+    });
     
     if (isFormValid) {
         submitButton.disabled = false;
         submitButton.classList.remove('disabled');
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+        console.log('회원가입 버튼 활성화');
     } else {
         submitButton.disabled = true;
         submitButton.classList.add('disabled');
+        submitButton.style.opacity = '0.5';
+        submitButton.style.cursor = 'not-allowed';
+        console.log('회원가입 버튼 비활성화');
     }
 }
 
@@ -548,7 +756,33 @@ function resetLoginForm() {
     const loginForm = document.querySelector('#login-form-section form');
     if (loginForm) {
         loginForm.reset();
+        
+        // 저장된 이메일 불러오기
+        const rememberedEmail = getCookie('remembered_email');
+        if (rememberedEmail) {
+            const emailInput = document.getElementById('login-email');
+            const rememberMeCheckbox = document.getElementById('remember-me');
+            if (emailInput && rememberMeCheckbox) {
+                emailInput.value = decodeURIComponent(rememberedEmail);
+                rememberMeCheckbox.checked = true;
+                console.log('저장된 이메일 불러옴:', rememberedEmail);
+            }
+        }
     }
+}
+
+/**
+ * 쿠키에서 값을 가져오는 함수
+ * @param {string} name - 쿠키 이름
+ * @returns {string|null} 쿠키 값 또는 null
+ */
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+        return parts.pop().split(';').shift();
+    }
+    return null;
 }
 
 /**
@@ -556,6 +790,8 @@ function resetLoginForm() {
  * 모든 입력 필드, 상태 변수, 에러 메시지를 초기화
  */
 function resetRegistrationForm() {
+    console.log('회원가입 폼 초기화 시작');
+    
     // 모든 입력 필드 초기화
     const inputs = document.querySelectorAll('#registration-form input');
     inputs.forEach(input => {
@@ -564,9 +800,17 @@ function resetRegistrationForm() {
     });
 
     // 모든 메시지 숨기기
-    const messages = document.querySelectorAll('.error-message, .success-message');
-    messages.forEach(message => {
+    const errorMessages = document.querySelectorAll('.error-message');
+    const successMessages = document.querySelectorAll('.success-message');
+    
+    errorMessages.forEach(message => {
         message.classList.remove('show');
+        console.log('에러 메시지 숨김:', message.textContent);
+    });
+    
+    successMessages.forEach(message => {
+        message.classList.remove('show');
+        console.log('성공 메시지 숨김:', message.textContent);
     });
 
     // 상태 변수 초기화
@@ -574,14 +818,26 @@ function resetRegistrationForm() {
     isEmailValid = false;
     isPasswordValid = false;
     isConfirmPasswordValid = false;
+    isPhoneValid = false;
     isTermsAgreed = false;
     nicknameTouched = false;
     emailTouched = false;
     passwordTouched = false;
     confirmPasswordTouched = false;
+    phoneTouched = false;
 
     // 버튼 비활성화
     updateSubmitButton();
+    
+    // 버튼 스타일 강제 적용
+    const submitButton = document.getElementById('register-submit-btn');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.style.opacity = '0.5';
+        submitButton.style.cursor = 'not-allowed';
+    }
+    
+    console.log('회원가입 폼 초기화 완료');
 }
 
 // 이벤트 리스너 등록
@@ -591,57 +847,81 @@ document.addEventListener('DOMContentLoaded', function() {
     // 로그인 폼 제출 이벤트 리스너
     const loginForm = document.querySelector('#login-form-section form');
     if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            // 폼 제출 후 즉시 로그인 상태로 설정 (서버 응답 대기 없이)
-            setTimeout(() => {
-                isLoggedIn = true;
-                renderAuthButtons();
-                hideForm('login');
-            }, 500);
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); // 기본 폼 제출 동작 방지
+            console.log('로그인 폼 제출됨');
+            
+            // 폼 데이터 수집
+            const formData = new FormData(loginForm);
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const rememberMe = formData.get('rememberMe') === 'on';
+            
+            try {
+                // 로그인 요청
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+                    credentials: 'include'
+                });
+                
+                console.log('로그인 응답 상태:', response.status);
+                
+                if (response.ok) {
+                    // 로그인 성공
+                    const result = await response.text();
+                    console.log('로그인 성공:', result);
+                    
+                    // ID 기억하기 처리
+                    if (rememberMe) {
+                        // 쿠키 생성 (30일 유효)
+                        const expirationDate = new Date();
+                        expirationDate.setDate(expirationDate.getDate() + 30);
+                        document.cookie = `remembered_email=${encodeURIComponent(email)}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict`;
+                        console.log('이메일 쿠키 생성됨');
+                    } else {
+                        // 쿠키 삭제
+                        document.cookie = 'remembered_email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        console.log('이메일 쿠키 삭제됨');
+                    }
+                    
+                    // 로그인 상태 확인 및 UI 업데이트
+                    await checkLoginStatus();
+                    hideForm('login');
+                    showMessage('로그인되었습니다!', 'success');
+                } else {
+                    // 로그인 실패
+                    console.log('로그인 실패:', response.status);
+                    showMessage('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.', 'error');
+                    
+                    // 폼 초기화
+                    resetLoginForm();
+                }
+            } catch (error) {
+                console.error('로그인 중 오류:', error);
+                showMessage('로그인 중 오류가 발생했습니다.', 'error');
+                resetLoginForm();
+            }
         });
-    }
-    
-    // 회원가입 폼 이벤트 리스너
-    const nicknameInput = document.getElementById('reg-name');
-    const emailInput = document.getElementById('reg-email');
-    const passwordInput = document.getElementById('reg-password');
-    const confirmPasswordInput = document.getElementById('reg-confirm-password');
-    const termsCheckbox = document.getElementById('terms-agree');
-    
-    if (nicknameInput) {
-        nicknameInput.addEventListener('input', handleNicknameInput);
-        nicknameInput.addEventListener('blur', handleNicknameInput); // 포커스 아웃 시에도 검증
-    }
-    
-    if (emailInput) {
-        emailInput.addEventListener('input', handleEmailInput);
-        emailInput.addEventListener('blur', handleEmailInput); // 포커스 아웃 시에도 검증
-    }
-    
-    if (passwordInput) {
-        passwordInput.addEventListener('input', handlePasswordInput);
-        passwordInput.addEventListener('blur', handlePasswordInput);
-    }
-    
-    if (confirmPasswordInput) {
-        confirmPasswordInput.addEventListener('input', handleConfirmPasswordInput);
-        confirmPasswordInput.addEventListener('blur', handleConfirmPasswordInput);
-    }
-    
-    if (termsCheckbox) {
-        termsCheckbox.addEventListener('change', handleTermsAgreement);
     }
     
     // 회원가입 폼 제출 이벤트 리스너
     const registerForm = document.querySelector('#registration-form-section form');
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
-            // 폼 제출 후 즉시 로그인 상태로 설정 (서버 응답 대기 없이)
-            setTimeout(() => {
-                isLoggedIn = true;
-                renderAuthButtons();
-                hideForm('register');
-            }, 500);
+            console.log('회원가입 폼 제출됨');
+            // 폼 제출 후 서버 응답을 기다린 후 로그인 상태 업데이트
+            setTimeout(async () => {
+                try {
+                    await checkLoginStatus(); // 서버에서 실제 로그인 상태 확인
+                    hideForm('register');
+                } catch (error) {
+                    console.error('로그인 상태 확인 실패:', error);
+                }
+            }, 1000);
         });
     }
 }); 
