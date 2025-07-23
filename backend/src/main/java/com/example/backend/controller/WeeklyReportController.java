@@ -20,7 +20,7 @@ public class WeeklyReportController {
 
     private final WeeklyReportService weeklyReportService;
 
-    // report api
+    // 특정 사용자(userId)의 주차 오프셋(weekOffset)에 해당하는 주간 리포트 데이터를 반환
     @GetMapping
     public ResponseEntity<ReportResponseDto> getWeeklyReport(
             @RequestParam Long userId,
@@ -30,6 +30,7 @@ public class WeeklyReportController {
         return ResponseEntity.ok(responseDto);
     }
 
+    // 특정 사용자가 작성한 모든 주간 리포트의 weekOffset 목록을 최신 순으로 반환
     @GetMapping("/weeks")
     public ResponseEntity<List<Integer>> getAvailableOffsets(@RequestParam Long userId) {
         List<WeeklyFeedback> feedbacks = weeklyReportService.getAllFeedbacks(userId);

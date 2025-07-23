@@ -28,6 +28,7 @@ public class WeeklyReportService {
     private final DailyCommentRepository commentRepo;
     private final CommentEmotionMappingRepository mappingRepo;
 
+    // 주차별 감정 리포트 weekOffset: 현재로부터 몇 주 전인지(0=이번주)
     @Transactional(readOnly = true)
     public ReportResponseDto getWeeklyReport(Long userId, int weekOffset) {
         //  JS 기준 맞춤: offset 방향 통일
@@ -83,6 +84,7 @@ public class WeeklyReportService {
         );
     }
 
+    // 감정 키워드 추출 (상위 n개)
     private String extractTopEmotionKeywords(List<CommentEmotionMapping> mappings, int topN) {
         Map<String, Integer> emotionCount = new HashMap<>();
 
@@ -98,6 +100,7 @@ public class WeeklyReportService {
                 .collect(Collectors.joining(" "));
     }
 
+    // 감정 데이터를 요일별로 추출하여 차트용 데이터 구성
     private List<EmotionChartDto> getEmotionCharts(List<CommentEmotionMapping> mappings) {
         // 1. Map<감정, int[7]> : 요일별 카운트
         Map<String, int[]> countMap = new HashMap<>();
@@ -144,6 +147,7 @@ public class WeeklyReportService {
         return result;
     }
 
+    // 모든 주간 피드백 반환
     @Transactional(readOnly = true)
     public List<WeeklyFeedback> getAllFeedbacks(Long userId) {
         return feedbackRepository.findAllByUser_UserId(userId);
