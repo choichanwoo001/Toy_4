@@ -7,6 +7,7 @@ import com.example.backend.entity.User;
 import com.example.backend.repository.CommentEmotionMappingRepository;
 import com.example.backend.repository.DailyCommentRepository;
 import com.example.backend.repository.DiaryRepository;
+import com.example.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class MyPageService {
     private final DiaryRepository diaryRepository;
     private final DailyCommentRepository dailyCommentRepository;
     private final CommentEmotionMappingRepository commentEmotionMappingRepository;
+    private final UserRepository userRepository;
 
     // 마이페이지 요약 정보 조회
     @Transactional
@@ -50,6 +52,7 @@ public class MyPageService {
         dto.setMainEmotions(List.of(mainEmotionsStr));
         dto.setRecentAiComment(recentCommentContent != null ? recentCommentContent : "AI 코멘트가 없습니다.");
         dto.setRecentStampImage(recentStampImage != null ? recentStampImage : "default_stamp.png");
+        dto.setCommentTime(user.getUserCommentTime());
         return dto;
     }
 
@@ -70,5 +73,12 @@ public class MyPageService {
             }
         }
         return streak;
+    }
+
+    // 코멘트 받을 시간 업데이트
+    @Transactional
+    public void updateCommentTime(User user, int commentHour) {
+        user.setUserCommentTime(commentHour);
+        userRepository.save(user);
     }
 }

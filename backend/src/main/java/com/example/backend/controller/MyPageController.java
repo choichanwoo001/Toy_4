@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RequiredArgsConstructor
 @Controller
@@ -28,5 +30,20 @@ public class MyPageController {
         MyPageSummaryDto summary = myPageService.getMyPageSummary(user);
         model.addAttribute("summary", summary);
         return "layout/base";
+    }
+
+    @PostMapping("/comment-time")
+    public String updateCommentTime(@RequestParam int commentHour, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/?loginRequired=true";
+        }
+        if (user.getUserCommentTime() == commentHour) {
+            return "redirect:/mypage?same=true";
+        }
+        myPageService.updateCommentTime(user, commentHour);
+        user.setUserCommentTime(commentHour);
+        session.setAttribute("user", user);
+        return "redirect:/mypage?saved=true";
     }
 }
