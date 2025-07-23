@@ -7,7 +7,6 @@ import com.example.backend.entity.User;
 import com.example.backend.repository.CommentEmotionMappingRepository;
 import com.example.backend.repository.DailyCommentRepository;
 import com.example.backend.repository.DiaryRepository;
-import com.example.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,24 +15,22 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class MyPageService {
-    private final UserRepository userRepository;
     private final DiaryRepository diaryRepository;
     private final DailyCommentRepository dailyCommentRepository;
     private final CommentEmotionMappingRepository commentEmotionMappingRepository;
 
+    // 마이페이지 요약 정보 조회
     @Transactional
-    public MyPageSummaryDto getMyPageSummary(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+    public MyPageSummaryDto getMyPageSummary(User user) {
         int totalDiaryCount = diaryRepository.countByUser(user);
         int consecutiveDiaryDays = calculateConsecutiveDiaryDays(user);
         DailyComment recentComment = dailyCommentRepository.findTopByUserOrderByCreatedAtDesc(user);
         List<String> mainEmotions = List.of();
-        String recentAiComment = null;
+        String recentCommentContent = null;
         String recentStampImage = null;
         if (recentComment != null) {
             mainEmotions = commentEmotionMappingRepository.findEmotionsByDailyComment(recentComment);
-            recentAiComment = recentComment.getContent();
+            recentCommentContent = recentComment.getContent();
             if (recentComment.getDiary() != null) {
                 recentStampImage = recentComment.getDiary().getAppliedStamp();
             }
@@ -51,7 +48,7 @@ public class MyPageService {
         dto.setTotalDiaryCount(totalDiaryCount);
         dto.setConsecutiveDiaryDays(consecutiveDiaryDays);
         dto.setMainEmotions(List.of(mainEmotionsStr));
-        dto.setRecentAiComment(recentAiComment != null ? recentAiComment : "AI 코멘트가 없습니다.");
+        dto.setRecentAiComment(recentCommentContent != null ? recentCommentContent : "AI 코멘트가 없습니다.");
         dto.setRecentStampImage(recentStampImage != null ? recentStampImage : "default_stamp.png");
         return dto;
     }

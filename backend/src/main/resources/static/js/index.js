@@ -229,6 +229,15 @@ function initializeMainPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const loginSuccess = urlParams.get('login');
     const registerSuccess = urlParams.get('registered');
+    const loginRequired = urlParams.get('loginRequired');
+
+    // 로그인 필요시 팝업 표시
+    if (loginRequired === 'true') {
+        showMessage('로그인이 필요합니다.', 'error');
+        // URL에서 파라미터 제거 (새로고침 시 팝업 반복 방지)
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
     
     // 로그인 또는 회원가입 성공 시 즉시 로그인 상태로 설정
     if (loginSuccess === 'true' || registerSuccess === 'true') {

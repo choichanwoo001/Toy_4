@@ -1,13 +1,14 @@
 package com.example.backend.controller;
 
-
 import com.example.backend.service.MyPageService;
 import com.example.backend.dto.MyPageSummaryDto;
+import com.example.backend.entity.User;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import jakarta.servlet.http.HttpSession;
 
 @RequiredArgsConstructor
 @Controller
@@ -17,11 +18,14 @@ public class MyPageController {
 
     // 마이페이지 매핑
     @GetMapping
-    public String myPage(Model model) {
+    public String myPage(Model model, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/?loginRequired=true";
+        }
         model.addAttribute("title", "마이페이지");
         model.addAttribute("contentPath", "myPage");
-        // 실제 구현 시 로그인 사용자 ID 사용
-        MyPageSummaryDto summary = myPageService.getMyPageSummary(2L);
+        MyPageSummaryDto summary = myPageService.getMyPageSummary(user);
         model.addAttribute("summary", summary);
         return "layout/base";
     }
