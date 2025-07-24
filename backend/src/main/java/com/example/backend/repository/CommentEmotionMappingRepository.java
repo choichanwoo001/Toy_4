@@ -1,14 +1,13 @@
 package com.example.backend.repository;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import com.example.backend.entity.CommentEmotionMapping;
 import com.example.backend.entity.DailyComment;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CommentEmotionMappingRepository extends JpaRepository<CommentEmotionMapping, Long> {
-    // 코멘트의 감정들 찾기
-    @Query("SELECT e.name FROM CommentEmotionMapping c JOIN c.emotionData e WHERE c.dailyComment = :dailyComment")
-    List<String> findEmotionsByDailyComment(@Param("dailyComment") DailyComment dailyComment);
+import java.util.List;
+
+// 주어진 일일 코멘트 목록에 해당하는 감정 매핑 정보를 조회
+public interface CommentEmotionMappingRepository extends JpaRepository<CommentEmotionMapping, CommentEmotionMapping> {
+    List<CommentEmotionMapping> findByDailyCommentIn(List<DailyComment> comments);
+
 }
