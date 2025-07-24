@@ -1,13 +1,11 @@
-// 시간 드롭다운만 채우기
-function populateTimeSelectors() {
-    const hourSelect = document.getElementById('comment-hour');
-
-    // 시간 (00-23)
-    for (let i = 0; i < 24; i++) {
-        const option = document.createElement('option');
-        option.value = String(i).padStart(2, '0');
-        option.textContent = String(i).padStart(2, '0');
-        hourSelect.appendChild(option);
+// 코멘트 받을 시간 선택 후 저장 시 팝업 표시
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('saved') === 'true') {
+        alert('시간이 저장되었습니다.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('same') === 'true') {
+        alert('이미 저장된 시간입니다.');
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
-}
-window.onload = populateTimeSelectors; 
+}); 

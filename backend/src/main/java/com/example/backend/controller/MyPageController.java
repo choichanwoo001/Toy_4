@@ -1,13 +1,16 @@
 package com.example.backend.controller;
 
-
 import com.example.backend.service.MyPageService;
 import com.example.backend.dto.MyPageSummaryDto;
+import com.example.backend.entity.User;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RequiredArgsConstructor
 @Controller
@@ -17,12 +20,31 @@ public class MyPageController {
 
     // 마이페이지 매핑
     @GetMapping
-    public String myPage(Model model) {
+    public String myPage(Model model, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/?loginRequired=true";
+        }
         model.addAttribute("title", "마이페이지");
         model.addAttribute("contentPath", "myPage");
-        // 실제 구현 시 로그인 사용자 ID 사용
-        MyPageSummaryDto summary = myPageService.getMyPageSummary(1L);
+        MyPageSummaryDto summary = myPageService.getMyPageSummary(user);
         model.addAttribute("summary", summary);
         return "layout/base";
+    }
+
+    // 코멘트 받을 시간 업데이트
+    @PostMapping("/comment-time")
+    public String updateCommentTime(@RequestParam int commentHour, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/?loginRequired=true";
+        }
+        if (user.getUserCommentTime() == commentHour) {
+            return "redirect:/mypage?same=true";
+        }
+        myPageService.updateCommentTime(user, commentHour);
+        user.setUserCommentTime(commentHour);
+        session.setAttribute("user", user);
+        return "redirect:/mypage?saved=true";
     }
 }
