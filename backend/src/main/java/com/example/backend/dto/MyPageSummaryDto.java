@@ -21,5 +21,6 @@ public class MyPageSummaryDto {
     private List<String> mainEmotions;
     private String recentAiComment;
     private String recentStampImage;
+    private int commentTime;
     private int point;
 } 

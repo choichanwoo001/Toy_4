@@ -20,7 +20,9 @@
             </div>
             <div class="space-y-3">
                 <button class="btn-action bg-[#8F9562] hover:bg-[#495235]">프로필 수정</button>
-                <button class="btn-action bg-red-500 hover:bg-red-600">로그아웃</button>
+                <form th:action="@{/logout}" method="post">
+                    <button type="submit" class="btn-action bg-red-500 hover:bg-red-600">로그아웃</button>
+                </form>
             </div>
         </section>
 
@@ -44,7 +46,7 @@
                 <div class="info-item flex-col items-start">
                     <span class="info-label mb-2">최근 AI 코멘트</span>
                     <div class="flex items-center text-sm text-[#495235] bg-[#F4DDB8] p-3 rounded-lg border border-[#B87B5C] w-full">
-                        <img th:src="@{'/' + ${summary.recentStampImage}}" alt="참 잘했어요 스탬프" class="stamp-image-preview mr-3">
+                        <img th:src="@{/images/{img}(img=${summary.recentStampImage})}" alt="참 잘했어요 스탬프" class="stamp-image-preview mr-3">
                         <span th:text="${summary.recentAiComment}">제자님, 오늘도 하루를 잘 기록했네요! 작은 노력이 큰 변화를 만든답니다.</span>
                     </div>
                 </div>
@@ -63,12 +65,16 @@
         <section>
             <h2 class="section-title">알림 설정</h2>
             <div class="space-y-4">
-                <div class="flex items-center space-x-4">
-                    <span class="info-label whitespace-nowrap">선생님께 코멘트 받을 시간:</span>
-                    <select id="comment-hour" class="time-select"></select>
-                    <span class="info-label">시</span>
-                </div>
-                <button id="save-comment-time-btn" class="btn-action bg-[#DA983C] hover:bg-[#90533B]">시간 저장</button>
+                <form th:action="@{/mypage/comment-time}" method="post" class="flex flex-col space-y-2">
+                    <div class="flex items-center space-x-4">
+                        <span class="info-label whitespace-nowrap">선생님께 코멘트 받을 시간:</span>
+                        <select id="comment-hour" name="commentHour" class="time-select">
+                            <option th:each="h : ${#numbers.sequence(0,23)}" th:value="${h}" th:text="${h}" th:selected="${h} == ${summary.commentTime}"></option>
+                        </select>
+                        <span class="info-label">시</span>
+                    </div>
+                    <button type="submit" class="btn-action bg-[#DA983C] hover:bg-[#90533B] w-full">시간 저장</button>
+                </form>
             </div>
         </section>
         <section>
