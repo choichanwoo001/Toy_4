@@ -2,6 +2,9 @@ package com.example.backend.dto;
 
 import lombok.*;
 
+/**
+ * 사용자 회원가입 정보를 담는 DTO 클래스
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

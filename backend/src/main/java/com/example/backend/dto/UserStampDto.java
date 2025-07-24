@@ -1,0 +1,20 @@
+package com.example.backend.dto;
+
+import java.time.LocalDateTime;
+import lombok.*;
+
+/**
+ * 사용자 스탬프 정보를 담는 DTO 클래스
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class UserStampDto {
+    private Long userStampId;
+    private Long userId;
+    private Long stampId;
+    private String isActive; // "Y" or "N"
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+} 

@@ -19,6 +19,7 @@ public class MyPageService {
         dto.setMainEmotions(Arrays.asList("#기쁨", "#평온", "#성장"));
         dto.setRecentAiComment("제자님, 오늘도 하루를 잘 기록했네요! 작은 노력이 큰 변화를 만든답니다.");
         dto.setRecentStampImage("참잘했어요.jpg");
+        dto.setPoint(1000); // TODO: 실제 포인트 값으로 변경 필요
         return dto;
     }
 }
