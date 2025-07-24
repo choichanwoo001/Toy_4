@@ -1,28 +1,29 @@
 package com.example.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
+import lombok.Data;
 
 @Entity
 @Table(name = "comment_emotion_mapping")
-@Getter
-@NoArgsConstructor
+@Data
 public class CommentEmotionMapping {
-
     @EmbeddedId
-    private CommentEmotionId id;
+    private CommentEmotionMappingId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("dailyCommentId")
-    @JoinColumn(name = "daily_comment_id")
+    @JoinColumn(name = "daily_comment_id", nullable = false)
     private DailyComment dailyComment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("emotionId")
-    @JoinColumn(name = "emotion_id")
-    private EmotionData emotionData; // 👈 이 필드가 있어야 getEmotionData() 가능
+    @JoinColumn(name = "emotion_id", nullable = false)
+    private EmotionData emotionData;
 }
+
+@Embeddable
+@Data
+class CommentEmotionMappingId implements java.io.Serializable {
+    private Long dailyCommentId;
+    private Long emotionId;
+} 
