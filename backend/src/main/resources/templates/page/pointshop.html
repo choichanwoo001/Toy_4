@@ -267,6 +267,8 @@
     </style>
 </head>
 <body>
+    <!-- 헤더 네비게이션 -->
+    <div th:replace="~{layout/header :: navbar}"></div>
     <div class="container-card">
         <header>
             <h1>인생, 쓰다</h1>
@@ -275,17 +277,25 @@
 
         <div id="top-control-area" class="flex justify-between items-center mb-8">
             <button id="back-arrow-btn" class="btn-nav-arrow hidden">←</button>
-            <div class="flex-grow flex justify-center"> <div class="point-display">
+            <div class="flex-grow flex justify-center">
+                <div class="point-display">
                     <span role="img" aria-label="coin">💰</span>
                     현재 포인트: <span id="current-points" class="ml-2 text-[#DA983C]">1,250</span> P
                 </div>
             </div>
-            </div>
-
+        </div>
         <div id="shop-items-section">
             <div class="section-title">
                 <h2>도장 상점</h2>
-                <button id="go-to-my-stamps-btn-in-shop" class="btn-view-toggle">내가 보유한 도장 보기</button>
+                <div class="flex items-center">
+                    <label for="stamp-filter" class="mr-2 font-semibold text-[#90533B]"></label>
+                    <select id="stamp-filter" class="border rounded px-2 py-1">
+                        <option value="all">전체</option>
+                        <option value="buyable">구매가능</option>
+                        <option value="owned">보유중</option>
+                        <option value="notowned">미보유</option>
+                    </select>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -416,25 +426,29 @@
         function renderShopItems(data) {
             const shopGrid = document.querySelector('#shop-items-section .grid');
             shopGrid.innerHTML = '';
+            const currentFilter = document.getElementById('stamp-filter').value;
             data.forEach(item => {
-                const { stamp, status } = item;
+                const { stamp, status, userStampId, isActive } = item;
                 const card = document.createElement('div');
                 card.className = 'shop-item-card';
                 card.dataset.stampId = stamp.stampId;
-                let badge = '';
-                if (stamp.status === 'LIMITED') {
-                    badge = '<span class="limited-badge">한정판</span>';
-                }
                 let buttonHtml = '';
                 if (status === 'owned') {
-                    buttonHtml = '<button class="btn-buy disabled">보유 중</button>';
+                    if (currentFilter === 'owned') {
+                        if (isActive === "Y") {
+                            buttonHtml = '<button class="btn-buy disabled" disabled>적용중</button>';
+                        } else {
+                            buttonHtml = `<button class="btn-buy btn-apply-owned" data-user-stamp-id="${userStampId}">적용하기</button>`;
+                        }
+                    } else {
+                        buttonHtml = '<button class="btn-buy disabled" disabled>보유중</button>';
+                    }
                 } else if (status === 'insufficient') {
-                    buttonHtml = '<button class="btn-buy">포인트 부족</button>';
+                    buttonHtml = '<button class="btn-buy disabled" disabled>포인트 부족</button>';
                 } else {
                     buttonHtml = `<button class="btn-buy" data-stamp-id="${stamp.stampId}">구매하기</button>`;
                 }
                 card.innerHTML = `
-                    ${badge}
                     <img src="/${stamp.image}" alt="${stamp.name}" class="stamp-preview-image-shop">
                     <h3 class="text-xl font-semibold text-[#90533B] mb-2">${stamp.name}</h3>
                     <p class="text-[#495235] mb-4">${stamp.description}</p>
@@ -443,9 +457,29 @@
                 `;
                 shopGrid.appendChild(card);
             });
-            // 구매 버튼 이벤트 연결
+            // 적용하기 버튼 이벤트 연결
+            document.querySelectorAll('.btn-apply-owned').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userStampId = this.dataset.userStampId;
+                    fetch('/pointshop/api/apply', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `userStampId=${userStampId}`
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result) {
+                            alert('적용 성공!');
+                            loadStamps('owned'); // 보유중 카테고리 새로고침
+                        } else {
+                            alert('적용 실패');
+                        }
+                    });
+                });
+            });
+            // 기존 구매 버튼 이벤트 연결
             document.querySelectorAll('.btn-buy').forEach(button => {
-                if (button.classList.contains('disabled')) return;
+                if (button.classList.contains('disabled') || button.classList.contains('btn-apply-owned')) return;
                 button.addEventListener('click', function() {
                     const card = this.closest('.shop-item-card');
                     const stampId = card.dataset.stampId;
@@ -489,7 +523,12 @@
             data.forEach(us => {
                 const card = document.createElement('div');
                 card.className = 'owned-stamp-card';
+                // 적용중 뱃지 추가
+                const activeBadge = us.isActive === "Y"
+                    ? '<span class="inline-block bg-[#DA983C] text-white text-xs font-bold px-2 py-1 rounded mb-2">적용중</span>'
+                    : '';
                 card.innerHTML = `
+                    ${activeBadge}
                     <img src="/${us.image}" alt="${us.name}" class="stamp-preview-image-shop">
                     <h3 class="text-xl font-semibold text-[#90533B] mb-2">${us.name}</h3>
                     <p class="text-[#495235] mb-4">${us.description}</p>
@@ -530,7 +569,7 @@
         });
 
         // 필터 드롭다운 이벤트
-        document.getElementById('stamp-filter')?.addEventListener('change', function() {
+        document.getElementById('stamp-filter').addEventListener('change', function() {
             loadStamps(this.value);
         });
 
