@@ -41,7 +41,7 @@ public class PointshopController {
     @GetMapping("/api/points")
     @ResponseBody
     public int getUserPoints(Principal principal) {
-        Long userId = getUserIdFromPrincipal(principal);
+        Long userId = 1L; // 임시 하드코딩: principal 없이 1번 유저로 고정
         return pointshopService.getUserPoint(userId);
     }
 
@@ -57,24 +57,33 @@ public class PointshopController {
         List<StampDto> stamps = pointshopService.getAvailableStamps(userId);
         List<UserStampDto> myStamps = pointshopService.getMyStamps(userId);
 
-        Set<Long> ownedStampIds = myStamps.stream().map(UserStampDto::getStampId).collect(Collectors.toSet());
+        // 보유 도장 정보 맵핑 (stampId -> UserStampDto)
+        Map<Long, UserStampDto> ownedStampMap = new HashMap<>();
+        for (UserStampDto us : myStamps) {
+            ownedStampMap.put(us.getStampId(), us);
+        }
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (StampDto stamp : stamps) {
             String status;
-            if (ownedStampIds.contains(stamp.getStampId())) {
-                status = "owned";
+            UserStampDto owned = ownedStampMap.get(stamp.getStampId());
+            if (owned != null) {
+                status = "owned"; // 1순위: 보유중
             } else if (userPoint < stamp.getPrice()) {
-                status = "insufficient";
+                status = "insufficient"; // 2순위: 포인트 부족
             } else {
-                status = "buyable";
+                status = "buyable"; // 3순위: 구매 가능
             }
             // 필터 적용
             if (filter.equals("all") || filter.equals(status) ||
-                (filter.equals("notowned") && !ownedStampIds.contains(stamp.getStampId()))) {
+                (filter.equals("notowned") && owned == null)) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("stamp", stamp);
                 map.put("status", status);
+                if (owned != null) {
+                    map.put("userStampId", owned.getUserStampId());
+                    map.put("isActive", owned.getIsActive());
+                }
                 result.add(map);
             }
         }
@@ -85,7 +94,7 @@ public class PointshopController {
     @GetMapping("/api/my-stamps")
     @ResponseBody
     public List<UserStampDto> getMyStamps(Principal principal) {
-        Long userId = getUserIdFromPrincipal(principal);
+        Long userId = 1L; // 임시 하드코딩
         return pointshopService.getMyStamps(userId);
     }
 
@@ -93,7 +102,7 @@ public class PointshopController {
     @PostMapping("/api/buy")
     @ResponseBody
     public boolean buyStamp(@RequestParam Long stampId, Principal principal) {
-        Long userId = getUserIdFromPrincipal(principal);
+        Long userId = 1L; // 임시 하드코딩
         return pointshopService.purchaseStamp(userId, stampId);
     }
 
@@ -101,7 +110,7 @@ public class PointshopController {
     @PostMapping("/api/apply")
     @ResponseBody
     public boolean applyStamp(@RequestParam Long userStampId, Principal principal) {
-        Long userId = getUserIdFromPrincipal(principal);
+        Long userId = 1L; // 임시 하드코딩
         return pointshopService.applyStamp(userId, userStampId);
     }
 
