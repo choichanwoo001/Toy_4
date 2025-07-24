@@ -1,26 +1,20 @@
 package com.example.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-
+import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "emotion_data")
-@Getter
-@NoArgsConstructor
+@Data
 public class EmotionData {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "emotion_id")
-    private Long id;
+    private Long emotionId;
 
+    @Column(length = 100)
     private String name;
 
-    @Column(name = "created_at")
+    @Column(nullable = false)
     private LocalDateTime createdAt;
-}
-
+} 

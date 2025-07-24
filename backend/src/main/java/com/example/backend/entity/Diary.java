@@ -1,33 +1,26 @@
 package com.example.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "diary")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Diary {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "diary_id")
     private Long diaryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "applied_stamp", nullable = false, length = 50)
+    @Column(nullable = false, length = 50)
     private String appliedStamp;
 
     // ===================== NEW ENTITY FIELD ADDED =====================
@@ -49,10 +42,10 @@ public class Diary {
     public void setContent(String content) { this.content = content; }
     public String getAppliedStamp() { return appliedStamp; }
     public void setAppliedStamp(String appliedStamp) { this.appliedStamp = appliedStamp; }
-
+    
     // ===================== NEW GETTER/SETTER ADDED =====================
     // 2025-01-XX: emotion 필드에 대한 getter/setter 추가
     public String getEmotion() { return emotion; }
     public void setEmotion(String emotion) { this.emotion = emotion; }
     // ===================== END NEW GETTER/SETTER =====================
-}
+} 

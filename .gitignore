@@ -39,7 +39,6 @@ application-local.yml
 application-local.properties
 application-prod.yml
 application-prod.properties
-application.properties
 
 # Database
 *.db
