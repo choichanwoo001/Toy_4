@@ -2,6 +2,10 @@ package com.example.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * API 응답 표준 포맷을 제공하는 DTO 클래스
+ * @param <T> 응답 데이터 타입
+ */
 public class ApiResponse<T> {
     @JsonProperty("success")
     private boolean success;

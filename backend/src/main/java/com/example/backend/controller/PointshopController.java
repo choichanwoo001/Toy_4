@@ -13,19 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
-import java.util.stream.Collectors;
+import lombok.*;
 
 @Controller
+@RequiredArgsConstructor
 @RequestMapping("/pointshop")
 public class PointshopController {
 
     private final PointshopService pointshopService;
 
-    @Autowired
-    public PointshopController(PointshopService pointshopService) {
-        this.pointshopService = pointshopService;
-    }
 
     // 1. 포인트샵 메인 페이지 렌더링
     @GetMapping
