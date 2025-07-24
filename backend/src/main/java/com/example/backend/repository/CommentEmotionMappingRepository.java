@@ -8,6 +8,7 @@ import com.example.backend.entity.CommentEmotionMapping;
 import com.example.backend.entity.DailyComment;
 
 public interface CommentEmotionMappingRepository extends JpaRepository<CommentEmotionMapping, Long> {
+    // 코멘트의 감정들 찾기
     @Query("SELECT e.name FROM CommentEmotionMapping c JOIN c.emotionData e WHERE c.dailyComment = :dailyComment")
     List<String> findEmotionsByDailyComment(@Param("dailyComment") DailyComment dailyComment);
 }

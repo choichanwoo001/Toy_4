@@ -32,6 +32,7 @@ public class MyPageController {
         return "layout/base";
     }
 
+    // 코멘트 받을 시간 업데이트
     @PostMapping("/comment-time")
     public String updateCommentTime(@RequestParam int commentHour, HttpSession session) {
         User user = (User) session.getAttribute("user");
