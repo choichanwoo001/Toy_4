@@ -4,6 +4,7 @@ import com.example.backend.dto.MyPageSummaryDto;
 import com.example.backend.entity.DailyComment;
 import com.example.backend.entity.Diary;
 import com.example.backend.entity.User;
+import com.example.backend.entity.CommentEmotionMapping;
 import com.example.backend.repository.CommentEmotionMappingRepository;
 import com.example.backend.repository.DailyCommentRepository;
 import com.example.backend.repository.DiaryRepository;
@@ -31,7 +32,11 @@ public class MyPageService {
         String recentCommentContent = null;
         String recentStampImage = null;
         if (recentComment != null) {
-            mainEmotions = commentEmotionMappingRepository.findEmotionsByDailyComment(recentComment);
+            // 감정 매핑 조회 및 감정명 추출
+            List<CommentEmotionMapping> mappings = commentEmotionMappingRepository.findByDailyCommentIn(List.of(recentComment));
+            mainEmotions = mappings.stream()
+                .map(m -> m.getEmotionData().getName())
+                .toList();
             recentCommentContent = recentComment.getContent();
             if (recentComment.getDiary() != null) {
                 recentStampImage = recentComment.getDiary().getAppliedStamp();
