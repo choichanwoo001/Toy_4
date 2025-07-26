@@ -3,7 +3,6 @@ package com.example.backend.controller;
 import com.example.backend.dto.StampDto;
 import com.example.backend.dto.UserStampDto;
 import com.example.backend.service.PointshopService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.ui.Model;
@@ -29,8 +28,10 @@ public class PointshopController {
         // Long userId = getUserIdFromPrincipal(principal);
         Long userId = 1L; // 임시 하드코딩 (테스트용)
         int userPoint = pointshopService.getUserPoint(userId);
+        model.addAttribute("title", "포인트샵");
+        model.addAttribute("contentPath", "pointshop");
         model.addAttribute("userPoint", userPoint);
-        return "page/pointshop";
+        return "layout/base";
     }
 
     // 2. 사용자 포인트 조회 (AJAX)
@@ -110,9 +111,9 @@ public class PointshopController {
         return pointshopService.applyStamp(userId, userStampId);
     }
 
-    // (유틸) Principal에서 userId 추출 (실제 구현에 맞게 수정)
-    private Long getUserIdFromPrincipal(Principal principal) {
-        // 예시: principal.getName()을 userId로 변환
-        return Long.valueOf(principal.getName());
-    }
+    // // (유틸) Principal에서 userId 추출 (실제 구현에 맞게 수정)
+    // private Long getUserIdFromPrincipal(Principal principal) {
+    //     // 예시: principal.getName()을 userId로 변환
+    //     return Long.valueOf(principal.getName());
+    // }
 } 

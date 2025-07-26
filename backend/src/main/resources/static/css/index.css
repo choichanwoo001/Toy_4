@@ -2,23 +2,17 @@ body {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: #F4DDB8;
     color: #495235;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2.5rem 1rem;
 }
 
 @media (min-width: 640px) {
     body {
-        padding: 2.5rem 1.5rem;
+        padding: 0; /* 기본 패딩 제거 */
     }
 }
 
 @media (min-width: 1024px) {
     body {
-        padding: 2.5rem 2rem;
+        padding: 0; /* 기본 패딩 제거 */
     }
 }
 
@@ -26,7 +20,7 @@ body {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: #F4DDB8;
     color: #495235;
-    min-height: 100vh;
+    min-height: calc(100vh - 80px); /* 헤더 높이 고려 */
     display: flex;
     flex-direction: column;
     align-items: center;
