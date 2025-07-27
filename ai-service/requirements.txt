@@ -6,3 +6,6 @@ torch
 pydantic
 python-dotenv 
 sentence-transformers
+numpy
+pytest
+pytest-asyncio
