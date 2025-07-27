@@ -35,7 +35,8 @@ function getWeekFromOffset(offset) {
 // 📌 API 호출 함수
 async function loadWeeklyReport(weekOffset) {
     try {
-        const response = await fetch(`/api/report?userId=1&weekOffset=${weekOffset}`);
+        const userId = /*[[${user != null}]]*/ false ? '[[${user.userId}]]' : 1;
+const response = await fetch(`/api/report?userId=${userId}&weekOffset=${weekOffset}`);
         if (!response.ok) throw new Error('리포트 데이터를 불러오지 못했습니다.');
         return await response.json();
     } catch (error) {
@@ -127,7 +128,8 @@ async function updateReportContent(weekOffset) {
 
 // 📌 주차 목록 로딩
 async function initReportPage() {
-    const res = await fetch('/api/report/weeks?userId=1');
+    const userId = /*[[${user != null}]]*/ false ? '[[${user.userId}]]' : 1;
+const res = await fetch(`/api/report/weeks?userId=${userId}`);
     validOffsets = await res.json();
 
     if (validOffsets.length === 0) {
