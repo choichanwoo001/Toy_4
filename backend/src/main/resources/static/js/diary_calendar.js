@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 // 동적 달력/일기/모달 스크립트
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth() + 1;
-let userId = 1; // 기본값
+let userId = null; // 로그인하지 않은 상태를 나타내는 기본값
 let currentDiaries = [];
 let selectedDate = null;
 
@@ -557,13 +557,6 @@ function renderCalendar(year, month, diaryData) {
             
             // Observe for lazy loading
             imageObserver.observe(img);
-            
-            if (diary.emotion) {
-                const span = document.createElement('span');
-                span.className = 'emotion-icon';
-                span.textContent = diary.emotion;
-                cell.appendChild(span);
-            }
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
@@ -641,9 +634,9 @@ function renderRecordsList(records, year, month, day) {
         (year === today.getFullYear() && month < today.getMonth()+1) ||
         (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
     
-    if (records.length === 0) {
-        if (!userId || userId === 1) {
-            recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>로그인 후 기록을 남겨보세요!<br>소중한 순간들을 기록할 수 있어요.</p>`;
+        if (records.length === 0) {
+        if (!userId) {
+        recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>로그인 후 기록을 남겨보세요!<br>소중한 순간들을 기록할 수 있어요.</p>`;
         } else if (isPast) {
             recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>${month}월 ${day}일에는 기록이 없었어요.<br>그날의 소중한 순간들을 기록해보세요!</p>`;
         } else {
@@ -717,7 +710,7 @@ function renderRecordsList(records, year, month, day) {
         }
     } else {
         // 오늘 또는 미래 날짜: 기록 입력 활성화 (로그인한 경우에만)
-        if (!userId || userId === 1) {
+        if (!userId) {
             // 로그인하지 않은 경우 기록 입력 비활성화
             if (newRecordSection) {
                 newRecordSection.classList.add('hidden');
@@ -776,8 +769,8 @@ function fetchAndRender() {
     
     // 로그인하지 않은 경우 빈 달력만 표시
     console.log('=== fetchAndRender - 현재 userId:', userId, '===');
-    if (!userId || userId === 1) {
-        console.log('❌ 로그인하지 않은 상태 또는 기본 사용자 - 빈 달력 표시');
+    if (!userId) {
+        console.log('❌ 로그인하지 않은 상태 - 빈 달력 표시');
         currentDiaries = [];
         renderCalendar(currentYear, currentMonth, currentDiaries);
         updateCalendarSummary(currentDiaries, currentYear, currentMonth);
