@@ -8,12 +8,12 @@ body {
 
 /* 메인 컨텐츠 영역 중앙 정렬 */
 .contents_area {
-    background-color: #F4DDB8;
+    background-color: transparent; /* 주황색 배경 제거 */
     min-height: calc(100vh - 80px);
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 0rem 0;
+    padding: 1rem 0; /* 상단 패딩 줄임 */
 }
 
 .wrap_1280 {
@@ -28,7 +28,7 @@ body {
 /* 제목 섹션 중앙 정렬 */
 .page-title-section {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 0.5rem; /* 마진 줄임 */
     width: 100%;
 }
 
