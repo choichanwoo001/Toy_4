@@ -15,6 +15,10 @@
             </button>
             <h1>인생, 쓰다</h1>
             <p>선생님과 채팅</p>
+            <!-- 일기 정보 표시 -->
+            <div th:if="${diaryDate}" class="diary-info">
+                <span th:text="${diaryDate} + ' 일기와 함께'"></span>
+            </div>
         </div>
         <div class="chat-container" id="chat-container">
             <div class="message-bubble ai-bubble">

@@ -409,8 +409,14 @@ saveDiaryBtn.addEventListener('click', function() {
 
 // "AI와 채팅하기" 버튼 클릭 이벤트
 aiChatButton.addEventListener('click', function() {
-    alert('AI 채팅 페이지로 이동합니다!');
-    // 실제 구현 시 window.location.href = '/chat'; 등으로 페이지 이동
+    // 현재 선택된 날짜의 일기 정보를 채팅 페이지로 전달
+    const selectedDateStr = selectedDate ? 
+        `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+        new Date().toISOString().split('T')[0];
+    
+    // 현재 사용자 ID와 선택된 날짜를 쿼리 파라미터로 전달
+    const chatUrl = `/chat?userId=${userId}&diaryDate=${selectedDateStr}`;
+    window.location.href = chatUrl;
 });
 
 // 초기 로드 시 설정
