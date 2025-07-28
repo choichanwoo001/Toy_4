@@ -3,6 +3,18 @@ body {
     background-color: #F4DDB8; /* WHEAT */
     color: #495235; /* DARK FERN */
 }
+
+/* 주차 정보 표시 스타일 */
+.week-info {
+    background-color: #F4DDB8; /* WHEAT */
+    border: 2px solid #B87B5C; /* BROWN SUGAR */
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    display: inline-block;
+    font-weight: 600;
+    color: #90533B; /* CHESTNUT */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 .container-card {
     background-color: white;
     border-radius: 1rem;

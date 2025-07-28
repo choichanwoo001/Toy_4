@@ -8,7 +8,12 @@
     <link rel="stylesheet" th:href="@{/css/report.css}"/>
 
     <section id="report-page-section" class="w-full max-w-4xl space-y-8 py-10">
-        <div class="text-center text-xl text-[#495235] mb-4" id="current-week-display"></div>
+        <div class="text-center text-xl text-[#495235] mb-4" id="current-week-display">
+            <!-- 주차 정보 표시 -->
+            <div th:if="${year != null and month != null and weekOffset != null}" class="week-info">
+                <span th:text="${year} + '년 ' + ${month} + '월 ' + (${weekOffset} + 1) + '주차 리포트'"></span>
+            </div>
+        </div>
         <div class="w-full flex justify-center items-center space-x-4 mb-8">
             <button id="prev-week-btn" class="btn-nav">&lt;</button>
             <button id="next-week-btn" class="btn-nav">&gt;</button>

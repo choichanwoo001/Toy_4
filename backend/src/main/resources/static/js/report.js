@@ -3,6 +3,13 @@ let validOffsets = [];
 let currentIndex = 0;
 let emotionChartInstance = null;
 
+// URL 파라미터에서 정보 가져오기
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('userId');
+const weekOffset = urlParams.get('weekOffset');
+const year = urlParams.get('year');
+const month = urlParams.get('month');
+
 // 📌 DOM 요소
 const currentWeekDisplay = document.getElementById('current-week-display');
 const prevWeekBtn = document.getElementById('prev-week-btn');
@@ -35,7 +42,8 @@ function getWeekFromOffset(offset) {
 // 📌 API 호출 함수
 async function loadWeeklyReport(weekOffset) {
     try {
-        const response = await fetch(`/api/report?userId=1&weekOffset=${weekOffset}`);
+        const targetUserId = userId || 1; // URL에서 userId가 없으면 기본값 1 사용
+        const response = await fetch(`/api/report?userId=${targetUserId}&weekOffset=${weekOffset}`);
         if (!response.ok) throw new Error('리포트 데이터를 불러오지 못했습니다.');
         return await response.json();
     } catch (error) {
@@ -127,7 +135,8 @@ async function updateReportContent(weekOffset) {
 
 // 📌 주차 목록 로딩
 async function initReportPage() {
-    const res = await fetch('/api/report/weeks?userId=1');
+    const targetUserId = userId || 1; // URL에서 userId가 없으면 기본값 1 사용
+    const res = await fetch(`/api/report/weeks?userId=${targetUserId}`);
     validOffsets = await res.json();
 
     if (validOffsets.length === 0) {
@@ -135,7 +144,20 @@ async function initReportPage() {
         return;
     }
 
-    currentIndex = 0;
+    // URL에서 전달받은 weekOffset이 있으면 해당 주차로 설정
+    if (weekOffset !== null) {
+        const targetWeekOffset = parseInt(weekOffset);
+        const weekIndex = validOffsets.indexOf(targetWeekOffset);
+        if (weekIndex !== -1) {
+            currentIndex = weekIndex;
+        } else {
+            // 해당 주차가 없으면 첫 번째 주차로 설정
+            currentIndex = 0;
+        }
+    } else {
+        currentIndex = 0;
+    }
+    
     updateReportContent(validOffsets[currentIndex]);
 }
 
@@ -155,7 +177,9 @@ nextWeekBtn.addEventListener('click', () => {
 });
 
 document.getElementById('go-chat').addEventListener('click', () => {
-    window.location.href = '/chat';
+    // 채팅 페이지로 이동할 때 현재 사용자 정보도 함께 전달
+    const chatUrl = userId ? `/chat?userId=${userId}` : '/chat';
+    window.location.href = chatUrl;
 });
 
 // 📌 초기 실행
