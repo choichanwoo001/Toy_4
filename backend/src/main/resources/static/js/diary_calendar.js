@@ -451,8 +451,8 @@ function getMonday(date) {
 }
 
 // 동적 달력/일기/모달 스크립트
-let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth() + 1;
+let currentYear = 2025; // 6월로 고정
+let currentMonth = 6; // 6월로 고정
 let userId = null; // 로그인하지 않은 상태를 나타내는 기본값
 let currentDiaries = [];
 let selectedDate = null;
