@@ -2,16 +2,19 @@
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
-          rel="stylesheet">
+          rel="stylesheet" th:href="@{/css/pointshop.css}">
 
     <!-- 채팅 전용 CSS -->
     <link rel="stylesheet" th:href="@{/css/report.css}"/>
 
-    <section id="report-page-section" class="w-full max-w-4xl space-y-8 py-10">
-        <div class="text-center text-xl text-[#495235] mb-4" id="current-week-display"></div>
-        <div class="w-full flex justify-center items-center space-x-4 mb-8">
-            <button id="prev-week-btn" class="btn-nav">&lt;</button>
-            <button id="next-week-btn" class="btn-nav">&gt;</button>
+    <section id="report-page-section" class="max-w-4xl mx-auto space-y-8 py-10">
+        <div class="report-center-wrap my-4">
+            <!-- <div class="text-center text-xl text-[#495235] mb-4" id="current-week-display"></div> -->
+            <div class="flex justify-center items-center space-x-4 mb-8">
+                <button id="prev-week-btn" class="btn-nav">&lt;</button>
+                <div class="text-center text-xl text-[#495235] mb-4" id="current-week-display"></div>
+                <button id="next-week-btn" class="btn-nav">&gt;</button>
+            </div>
         </div>
 
         <div class="container-card">

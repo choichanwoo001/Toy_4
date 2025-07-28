@@ -3,6 +3,9 @@ let validOffsets = [];
 let currentIndex = 0;
 let emotionChartInstance = null;
 
+// 📌 세션에서 userId를 Thymeleaf로 안전하게 받음
+let userId = /*[[${user != null} ? user.userId : 1]]*/ 0;
+
 // 📌 DOM 요소
 const currentWeekDisplay = document.getElementById('current-week-display');
 const prevWeekBtn = document.getElementById('prev-week-btn');
@@ -35,8 +38,7 @@ function getWeekFromOffset(offset) {
 // 📌 API 호출 함수
 async function loadWeeklyReport(weekOffset) {
     try {
-        const userId = /*[[${user != null}]]*/ false ? '[[${user.userId}]]' : 1;
-const response = await fetch(`/api/report?userId=${userId}&weekOffset=${weekOffset}`);
+        const response = await fetch(`/api/report?userId=${userId}&weekOffset=${weekOffset}`);
         if (!response.ok) throw new Error('리포트 데이터를 불러오지 못했습니다.');
         return await response.json();
     } catch (error) {
@@ -128,8 +130,7 @@ async function updateReportContent(weekOffset) {
 
 // 📌 주차 목록 로딩
 async function initReportPage() {
-    const userId = /*[[${user != null}]]*/ false ? '[[${user.userId}]]' : 1;
-const res = await fetch(`/api/report/weeks?userId=${userId}`);
+    const res = await fetch(`/api/report/weeks?userId=${userId}`);
     validOffsets = await res.json();
 
     if (validOffsets.length === 0) {
