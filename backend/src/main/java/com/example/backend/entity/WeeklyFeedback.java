@@ -18,7 +18,7 @@ public class WeeklyFeedback {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(name = "is_qualified")

@@ -92,7 +92,7 @@ INSERT INTO daily_comment (user_id, diary_id, diary_date, content, created_at) V
 (5, 5, '2024-01-14 21:20:00', '독서를 통한 성찰의 시간이 값진 경험이었을 것 같습니다. 감사한 마음을 갖게 되신 것이 아름다운 변화네요.', '2024-01-14 21:50:00');
 
 -- 12. WEEKLY_FEEDBACK 테이블 더미 데이터 (User 참조)
-INSERT INTO weekly_feedback (member_id, is_qualified, emotion_summary, week_offset, feedback_start, feedback_end, created_at) VALUES
+INSERT INTO weekly_feedback (user_id, is_qualified, emotion_summary, week_offset, feedback_start, feedback_end, created_at) VALUES
 (1, 'Y', '이번 주는 전반적으로 긍정적인 감정 상태를 유지하셨습니다. 새로운 도전에 대한 기대감과 설렘이 많이 보입니다.', 1, '2024-01-08', '2024-01-14', '2024-01-15 10:00:00'),
 (2, 'Y', '바쁜 일상 속에서도 균형을 잡으려 노력하시는 모습이 보입니다. 약간의 피로감은 있지만 전체적으로 안정적입니다.', 1, '2024-01-08', '2024-01-14', '2024-01-15 11:00:00'),
 (3, 'Y', '사회적 관계에서 많은 행복을 얻으시는 것 같습니다. 인간관계에 대한 소중함을 깊이 느끼고 계시네요.', 1, '2024-01-08', '2024-01-14', '2024-01-15 12:00:00'),

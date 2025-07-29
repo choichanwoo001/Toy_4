@@ -43,6 +43,33 @@ function updatePointsDisplay() {
     }
 }
 
+// 포인트 부족 팝업 표시 함수
+function showInsufficientPopup() {
+    const popup = document.getElementById('point-insufficient-popup');
+    if (popup) {
+        popup.classList.remove('hidden');
+        popup.style.display = 'flex'; // 팝업 표시
+    }
+}
+
+// 구매 성공 팝업 표시 함수
+function showPurchaseSuccessPopup() {
+    const popup = document.getElementById('purchase-success-popup');
+    if (popup) {
+        popup.classList.remove('hidden');
+        popup.style.display = 'flex'; // 팝업 표시
+    }
+}
+
+// 적용 성공 팝업 표시 함수
+function showApplySuccessPopup() {
+    const popup = document.getElementById('apply-success-popup');
+    if (popup) {
+        popup.classList.remove('hidden');
+        popup.style.display = 'flex'; // 팝업 표시
+    }
+}
+
 // 도장 상점 렌더링
 function renderShopItems(data) {
     const shopGrid = document.querySelector('#shop-items-section .grid');
@@ -65,9 +92,9 @@ function renderShopItems(data) {
                 buttonHtml = '<button class="btn-buy disabled" disabled>보유중</button>';
             }
         } else if (status === 'insufficient') {
-            buttonHtml = '<button class="btn-buy disabled" disabled>포인트 부족</button>';
+            buttonHtml = `<button class="btn-buy insufficient" data-stamp-id="${stamp.stampId}" type="button">구매하기</button>`;
         } else {
-            buttonHtml = `<button class="btn-buy" data-stamp-id="${stamp.stampId}">구매하기</button>`;
+            buttonHtml = `<button class="btn-buy" data-stamp-id="${stamp.stampId}" type="button">구매하기</button>`;
         }
         card.innerHTML = `
             <img src="/${stamp.image}" alt="${stamp.name}" class="stamp-preview-image-shop">
@@ -90,7 +117,7 @@ function renderShopItems(data) {
             .then(res => res.json())
             .then(result => {
                 if (result) {
-                    alert('적용 성공!');
+                    showApplySuccessPopup();
                     loadStamps('owned'); // 보유중 카테고리 새로고침
                 } else {
                     alert('적용 실패');
@@ -101,14 +128,22 @@ function renderShopItems(data) {
     // 기존 구매 버튼 이벤트 연결
     document.querySelectorAll('.btn-buy').forEach(button => {
         if (button.classList.contains('disabled') || button.classList.contains('btn-apply-owned')) return;
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function(e) {
+            e.preventDefault(); // 기본 동작 방지
+            e.stopPropagation(); // 이벤트 버블링 방지
+            
             const card = this.closest('.shop-item-card');
             const stampId = card.dataset.stampId;
-            if (this.innerText === '포인트 부족') {
-                document.getElementById('point-insufficient-popup').classList.remove('hidden');
-                return;
-            }
             onBuyButtonClick(stampId);
+        });
+    });
+    
+    // insufficient 버튼 이벤트 연결
+    document.querySelectorAll('.btn-buy.insufficient').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showInsufficientPopup();
         });
     });
 }
@@ -122,14 +157,20 @@ function onBuyButtonClick(stampId) {
     })
     .then(res => res.json())
     .then(result => {
-        if (result.success) {
-            alert('구매 성공!');
+        if (result) {
+            showPurchaseSuccessPopup();
             loadStamps();
             loadUserPoints();
             loadMyStamps();
         } else {
-            alert(result.message || '구매 실패');
+            // 포인트 부족 시 팝업 표시 (alert 대신)
+            showInsufficientPopup();
         }
+    })
+    .catch(error => {
+        console.error('구매 오류:', error);
+        // 에러 시에도 팝업 표시
+        showInsufficientPopup();
     });
 }
 
@@ -175,22 +216,106 @@ function onApplyStamp(userStampId) {
     })
     .then(res => res.json())
     .then(result => {
-        if (result.success) {
-            alert('적용 성공!');
+        if (result) {
+            showApplySuccessPopup();
             loadMyStamps();
         } else {
-            alert(result.message || '적용 실패');
+            alert('적용 실패');
         }
+    })
+    .catch(error => {
+        console.error('적용 오류:', error);
+        alert('적용 중 오류가 발생했습니다.');
     });
 }
 
 // DOM 로드 시 이벤트 리스너 등록
 document.addEventListener('DOMContentLoaded', function() {
-    // 팝업 닫기 버튼
+    // 팝업 강제 숨김 (최우선)
+    const popup = document.getElementById('point-insufficient-popup');
+    if (popup) {
+        popup.classList.add('hidden');
+        popup.style.display = 'none'; // 추가 보안
+    }
+
+    const successPopup = document.getElementById('purchase-success-popup');
+    if (successPopup) {
+        successPopup.classList.add('hidden');
+        successPopup.style.display = 'none'; // 추가 보안
+    }
+
+    const applySuccessPopup = document.getElementById('apply-success-popup');
+    if (applySuccessPopup) {
+        applySuccessPopup.classList.add('hidden');
+        applySuccessPopup.style.display = 'none'; // 추가 보안
+    }
+
+    // 포인트 부족 팝업 닫기 버튼
     const closePopupBtn = document.getElementById('close-popup-btn');
     if (closePopupBtn) {
         closePopupBtn.addEventListener('click', function() {
-            document.getElementById('point-insufficient-popup').classList.add('hidden');
+            const popup = document.getElementById('point-insufficient-popup');
+            if (popup) {
+                popup.classList.add('hidden');
+                popup.style.display = 'none';
+            }
+        });
+    }
+
+    // 구매 성공 팝업 닫기 버튼
+    const closeSuccessPopupBtn = document.getElementById('close-success-popup-btn');
+    if (closeSuccessPopupBtn) {
+        closeSuccessPopupBtn.addEventListener('click', function() {
+            const popup = document.getElementById('purchase-success-popup');
+            if (popup) {
+                popup.classList.add('hidden');
+                popup.style.display = 'none';
+            }
+        });
+    }
+
+    // 적용 성공 팝업 닫기 버튼
+    const closeApplySuccessPopupBtn = document.getElementById('close-apply-success-popup-btn');
+    if (closeApplySuccessPopupBtn) {
+        closeApplySuccessPopupBtn.addEventListener('click', function() {
+            const popup = document.getElementById('apply-success-popup');
+            if (popup) {
+                popup.classList.add('hidden');
+                popup.style.display = 'none';
+            }
+        });
+    }
+
+    // 포인트 부족 팝업 외부 클릭 시 닫기
+    const popupOverlay = document.getElementById('point-insufficient-popup');
+    if (popupOverlay) {
+        popupOverlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                this.style.display = 'none';
+            }
+        });
+    }
+
+    // 구매 성공 팝업 외부 클릭 시 닫기
+    const successPopupOverlay = document.getElementById('purchase-success-popup');
+    if (successPopupOverlay) {
+        successPopupOverlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                this.style.display = 'none';
+            }
+        });
+    }
+
+    // 적용 성공 팝업 외부 클릭 시 닫기
+    const applySuccessPopupOverlay = document.getElementById('apply-success-popup');
+    if (applySuccessPopupOverlay) {
+        applySuccessPopupOverlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                this.style.display = 'none';
+            }
         });
     }
 
