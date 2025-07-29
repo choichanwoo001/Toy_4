@@ -1,143 +1,202 @@
-# AI Service
+# AI Service - RAG 에이전트
 
-AI 서비스는 일기 분석 및 댓글 생성, 그리고 채팅 기능을 제공하는 FastAPI 기반 웹 서비스입니다.
+일기 데이터를 기반으로 한 감정 분석 및 상담 RAG(Retrieval-Augmented Generation) 에이전트입니다.
 
-## 프로젝트 구조
+## 🚀 주요 기능
+
+- **사용자 입력 분석**: 감정, 상황, 시간 컨텍스트 자동 추출
+- **벡터 검색**: ChromaDB를 활용한 의미적 유사도 기반 검색
+- **RAG 응답 생성**: 관련 일기 데이터를 기반으로 한 분석 및 조언
+- **신뢰도 평가**: 검색 결과의 품질을 평가하는 신뢰도 점수
 
 ```
 ai-service/
 ├── app/
-│   ├── api/
-│   │   └── v1/
-│   │       └── endpoints/
-│   │           ├── chat.py          # 채팅 API 엔드포인트
-│   │           ├── diary.py         # 일기 처리 API 엔드포인트
-│   │           └── health.py        # 헬스체크 API
-│   ├── core/
-│   │   ├── config.py               # 설정 관리
-│   │   └── logger.py               # 로깅 설정
-│   ├── db/
-│   │   └── chroma_client.py        # 벡터 데이터베이스 클라이언트
-│   ├── models/
-│   │   └── diary.py                # 데이터 모델
-│   ├── services/
-│   │   ├── chatbot.py              # 채팅봇 서비스
-│   │   ├── chroma_service.py       # 벡터 DB 서비스
-│   │   ├── comment_gen.py          # 댓글 생성 서비스
-│   │   ├── comment_generator.py    # 댓글/피드백 생성 파이프라인
-│   │   └── embedding.py            # 임베딩 서비스
-│   └── utils/
-│       └── preprocessor.py         # 전처리 유틸리티
-├── tests/
-│   ├── test_chat.py               # 채팅 기능 테스트
-│   ├── test_comments.py           # 댓글/피드백 생성 테스트
-│   └── test_preprocessing.py      # 전처리 기능 테스트
-├── requirements.txt
-├── run_tests.py
-└── README.md
+│   ├── api/                    # FastAPI 엔드포인트
+│   ├── core/                   # 설정 및 로깅
+│   ├── db/                     # 데이터베이스 클라이언트
+│   │   └── chroma_client.py    # ChromaDB 클라이언트
+│   ├── models/                 # 데이터 모델
+│   │   └── diary.py           # 일기 관련 모델
+│   ├── services/               # 비즈니스 로직
+│   │   ├── rag_agent.py       # RAG 에이전트 (핵심)
+│   │   ├── embedding.py       # 임베딩 서비스
+│   │   ├── data_loader.py     # 데이터 로더
+│   │   └── chroma_service.py  # ChromaDB 서비스
+│   └── utils/                  # 유틸리티
+├── tests/                      # 테스트 파일
+│   └── test_rag_agent.py      # RAG 에이전트 테스트
+├── test_rag_demo.py           # 데모 스크립트
+└── requirements.txt           # 의존성
 ```
 
-## 주요 기능
-
-### 1. 댓글/피드백 생성 파이프라인 (`comment_generator.py`)
-
-사용자의 일기를 분석하여 의미 있는 댓글이나 피드백을 생성하는 파이프라인입니다.
-
-**파이프라인 구조:**
-```
-사용자 일기 입력 → 전처리 → 프롬프트 A → LLM 청킹 → 프롬프트 B → 청크 수 확인 → 프롬프트 C
-```
-
-- **전처리**: 문맥 분석, 문법 교정
-- **프롬프트 A**: 일기 정제 및 문맥 분석 강화
-- **LLM 청킹**: 의미 기반 청크 분리
-- **프롬프트 B**: 청크 품질 검증 및 의미 일관성 확인
-- **프롬프트 C**: 무미건조한 일기에 대한 맞춤형 피드백
-
-### 2. 채팅 기능 (`test_chat.py`)
-
-실제 채팅 대화를 처리하는 기능입니다.
-
-- 사용자 메시지 처리
-- 채팅 세션 관리
-- 대화 컨텍스트 유지
-- 실시간 응답 생성
-
-## 테스트 구조
-
-### 1. 전체 파이프라인 테스트 (`test_chat.py`)
-- 채팅 서비스 기능 테스트
-- 메시지 처리 및 응답 생성
-- 세션 관리 및 컨텍스트 처리
-- 채팅 통합 시나리오
-
-### 2. 전처리 전용 테스트 (`test_preprocessing.py`)
-- 기본 전처리 기능
-- 문법 교정 및 문맥 분석
-- 프롬프트 A 적용 테스트
-- 강화된 감정/키워드 추출
-- 텍스트 정제 및 에러 처리
-
-### 3. 댓글/피드백 생성 테스트 (`test_comments.py`)
-- 댓글 생성 파이프라인 전체 테스트
-- 프롬프트 C 피드백 생성
-- 무미건조한 일기 감지
-- 피드백 내용 분석 및 톤 확인
-- 통합 시나리오 테스트
-
-## 설치 및 실행
+## 🛠️ 설치 및 설정
 
 ### 1. 의존성 설치
+
 ```bash
+cd ai-service
 pip install -r requirements.txt
 ```
 
-### 2. 테스트 실행
+### 2. 환경 설정
+
 ```bash
-python run_tests.py
+# 가상환경 생성 (선택사항)
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 ```
 
-또는 개별 테스트 실행:
+## 🧪 테스트 방법
+
+### 1. 단위 테스트 실행
+
 ```bash
-# 채팅 기능 테스트
-pytest tests/test_chat.py -v
+# 전체 테스트 실행
+pytest tests/ -v
 
-# 댓글 생성 테스트
-pytest tests/test_comments.py -v
+# 특정 테스트만 실행
+pytest tests/test_rag_agent.py::TestRAGAgent::test_emotion_extraction -v
 
-# 전처리 기능 테스트
-pytest tests/test_preprocessing.py -v
+# 통합 테스트만 실행
+pytest tests/test_rag_agent.py -m integration -v
 ```
 
-### 3. 서비스 실행
+### 2. 데모 스크립트 실행
+
 ```bash
-uvicorn app.main:app --reload
+# 대화형 데모 실행
+python test_rag_demo.py
 ```
 
-## API 엔드포인트
+### 3. 개별 모듈 테스트
 
-### 채팅 API
-- `POST /api/v1/chat/message`: 사용자 메시지 처리
-- `GET /api/v1/chat/session/{session_id}`: 채팅 세션 조회
+```python
+# Python 인터프리터에서 직접 테스트
+from app.services.rag_agent import RAGAgent
+from app.services.data_loader import DataLoader
 
-### 일기 처리 API
-- `POST /api/v1/diary/process`: 일기 입력 처리 및 댓글 생성
-- `GET /api/v1/diary/health`: 서비스 상태 확인
+# 데이터 로더로 샘플 데이터 생성
+data_loader = DataLoader()
+sample_entries = data_loader.generate_sample_diary_data(20)
+data_loader.load_data_to_chroma(sample_entries)
 
-## 개발 가이드
+# RAG 에이전트 테스트
+rag_agent = RAGAgent()
+response = rag_agent.process_query("요즘 계속 우울한데 이번 주에 내가 뭐 때문에 그런지 모르겠어")
+print(response.analysis)
+```
 
-### Contract-first 원칙
-모든 AI 에이전트의 입출력은 JSON 스키마로 고정되어 있으며, 파싱 실패 시 재요청 또는 폴백을 수행합니다.
+## 🔧 RAG 에이전트 동작 원리
 
-### 에러 처리
-- LLM 파싱 실패: 재시도 (최대 3회)
-- API 타임아웃: 재시도 (최대 2회)
-- 폴백 응답: 일반적인 공감 메시지 또는 더 많은 입력 요청
+### 1. 사용자 입력 분석
 
-### 관찰성
-- 처리 시간, 토큰 사용량, 점수 로깅
-- 샘플링 요청을 사람이 검토할 수 있도록 설정
+```python
+user_input = "요즘 계속 우울한데 이번 주에 회사에서 힘들었다"
 
-## 라이센스
+# 분석 결과
+{
+    "user_utterance": "요즘 계속 우울한데 이번 주에 회사에서 힘들었다",
+    "inferred_emotion": "우울",
+    "inferred_situation": "업무", 
+    "time_context": "이번_주"
+}
+```
 
-MIT License 
+### 2. 검색 쿼리 생성
+
+- **감정 키워드**: "우울", "슬픔", "절망", "무기력"
+- **시간 필터**: 이번 주 (7일)
+- **상황 필터**: 업무 관련
+
+### 3. 벡터 검색
+
+```python
+# ChromaDB에서 유사한 일기 검색
+search_results = chroma_client.search(
+    query_embeddings=[query_embedding],
+    n_results=15,
+    where_filter={
+        "context": "업무",
+        "date": {"$gte": "2024-11-18", "$lte": "2024-11-24"}
+    }
+)
+```
+
+### 4. 유사도 기반 필터링
+
+- 코사인 유사도 계산
+- 상위 5개 결과 선택
+- 신뢰도 점수 계산
+
+### 5. 응답 생성
+
+관련 일기 데이터를 기반으로 분석 및 조언 생성
+
+## 📊 테스트 시나리오
+
+### 기본 테스트 쿼리
+
+1. **우울한 감정**: "요즘 계속 우울한데 이번 주에 내가 뭐 때문에 그런지 모르겠어"
+2. **업무 스트레스**: "오늘 회의에서 내 의견이 무시당한 것 같아서 속상했다"
+3. **사회적 불안**: "친구들과 만나기로 했는데 갑자기 기분이 안 좋아져서 취소했다"
+4. **성취감**: "오늘 프로젝트가 성공적으로 완료되어서 정말 기뻤다"
+5. **분노**: "동료가 내 일을 방해해서 정말 화가 났다"
+6. **불안**: "내일 중요한 발표가 있어서 긴장된다"
+7. **평온**: "오늘은 날씨가 좋아서 산책을 다녀왔다"
+
+### 예상 결과
+
+- **감정 추출**: 정확한 감정 키워드 매칭
+- **상황 인식**: 업무, 가족, 친구, 건강 등 상황 분류
+- **시간 컨텍스트**: 오늘, 어제, 이번 주 등 시간 범위 설정
+- **유사도 검색**: 관련 일기 엔트리 검색 및 유사도 점수
+- **신뢰도 평가**: 검색 결과 품질에 따른 신뢰도 점수
+
+## 🔍 모니터링 및 디버깅
+
+### 로그 확인
+
+```python
+import logging
+logging.basicConfig(level=logging.INFO)
+
+# RAG 에이전트 실행 시 상세 로그 확인
+rag_agent = RAGAgent()
+response = rag_agent.process_query("테스트 쿼리")
+```
+
+### 성능 메트릭
+
+- **검색 시간**: 벡터 검색 소요 시간
+- **유사도 점수**: 검색 결과의 평균 유사도
+- **신뢰도 점수**: 전체 응답의 신뢰도
+- **관련 엔트리 수**: 검색된 관련 일기 개수
+
+## 🚀 향후 개선 사항
+
+1. **LLM 통합**: 실제 LLM을 사용한 응답 생성
+2. **감정 분석 고도화**: 더 정교한 감정 분류
+3. **컨텍스트 윈도우**: 대화 히스토리 기반 컨텍스트
+4. **개인화**: 사용자별 맞춤 분석
+5. **실시간 학습**: 새로운 일기 데이터 자동 학습
+
+## 📝 API 사용 예시
+
+```python
+from app.services.rag_agent import RAGAgent
+
+# RAG 에이전트 초기화
+rag_agent = RAGAgent()
+
+# 쿼리 처리
+response = rag_agent.process_query("사용자 입력")
+
+# 결과 확인
+print(f"분석: {response.analysis}")
+print(f"신뢰도: {response.confidence_score}")
+print(f"관련 엔트리 수: {len(response.related_entries)}")
+
+for entry in response.related_entries:
+    print(f"- {entry.content} (유사도: {entry.similarity_score:.3f})")
+```

@@ -6,7 +6,10 @@ torch
 pydantic
 python-dotenv 
 sentence-transformers
+numpy
 pytest
-pytest-mock
-openai
-requests
+pytest-asyncio
+redis==5.0.1
+fakeredis>=2.10.0
+pandas>=1.3.0
+openai>=1.0.0
