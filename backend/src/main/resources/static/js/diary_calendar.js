@@ -721,50 +721,43 @@ function renderRecordsList(records, year, month, day) {
                 }
             }
         }
-            } else {
-            // 오늘 또는 미래 날짜: 기록 입력 활성화 (로그인한 경우에만)
-            if (!userId) {
-                // 로그인하지 않은 경우 기록 입력 비활성화
-                if (newRecordSection) {
-                    newRecordSection.classList.add('hidden');
-                }
-                if (saveDiaryBtn) {
-                    saveDiaryBtn.classList.add('hidden');
-                    saveDiaryBtn.disabled = true;
-                }
-                if (aiCommentSection) aiCommentSection.classList.add('hidden');
-            } else {
-                // 로그인한 경우 기록 입력 활성화
-                if (newRecordSection) {
-                    newRecordSection.classList.remove('hidden');
-                    // 입력 필드 활성화
-                    const diaryContent = document.getElementById('diary-content');
-                    if (diaryContent) {
-                        diaryContent.disabled = false;
-                        diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
-                    }
-                    // 감정 버튼들 활성화
-                    const emotionButtons = document.querySelectorAll('.emotion-btn');
-                    emotionButtons.forEach(btn => {
-                        btn.disabled = false;
-                        btn.style.opacity = '1';
-                        btn.style.cursor = 'pointer';
-                    });
-                }
-                if (saveDiaryBtn) {
-                    saveDiaryBtn.classList.remove('hidden');
-                    saveDiaryBtn.disabled = false;
-                }
-                
-                // 오늘 날짜에서는 AI 코멘트 표시하지 않음
-                if (aiCommentSection) {
-                    aiCommentSection.classList.add('hidden');
-                    if (aiChatButton) {
-                        aiChatButton.classList.add('hidden');
-                    }
-                }
+    } else {
+        // 오늘 또는 미래 날짜: 기록 입력 활성화 (로그인한 경우에만)
+        if (!userId) {
+            // 로그인하지 않은 경우 기록 입력 비활성화
+            if (newRecordSection) {
+                newRecordSection.classList.add('hidden');
             }
+            if (saveDiaryBtn) {
+                saveDiaryBtn.classList.add('hidden');
+                saveDiaryBtn.disabled = true;
+            }
+            if (aiCommentSection) aiCommentSection.classList.add('hidden');
+        } else {
+            // 로그인한 경우 기록 입력 활성화
+            if (newRecordSection) {
+                newRecordSection.classList.remove('hidden');
+                // 입력 필드 활성화
+                const diaryContent = document.getElementById('diary-content');
+                if (diaryContent) {
+                    diaryContent.disabled = false;
+                    diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+                }
+                // 감정 버튼들 활성화
+                const emotionButtons = document.querySelectorAll('.emotion-btn');
+                emotionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
+            if (saveDiaryBtn) {
+                saveDiaryBtn.classList.remove('hidden');
+                saveDiaryBtn.disabled = false;
+            }
+            if (aiCommentSection) aiCommentSection.classList.add('hidden');
         }
+    }
 }
 
 // 달력 네비게이션 이벤트 리스너

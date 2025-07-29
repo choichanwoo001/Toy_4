@@ -6,3 +6,7 @@ torch
 pydantic
 python-dotenv 
 sentence-transformers
+pytest
+pytest-mock
+openai
+requests

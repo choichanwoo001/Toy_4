@@ -94,12 +94,13 @@ body {
 /* Chart and related styles */
 .chart-container {
     position: relative;
-    height: 200px;
+    height: 400px;
     width: 100%;
     background-color: #F4DDB8;
     border-radius: 0.75rem;
     padding: 1rem;
     border: 1px dashed #B87B5C;
+    margin: 1rem 0;
 }
 .keyword-bubble {
     background-color: #F4DDB8;
@@ -116,4 +117,15 @@ body {
     border-left: 4px solid #8F9562;
     padding: 1rem;
     border-radius: 0.75rem;
+}
+
+.report-center-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#report-page-section {
+    margin: 0 auto;
 }
