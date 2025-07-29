@@ -17,14 +17,11 @@ import jakarta.servlet.http.HttpSession;
 
 @Controller
 @RequestMapping("/pointshop")
+@RequiredArgsConstructor
 public class PointshopController {
 
     private final PointshopService pointshopService;
     
-    public PointshopController(PointshopService pointshopService) {
-        this.pointshopService = pointshopService;
-    }
-
 
     // 1. 포인트샵 메인 페이지 렌더링
     @GetMapping
