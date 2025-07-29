@@ -119,71 +119,123 @@ function showSuccessMessage(message) {
 }
 
 // Global variables
-const aiCommentSection = document.getElementById('ai-comment-section');
-const newRecordSection = document.getElementById('new-record-section');
-const recordsListScrollable = document.getElementById('today-records-list-scrollable');
-const noRecordsPlaceholder = document.getElementById('no-records-placeholder');
-const saveDiaryBtn = document.getElementById('save-diary-btn');
-const submitDiaryBtn = document.getElementById('submit-diary-btn');
-const diaryContent = document.getElementById('diary-content');
-const aiChatButton = document.getElementById('ai-chat-button');
-const dailyQuoteBox = document.querySelector('.daily-quote-box');
+let aiCommentSection, newRecordSection, recordsListScrollable, noRecordsPlaceholder;
+let saveDiaryBtn, submitDiaryBtn, diaryContent, aiChatButton, dailyQuoteBox;
+
+// DOM 요소 초기화 함수
+function initializeDOMElements() {
+    console.log('=== DOM 요소 초기화 시작 ===');
+    
+    aiCommentSection = document.getElementById('ai-comment-section');
+    newRecordSection = document.getElementById('new-record-section');
+    recordsListScrollable = document.getElementById('today-records-list-scrollable');
+    noRecordsPlaceholder = document.getElementById('no-records-placeholder');
+    saveDiaryBtn = document.getElementById('save-diary-btn');
+    submitDiaryBtn = document.getElementById('submit-diary-btn');
+    diaryContent = document.getElementById('diary-content');
+    aiChatButton = document.getElementById('ai-chat-button');
+    dailyQuoteBox = document.querySelector('.daily-quote-box');
+    
+    // 각 DOM 요소의 존재 여부 확인
+    console.log('aiCommentSection:', aiCommentSection);
+    console.log('newRecordSection:', newRecordSection);
+    console.log('recordsListScrollable:', recordsListScrollable);
+    console.log('noRecordsPlaceholder:', noRecordsPlaceholder);
+    console.log('saveDiaryBtn:', saveDiaryBtn);
+    console.log('submitDiaryBtn:', submitDiaryBtn);
+    console.log('diaryContent:', diaryContent);
+    console.log('aiChatButton:', aiChatButton);
+    console.log('dailyQuoteBox:', dailyQuoteBox);
+    
+    // null 체크 및 경고
+    if (!saveDiaryBtn) {
+        console.error('❌ save-diary-btn을 찾을 수 없습니다!');
+    } else {
+        // 버튼 활성화: hidden 클래스와 disabled 속성 제거
+        saveDiaryBtn.classList.remove('hidden');
+        saveDiaryBtn.disabled = false;
+        console.log('✅ save-diary-btn 활성화됨');
+    }
+    if (!diaryContent) {
+        console.error('❌ diary-content를 찾을 수 없습니다!');
+    }
+    if (!recordsListScrollable) {
+        console.error('❌ today-records-list-scrollable을 찾을 수 없습니다!');
+    }
+    if (!noRecordsPlaceholder) {
+        console.error('❌ no-records-placeholder를 찾을 수 없습니다!');
+    }
+    
+    console.log('=== DOM 요소 초기화 완료 ===');
+}
 
 // Emotion selection
 let selectedEmotion = null;
-const emotionButtons = document.querySelectorAll('.emotion-btn');
+let emotionButtons = [];
 
-emotionButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-        // 과거 날짜 체크
-        const today = new Date();
-        const isPast = selectedDate && (
-            selectedDate.getFullYear() < today.getFullYear() ||
-            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-        );
-        
-        if (isPast) {
-            showErrorMessage('과거 날짜에는 감정을 선택할 수 없습니다.');
-            return;
-        }
-        
-        // Remove previous selection
-        emotionButtons.forEach(b => b.classList.remove('selected'));
-        // Add selection to current button
-        this.classList.add('selected');
-        selectedEmotion = this.dataset.emotion;
+function setupEmotionButtons() {
+    emotionButtons = document.querySelectorAll('.emotion-btn');
+    
+    emotionButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 과거 날짜 체크
+            const today = new Date();
+            const isPast = selectedDate && (
+                selectedDate.getFullYear() < today.getFullYear() ||
+                (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
+                (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
+            );
+            
+            if (isPast) {
+                showErrorMessage('과거 날짜에는 감정을 선택할 수 없습니다.');
+                return;
+            }
+            
+            // Remove previous selection
+            emotionButtons.forEach(b => b.classList.remove('selected'));
+            // Add selection to current button
+            this.classList.add('selected');
+            selectedEmotion = this.dataset.emotion;
+        });
     });
-});
+}
 
 // Search functionality
-const searchToggleBtn = document.getElementById('search-toggle-btn');
-const searchBar = document.getElementById('search-bar');
-const searchInput = document.getElementById('search-input');
+let searchToggleBtn, searchBar, searchInput;
 let allRecords = []; // Store all records for search
 
-searchToggleBtn.addEventListener('click', function() {
-    searchBar.classList.toggle('hidden');
-    if (!searchBar.classList.contains('hidden')) {
-        searchInput.focus();
-    }
-});
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    const recordItems = document.querySelectorAll('.record-item');
+function setupSearchFunctionality() {
+    searchToggleBtn = document.getElementById('search-toggle-btn');
+    searchBar = document.getElementById('search-bar');
+    searchInput = document.getElementById('search-input');
     
-    recordItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-            item.style.display = 'block';
-            item.style.opacity = '1';
-        } else {
-            item.style.display = 'none';
-            item.style.opacity = '0.3';
-        }
-    });
-});
+    if (searchToggleBtn) {
+        searchToggleBtn.addEventListener('click', function() {
+            searchBar.classList.toggle('hidden');
+            if (!searchBar.classList.contains('hidden')) {
+                searchInput.focus();
+            }
+        });
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const recordItems = document.querySelectorAll('.record-item');
+            
+            recordItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    item.style.opacity = '1';
+                } else {
+                    item.style.display = 'none';
+                    item.style.opacity = '0.3';
+                }
+            });
+        });
+    }
+}
 
 // 초기 상태: 새로운 기록 남기기 섹션만 보이도록 설정
 // 코멘트 보기 기능은 완전히 제거됨
@@ -311,7 +363,18 @@ function formatAMPM(date) {
 }
 
 // "생각 기록하기" 버튼 클릭 이벤트
-saveDiaryBtn.addEventListener('click', function() {
+function setupEventListeners() {
+    console.log('=== 이벤트 리스너 설정 시작 ===');
+    console.log('saveDiaryBtn:', saveDiaryBtn);
+    console.log('submitDiaryBtn:', submitDiaryBtn);
+    console.log('diaryContent:', diaryContent);
+    
+    if (saveDiaryBtn) {
+        console.log('✅ saveDiaryBtn 이벤트 리스너 설정');
+        saveDiaryBtn.addEventListener('click', function() {
+            console.log('🔘 "생각 기록하기" 버튼 클릭됨');
+            console.log('diaryContent.value:', diaryContent ? diaryContent.value : 'diaryContent is null');
+            
     // 과거 날짜 체크 - 추가 보안
     const today = new Date();
     const isPast = selectedDate && (
@@ -325,8 +388,11 @@ saveDiaryBtn.addEventListener('click', function() {
         return;
     }
     
-    const content = diaryContent.value.trim();
+    const content = diaryContent ? diaryContent.value.trim() : '';
+    console.log('입력된 내용:', content);
+    
     if (content) {
+        console.log('✅ 내용이 있음, API 호출 시작');
         // Show loading state
         saveDiaryBtn.disabled = true;
         saveDiaryBtn.textContent = '저장 중...';
@@ -340,12 +406,19 @@ saveDiaryBtn.addEventListener('click', function() {
             formData.append('emotion', selectedEmotion);
         }
         
+        console.log('API 호출 데이터:', {
+            userId: userId,
+            content: content,
+            emotion: selectedEmotion
+        });
+        
         // Call backend API
         fetch('/api/diaries', {
             method: 'POST',
             body: formData
         })
         .then(response => {
+            console.log('API 응답 상태:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -361,6 +434,7 @@ saveDiaryBtn.addEventListener('click', function() {
             console.log('Is success:', isSuccess);
             
             if (isSuccess) {
+                console.log('✅ API 성공, UI 업데이트 시작');
                 // Success: Add to UI
                 const now = new Date();
                 const time = formatAMPM(now);
@@ -372,23 +446,40 @@ saveDiaryBtn.addEventListener('click', function() {
                 const emotionDisplay = selectedEmotion ? ` <span class="text-lg">${selectedEmotion}</span>` : '';
                 newRecordItem.innerHTML = `<span class="text-[#8F9562] text-sm mr-2">[${time}]</span>${content}${emotionDisplay}`;
                 
-                recordsListScrollable.prepend(newRecordItem); // Add to top of the list
+                if (recordsListScrollable) {
+                    recordsListScrollable.prepend(newRecordItem); // Add to top of the list
+                    console.log('✅ 기록 목록에 새 항목 추가됨');
+                } else {
+                    console.error('❌ recordsListScrollable이 null입니다!');
+                }
 
-                diaryContent.value = ''; // Clear input
+                if (diaryContent) {
+                    diaryContent.value = ''; // Clear input
+                    console.log('✅ 입력 필드 초기화됨');
+                } else {
+                    console.error('❌ diaryContent가 null입니다!');
+                }
                 
                 // Reset emotion selection
                 emotionButtons.forEach(b => b.classList.remove('selected'));
                 selectedEmotion = null;
                 
-                noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
+                if (noRecordsPlaceholder) {
+                    noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
+                    console.log('✅ placeholder 숨김');
+                } else {
+                    console.error('❌ noRecordsPlaceholder가 null입니다!');
+                }
 
-                const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
+                const allRecords = Array.from(recordsListScrollable ? recordsListScrollable.children : []).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
                 updateAIComment(allRecords); // AI 코멘트 업데이트
 
-                // AI 일기 분석 호출
-                analyzeDiaryWithAI(content);
+                // AI 일기 분석 호출 제거 - 단순 기록만 저장
+                // analyzeDiaryWithAI(content); // 이 줄 제거
 
-                recordsListScrollable.scrollTop = 0; // 스크롤을 최상단으로 이동
+                if (recordsListScrollable) {
+                    recordsListScrollable.scrollTop = 0; // 스크롤을 최상단으로 이동
+                }
                 
                 // Refresh calendar data
                 fetchAndRender();
@@ -410,17 +501,27 @@ saveDiaryBtn.addEventListener('click', function() {
         })
         .finally(() => {
             // Reset button state
-            saveDiaryBtn.disabled = false;
-            saveDiaryBtn.textContent = '생각 기록하기';
+            if (saveDiaryBtn) {
+                saveDiaryBtn.disabled = false;
+                saveDiaryBtn.textContent = '생각 기록하기';
+                console.log('✅ 버튼 상태 초기화됨');
+            }
         });
         
     } else {
+        console.log('❌ 내용이 비어있음');
         alert('기록할 내용을 입력해주세요.');
     }
-});
+    });
+    } else {
+        console.error('❌ saveDiaryBtn이 null입니다! 이벤트 리스너를 설정할 수 없습니다.');
+    }
 
-// "일기 제출" 버튼 클릭 이벤트 (오늘의 모든 기록을 합쳐서 AI에게 전달)
-submitDiaryBtn.addEventListener('click', async function() {
+    // "일기 제출" 버튼 클릭 이벤트 (오늘의 모든 기록을 합쳐서 AI에게 전달)
+    if (submitDiaryBtn) {
+        console.log('✅ submitDiaryBtn 이벤트 리스너 설정');
+        submitDiaryBtn.addEventListener('click', async function() {
+            console.log('🔘 "일기 제출" 버튼 클릭됨');
     // Show loading state
     submitDiaryBtn.disabled = true;
     submitDiaryBtn.textContent = '제출 중...';
@@ -470,7 +571,13 @@ submitDiaryBtn.addEventListener('click', async function() {
         submitDiaryBtn.disabled = false;
         submitDiaryBtn.textContent = '일기 제출';
     }
-});
+    });
+    } else {
+        console.error('❌ submitDiaryBtn이 null입니다! 이벤트 리스너를 설정할 수 없습니다.');
+    }
+    
+    console.log('=== 이벤트 리스너 설정 완료 ===');
+}
 
 // ===================== AI DIARY ANALYSIS =====================
 // 2025-01-XX: AI 일기 분석 및 코멘트 생성 기능 추가
@@ -555,19 +662,33 @@ async function analyzeDiaryWithAI(content) {
 // 이제 항상 기록 모드만 유지됨
 
 // "AI와 채팅하기" 버튼 클릭 이벤트
-aiChatButton.addEventListener('click', function() {
-    // 현재 선택된 날짜의 일기 정보를 채팅 페이지로 전달
-    const selectedDateStr = selectedDate ? 
-        `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
-        new Date().toISOString().split('T')[0];
-    
-    // 현재 사용자 ID와 선택된 날짜를 쿼리 파라미터로 전달
-    const chatUrl = `/chat?userId=${userId}&diaryDate=${selectedDateStr}`;
-    window.location.href = chatUrl;
-});
+function setupAIChatButton() {
+    if (aiChatButton) {
+        aiChatButton.addEventListener('click', function() {
+            // 현재 선택된 날짜의 일기 정보를 채팅 페이지로 전달
+            const selectedDateStr = selectedDate ? 
+                `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+                new Date().toISOString().split('T')[0];
+            
+            // 현재 사용자 ID와 선택된 날짜를 쿼리 파라미터로 전달
+            const chatUrl = `/chat?userId=${userId}&diaryDate=${selectedDateStr}`;
+            window.location.href = chatUrl;
+        });
+    }
+}
 
 // 초기 로드 시 설정
 document.addEventListener('DOMContentLoaded', async function() {
+    // DOM 요소 초기화
+    initializeDOMElements();
+    
+    // 이벤트 리스너 설정
+    setupEventListeners();
+    setupSearchFunctionality();
+    setupAIChatButton();
+    setupEmotionButtons();
+    setupCalendarNavigation();
+    
     // 사용자 ID 설정 및 달력 데이터 로드
     await initUserId();
     fetchAndRender(); // 달력 데이터 로드 및 렌더링
@@ -582,9 +703,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 초기 기록이 없는 경우 placeholder 표시
     const initialRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
     if (initialRecords.length === 0) {
-        noRecordsPlaceholder.classList.remove('hidden');
+        if (noRecordsPlaceholder) {
+            noRecordsPlaceholder.classList.remove('hidden');
+        } else {
+            console.warn('⚠️ noRecordsPlaceholder가 null입니다. placeholder를 표시할 수 없습니다.');
+        }
     } else {
-        noRecordsPlaceholder.classList.add('hidden');
+        if (noRecordsPlaceholder) {
+            noRecordsPlaceholder.classList.add('hidden');
+        } else {
+            console.warn('⚠️ noRecordsPlaceholder가 null입니다. placeholder를 숨길 수 없습니다.');
+        }
     }
     updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정
 });
@@ -918,15 +1047,24 @@ function renderRecordsList(records, year, month, day) {
 }
 
 // 달력 네비게이션 이벤트 리스너
-document.getElementById('prev-month-btn').onclick = function() {
-    if (--currentMonth < 1) { currentMonth = 12; currentYear--; }
-    fetchAndRender();
-};
-
-document.getElementById('next-month-btn').onclick = function() {
-    if (++currentMonth > 12) { currentMonth = 1; currentYear++; }
-    fetchAndRender();
-};
+function setupCalendarNavigation() {
+    const prevMonthBtn = document.getElementById('prev-month-btn');
+    const nextMonthBtn = document.getElementById('next-month-btn');
+    
+    if (prevMonthBtn) {
+        prevMonthBtn.onclick = function() {
+            if (--currentMonth < 1) { currentMonth = 12; currentYear--; }
+            fetchAndRender();
+        };
+    }
+    
+    if (nextMonthBtn) {
+        nextMonthBtn.onclick = function() {
+            if (++currentMonth > 12) { currentMonth = 1; currentYear++; }
+            fetchAndRender();
+        };
+    }
+}
 
 function fetchAndRender() {
     // Show loading state
