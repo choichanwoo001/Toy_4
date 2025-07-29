@@ -529,11 +529,11 @@ function renderStampSelection() {
         stampSelection.appendChild(stampOption);
     });
     
-    // 기본 스탬프 선택
-    selectStamp('참잘했어요', 'image/default_stamp.png');
+    // 기본 스탬프 선택 (초기 로드 시에는 silent 모드)
+    selectStampSilent('참잘했어요', 'image/default_stamp.png');
 }
 
-// 스탬프 선택
+// 스탬프 선택 (사용자 클릭 시)
 async function selectStamp(stampName, stampImage) {
     // 이미 선택된 스탬프와 같으면 무시
     if (selectedStamp && selectedStamp.stampName === stampName) {
@@ -546,6 +546,14 @@ async function selectStamp(stampName, stampImage) {
         return;
     }
     
+    await selectStampSilent(stampName, stampImage);
+    
+    // 오늘 날짜에 자동으로 스탬프 적용
+    await applyStampToToday(stampName);
+}
+
+// 스탬프 선택 (조용한 모드 - 초기 로드 시 사용)
+function selectStampSilent(stampName, stampImage) {
     selectedStamp = { stampName, stampImage };
     
     // 모든 스탬프 옵션에서 선택 상태 제거
@@ -560,9 +568,6 @@ async function selectStamp(stampName, stampImage) {
             option.classList.add('selected');
         }
     });
-    
-    // 오늘 날짜에 자동으로 스탬프 적용
-    await applyStampToToday(stampName);
 }
 
 // 오늘 날짜에 스탬프 자동 적용
