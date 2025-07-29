@@ -121,6 +121,8 @@ function showSuccessMessage(message) {
 // Global variables
 let aiCommentSection, newRecordSection, recordsListScrollable, noRecordsPlaceholder;
 let saveDiaryBtn, submitDiaryBtn, diaryContent, aiChatButton, dailyQuoteBox;
+let selectedStamp = null; // 선택된 스탬프 추가
+let userStamps = []; // 사용자 보유 스탬프 목록
 
 // DOM 요소 초기화 함수
 function initializeDOMElements() {
@@ -198,6 +200,128 @@ function setupEmotionButtons() {
             selectedEmotion = this.dataset.emotion;
         });
     });
+}
+
+// ===================== STAMP SELECTION FUNCTIONALITY =====================
+// 2025-01-XX: 스탬프 선택 기능 추가
+
+// 사용자 스탬프 로드 및 렌더링
+function loadUserStamps() {
+    if (!userId) {
+        console.log('사용자가 로그인하지 않음 - 스탬프 로드 건너뜀');
+        return;
+    }
+    
+    fetch('/pointshop/api/my-stamps')
+        .then(res => res.json())
+        .then(stamps => {
+            console.log('사용자 스탬프:', stamps);
+            userStamps = stamps || []; // 전역 변수 업데이트
+            renderStampSelection(stamps);
+        })
+        .catch(error => {
+            console.error('스탬프 로드 실패:', error);
+            userStamps = []; // 빈 배열로 초기화
+            // 기본 스탬프 표시
+            renderDefaultStamp();
+        });
+}
+
+// 스탬프 선택 영역 렌더링
+function renderStampSelection(stamps) {
+    const stampSelection = document.getElementById('stamp-selection');
+    if (!stampSelection) {
+        console.error('stamp-selection 요소를 찾을 수 없습니다');
+        return;
+    }
+    
+    stampSelection.innerHTML = '';
+    
+    if (stamps && stamps.length > 0) {
+        // 최대 5개까지만 표시
+        const stampsToShow = stamps.slice(0, 5);
+        
+        stampsToShow.forEach(stamp => {
+            const stampOption = document.createElement('div');
+            stampOption.className = 'stamp-option';
+            stampOption.dataset.stampId = stamp.userStampId;
+            stampOption.dataset.stampName = stamp.stampName;
+            stampOption.dataset.stampImage = stamp.stampImage;
+            
+            stampOption.innerHTML = `
+                <img src="/${stamp.stampImage}" alt="${stamp.stampName}" class="stamp-option-image">
+                <div class="stamp-option-name">${stamp.stampName}</div>
+            `;
+            
+            // 스탬프 선택 이벤트
+            stampOption.addEventListener('click', function() {
+                // 이전 선택 제거
+                document.querySelectorAll('.stamp-option').forEach(opt => opt.classList.remove('selected'));
+                // 현재 선택
+                this.classList.add('selected');
+                selectedStamp = {
+                    userStampId: this.dataset.stampId,
+                    stampName: this.dataset.stampName,
+                    stampImage: this.dataset.stampImage
+                };
+                console.log('선택된 스탬프:', selectedStamp);
+            });
+            
+            stampSelection.appendChild(stampOption);
+        });
+        
+        // 첫 번째 스탬프를 기본 선택
+        const firstStamp = stampSelection.querySelector('.stamp-option');
+        if (firstStamp) {
+            firstStamp.classList.add('selected');
+            selectedStamp = {
+                userStampId: firstStamp.dataset.stampId,
+                stampName: firstStamp.dataset.stampName,
+                stampImage: firstStamp.dataset.stampImage
+            };
+        }
+    } else {
+        // 보유 스탬프가 없는 경우 기본 스탬프 표시
+        renderDefaultStamp();
+    }
+}
+
+// 기본 스탬프 렌더링 (보유 스탬프가 없는 경우)
+function renderDefaultStamp() {
+    const stampSelection = document.getElementById('stamp-selection');
+    if (!stampSelection) return;
+    
+    stampSelection.innerHTML = `
+        <div class="stamp-option selected" data-stamp-name="참잘했어요" data-stamp-image="image/default_stamp.png">
+            <img src="/image/default_stamp.png" alt="참잘했어요" class="stamp-option-image">
+            <div class="stamp-option-name">참잘했어요</div>
+        </div>
+    `;
+    
+    selectedStamp = {
+        userStampId: null,
+        stampName: '참잘했어요',
+        stampImage: 'image/default_stamp.png'
+    };
+}
+
+// ===================== END STAMP SELECTION FUNCTIONALITY =====================
+
+// 스탬프 이름으로 이미지 경로 찾기
+function getStampImagePath(stampName) {
+    // 기본 스탬프
+    if (stampName === '참잘했어요') {
+        return '/image/default_stamp.png';
+    }
+    
+    // 보유한 스탬프에서 찾기
+    const userStamp = userStamps.find(stamp => stamp.stampName === stampName);
+    if (userStamp) {
+        return '/' + userStamp.stampImage;
+    }
+    
+    // 찾지 못하면 기본 스탬프 반환
+    return '/image/default_stamp.png';
 }
 
 // Search functionality
@@ -401,7 +525,9 @@ function setupEventListeners() {
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('content', content);
-        formData.append('appliedStamp', '참잘했어요'); // 기본 스탬프
+        // 선택된 스탬프가 있으면 그것을 사용하고, 없으면 기본 스탬프 사용
+        const stampToUse = selectedStamp ? selectedStamp.stampName : '참잘했어요';
+        formData.append('appliedStamp', stampToUse);
         if (selectedEmotion) {
             formData.append('emotion', selectedEmotion);
         }
@@ -463,6 +589,13 @@ function setupEventListeners() {
                 // Reset emotion selection
                 emotionButtons.forEach(b => b.classList.remove('selected'));
                 selectedEmotion = null;
+                
+                // Reset stamp selection
+                const stampOptions = document.querySelectorAll('.stamp-option');
+                stampOptions.forEach(option => {
+                    option.classList.remove('selected');
+                });
+                selectedStamp = null;
                 
                 if (noRecordsPlaceholder) {
                     noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
@@ -716,6 +849,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정
+
+    // 스탬프 로드 및 렌더링
+    loadUserStamps();
 });
 
 // 오늘의 제출 상태 확인 함수
@@ -868,10 +1004,10 @@ function renderCalendar(year, month, diaryData) {
         const diary = diaryData.find(item => new Date(item.createdAt).getDate() === d);
         if (diary) {
             cell.classList.add('has-diary');
-            // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
+            // 실제 적용된 스탬프 표시
             const img = document.createElement('img');
-            img.src = '/image/default_stamp.png';
-            img.alt = '참잘했어요 스탬프';
+            img.src = getStampImagePath(diary.appliedStamp);
+            img.alt = diary.appliedStamp + ' 스탬프';
             img.className = 'stamp-image-calendar';
             cell.appendChild(img);
             
