@@ -147,6 +147,62 @@ public class DiaryController {
     }
     // ===================== END NEW API ENDPOINT =====================
 
+    // ===================== STAMP PREFERENCE API =====================
+    // 사용자 스탬프 선택 저장/업데이트
+    @PostMapping("/api/user-stamp-preference")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveUserStampPreference(
+            @RequestParam Long userId,
+            @RequestParam String stampName,
+            @RequestParam String stampImage) {
+        try {
+            com.example.backend.entity.UserStampPreference saved = 
+                diaryService.saveUserStampPreference(userId, stampName, stampImage);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("stampName", saved.getSelectedStampName());
+            result.put("stampImage", saved.getSelectedStampImage());
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 저장 성공", result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 저장 실패: " + e.getMessage(), null));
+        }
+    }
+
+    // 사용자 스탬프 선택 조회
+    @GetMapping("/api/user-stamp-preference")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStampPreference(@RequestParam Long userId) {
+        try {
+            Optional<com.example.backend.entity.UserStampPreference> preference = 
+                diaryService.getUserStampPreference(userId);
+            
+            if (preference.isPresent()) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("stampName", preference.get().getSelectedStampName());
+                result.put("stampImage", preference.get().getSelectedStampImage());
+                return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 조회 성공", result));
+            } else {
+                return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 없음", null));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 조회 실패: " + e.getMessage(), null));
+        }
+    }
+
+    // 사용자 스탬프 선택 삭제 (기록 저장 후)
+    @DeleteMapping("/api/user-stamp-preference")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<String>> deleteUserStampPreference(@RequestParam Long userId) {
+        try {
+            diaryService.deleteUserStampPreference(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 삭제 성공", "deleted"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 삭제 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END STAMP PREFERENCE API =====================
+
     // 일기 상세 조회 (REST)
     @GetMapping("/api/diaries/{id}")
     @ResponseBody

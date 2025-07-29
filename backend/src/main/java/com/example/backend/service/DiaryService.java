@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.entity.Diary;
 import com.example.backend.entity.User;
+import com.example.backend.entity.UserStampPreference;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
+    private final com.example.backend.repository.UserStampPreferenceRepository userStampPreferenceRepository;
 
     // ===================== NEW METHOD ADDED =====================
     // 2025-01-XX: 감정 표현 기능 추가를 위한 새로운 일기 저장 메서드
@@ -120,4 +122,44 @@ public class DiaryService {
     public Optional<Diary> getDiaryById(Long diaryId) {
         return diaryRepository.findById(diaryId);
     }
+
+    // ===================== STAMP PREFERENCE METHODS =====================
+    // 사용자 스탬프 선택 저장/업데이트
+    @Transactional
+    public UserStampPreference saveUserStampPreference(Long userId, String stampName, String stampImage) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        // 기존 선택이 있는지 확인
+        Optional<UserStampPreference> existingPreference = userStampPreferenceRepository.findByUser(user);
+        
+        if (existingPreference.isPresent()) {
+            // 기존 선택 업데이트
+            UserStampPreference preference = existingPreference.get();
+            preference.setSelectedStampName(stampName);
+            preference.setSelectedStampImage(stampImage);
+            return userStampPreferenceRepository.save(preference);
+        } else {
+            // 새로운 선택 생성
+            UserStampPreference newPreference = UserStampPreference.builder()
+                .user(user)
+                .selectedStampName(stampName)
+                .selectedStampImage(stampImage)
+                .build();
+            return userStampPreferenceRepository.save(newPreference);
+        }
+    }
+
+    // 사용자 스탬프 선택 조회
+    @Transactional(readOnly = true)
+    public Optional<UserStampPreference> getUserStampPreference(Long userId) {
+        return userStampPreferenceRepository.findByUserUserId(userId);
+    }
+
+    // 사용자 스탬프 선택 삭제 (기록 저장 후)
+    @Transactional
+    public void deleteUserStampPreference(Long userId) {
+        Optional<UserStampPreference> preference = userStampPreferenceRepository.findByUserUserId(userId);
+        preference.ifPresent(userStampPreferenceRepository::delete);
+    }
+    // ===================== END STAMP PREFERENCE METHODS =====================
 } 
