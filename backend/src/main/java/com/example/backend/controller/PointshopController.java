@@ -7,27 +7,34 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.ui.Model;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
 import lombok.*;
+import com.example.backend.entity.User;
+import jakarta.servlet.http.HttpSession;
 
 @Controller
-@RequiredArgsConstructor
 @RequestMapping("/pointshop")
+@RequiredArgsConstructor
 public class PointshopController {
 
     private final PointshopService pointshopService;
-
+    
 
     // 1. 포인트샵 메인 페이지 렌더링
     @GetMapping
-    public String pointshopPage(Model model, Principal principal) {
-        // Long userId = getUserIdFromPrincipal(principal);
-        Long userId = 1L; // 임시 하드코딩 (테스트용)
-        int userPoint = pointshopService.getUserPoint(userId);
+    public String pointshopPage(Model model, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        // if (user == null) {
+        //     return "redirect:/?loginRequired=true";
+        // }
+        if (user == null) {
+            return "redirect:/?loginRequired=true";
+        }
+        
+        int userPoint = pointshopService.getUserPoint(user.getUserId());
         model.addAttribute("title", "포인트샵");
         model.addAttribute("contentPath", "pointshop");
         model.addAttribute("userPoint", userPoint);
@@ -37,9 +44,12 @@ public class PointshopController {
     // 2. 사용자 포인트 조회 (AJAX)
     @GetMapping("/api/points")
     @ResponseBody
-    public int getUserPoints(Principal principal) {
-        Long userId = 1L; // 임시 하드코딩: principal 없이 1번 유저로 고정
-        return pointshopService.getUserPoint(userId);
+    public int getUserPoints(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        // if (user == null) {
+        //     return 0; // 로그인하지 않은 경우 0 반환
+        // }
+        return pointshopService.getUserPoint(user.getUserId());
     }
 
     // 3. 상점 도장 목록 조회 (AJAX)
@@ -47,9 +57,14 @@ public class PointshopController {
     @ResponseBody
     public List<Map<String, Object>> getAvailableStamps(
         @RequestParam(value = "filter", required = false, defaultValue = "all") String filter,
-        Principal principal
+        HttpSession session
     ) {
-        Long userId = 1L; // 임시
+        User user = (User) session.getAttribute("user");
+        // if (user == null) {
+        //     return new ArrayList<>(); // 로그인하지 않은 경우 빈 리스트 반환
+        // }
+        
+        Long userId = user.getUserId();
         int userPoint = pointshopService.getUserPoint(userId);
         List<StampDto> stamps = pointshopService.getAvailableStamps(userId);
         List<UserStampDto> myStamps = pointshopService.getMyStamps(userId);
@@ -90,30 +105,33 @@ public class PointshopController {
     // 4. 내가 보유한 도장 목록 조회 (AJAX)
     @GetMapping("/api/my-stamps")
     @ResponseBody
-    public List<UserStampDto> getMyStamps(Principal principal) {
-        Long userId = 1L; // 임시 하드코딩
-        return pointshopService.getMyStamps(userId);
+    public List<UserStampDto> getMyStamps(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        // if (user == null) {
+        //     return new ArrayList<>(); // 로그인하지 않은 경우 빈 리스트 반환
+        // }
+        return pointshopService.getMyStamps(user.getUserId());
     }
 
     // 5. 도장 구매
     @PostMapping("/api/buy")
     @ResponseBody
-    public boolean buyStamp(@RequestParam Long stampId, Principal principal) {
-        Long userId = 1L; // 임시 하드코딩
-        return pointshopService.purchaseStamp(userId, stampId);
+    public boolean buyStamp(@RequestParam Long stampId, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        // if (user == null) {
+        //     return false; // 로그인하지 않은 경우 false 반환
+        // }
+        return pointshopService.purchaseStamp(user.getUserId(), stampId);
     }
 
     // 6. 도장 적용
     @PostMapping("/api/apply")
     @ResponseBody
-    public boolean applyStamp(@RequestParam Long userStampId, Principal principal) {
-        Long userId = 1L; // 임시 하드코딩
-        return pointshopService.applyStamp(userId, userStampId);
+    public boolean applyStamp(@RequestParam Long userStampId, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        // if (user == null) {
+        //     return false; // 로그인하지 않은 경우 false 반환
+        // }
+        return pointshopService.applyStamp(user.getUserId(), userStampId);
     }
-
-    // // (유틸) Principal에서 userId 추출 (실제 구현에 맞게 수정)
-    // private Long getUserIdFromPrincipal(Principal principal) {
-    //     // 예시: principal.getName()을 userId로 변환
-    //     return Long.valueOf(principal.getName());
-    // }
 } 
