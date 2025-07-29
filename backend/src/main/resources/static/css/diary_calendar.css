@@ -126,6 +126,48 @@ body {
     transform: translateY(-2px);
 }
 
+.btn-submit {
+    background-color: #8F9562; /* MOSS GREEN */
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.btn-submit:hover {
+    background-color: #6B7280; /* GRAY */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
+}
+
+/* AI 코멘트 큰 박스 스타일 (7월 5일 기록처럼) */
+.ai-comment-box-large {
+    background: linear-gradient(135deg, #F5F5DC 0%, #F0E6D2 100%);
+    border: 2px solid #B87B5C;
+    border-radius: 1rem;
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(139, 69, 19, 0.1);
+    margin-bottom: 1rem;
+    min-height: 200px;
+}
+
+.stamp-image-comment-large {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
 .btn-nav { /* for calendar nav */
     background-color: #B87B5C;
     color: white;

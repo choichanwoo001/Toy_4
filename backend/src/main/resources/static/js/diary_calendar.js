@@ -124,6 +124,7 @@ const newRecordSection = document.getElementById('new-record-section');
 const recordsListScrollable = document.getElementById('today-records-list-scrollable');
 const noRecordsPlaceholder = document.getElementById('no-records-placeholder');
 const saveDiaryBtn = document.getElementById('save-diary-btn');
+const submitDiaryBtn = document.getElementById('submit-diary-btn');
 const diaryContent = document.getElementById('diary-content');
 const aiChatButton = document.getElementById('ai-chat-button');
 const dailyQuoteBox = document.querySelector('.daily-quote-box');
@@ -277,14 +278,25 @@ function getEmotionKeyword(emotion) {
     return emotionMap[emotion] || '감정';
 }
 
-// 섹션 가시성 관리 - 코멘트 보기 기능 제거로 단순화
-function updateSectionVisibility() {
-    // 항상 새로운 기록 섹션만 보이도록 설정
-    newRecordSection.classList.remove('hidden');
-    saveDiaryBtn.classList.remove('hidden');
+// 섹션 가시성 관리 - 제출 여부에 따라 바뀌도록 수정
+function updateSectionVisibility(hasSubmitted = false) {
+    // 기록 목록과 명언은 항상 보이도록 유지
+    recordsListScrollable.classList.remove('hidden');
     dailyQuoteBox.classList.remove('hidden');
-    aiCommentSection.classList.add('hidden');
-    aiChatButton.classList.add('hidden');
+    
+    if (hasSubmitted) {
+        // 제출했을 때: AI 코멘트 섹션 표시, 새로운 기록 섹션 숨김
+        aiCommentSection.classList.remove('hidden');
+        aiChatButton.classList.remove('hidden');
+        newRecordSection.classList.add('hidden');
+        saveDiaryBtn.classList.add('hidden');
+    } else {
+        // 제출하지 않았을 때: 새로운 기록 섹션 표시, AI 코멘트 섹션 숨김
+        newRecordSection.classList.remove('hidden');
+        saveDiaryBtn.classList.remove('hidden');
+        aiCommentSection.classList.add('hidden');
+        aiChatButton.classList.add('hidden');
+    }
 }
 
 // 시간 포맷: 오전/오후 00:00
@@ -373,6 +385,9 @@ saveDiaryBtn.addEventListener('click', function() {
                 const allRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
                 updateAIComment(allRecords); // AI 코멘트 업데이트
 
+                // AI 일기 분석 호출
+                analyzeDiaryWithAI(content);
+
                 recordsListScrollable.scrollTop = 0; // 스크롤을 최상단으로 이동
                 
                 // Refresh calendar data
@@ -404,6 +419,138 @@ saveDiaryBtn.addEventListener('click', function() {
     }
 });
 
+// "일기 제출" 버튼 클릭 이벤트 (오늘의 모든 기록을 합쳐서 AI에게 전달)
+submitDiaryBtn.addEventListener('click', async function() {
+    // Show loading state
+    submitDiaryBtn.disabled = true;
+    submitDiaryBtn.textContent = '제출 중...';
+    
+    try {
+        // 오늘의 모든 기록 가져오기
+        const response = await fetch(`/api/diaries/today?userId=${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Today diaries response:', data);
+        
+        if (data.success && data.data) {
+            const todayDiaries = data.data;
+            
+            if (todayDiaries.length === 0) {
+                showErrorMessage('오늘 작성된 기록이 없습니다. 먼저 기록을 남겨주세요.');
+                return;
+            }
+            
+            // 모든 기록을 하나로 합치기
+            const combinedContent = todayDiaries
+                .map(diary => diary.content)
+                .join('\n\n');
+            
+            console.log('Combined content for AI:', combinedContent);
+            
+            // AI 일기 분석 호출 (합쳐진 내용으로)
+            await analyzeDiaryWithAI(combinedContent);
+            
+            // 제출 후 섹션 변경
+            updateSectionVisibility(true);
+            
+            showSuccessMessage('오늘의 모든 기록을 AI에게 제출했습니다! AI 코멘트가 생성되었습니다.');
+        } else {
+            throw new Error(data.message || '오늘의 기록을 가져오는데 실패했습니다.');
+        }
+        
+    } catch (error) {
+        console.error('Error submitting diary:', error);
+        showErrorMessage('일기 제출에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+        // Reset button state
+        submitDiaryBtn.disabled = false;
+        submitDiaryBtn.textContent = '일기 제출';
+    }
+});
+
+// ===================== AI DIARY ANALYSIS =====================
+// 2025-01-XX: AI 일기 분석 및 코멘트 생성 기능 추가
+async function analyzeDiaryWithAI(content) {
+    try {
+        console.log('=== AI Diary Analysis Started ===');
+        console.log('Content:', content);
+        
+        // AI 분석 요청 데이터 준비
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('content', content);
+        
+        // AI 분석 API 호출
+        const response = await fetch('/api/diaries/analyze', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('AI Analysis Response:', data);
+        
+        const isSuccess = data.success === true || data.isSuccess === true;
+        
+        if (isSuccess && data.data) {
+            const aiResult = data.data;
+            
+            // AI 코멘트 섹션 표시
+            const aiCommentSection = document.getElementById('ai-comment-section');
+            const aiCommentText = document.getElementById('ai-comment-text');
+            const emotionKeywords = document.getElementById('emotion-keywords');
+            
+            if (aiCommentSection && aiCommentText && emotionKeywords) {
+                // AI 코멘트 업데이트
+                if (aiResult.comment) {
+                    aiCommentText.textContent = aiResult.comment;
+                }
+                
+                // 감정 키워드 업데이트
+                if (aiResult.emotion_keywords && aiResult.emotion_keywords.length > 0) {
+                    const keywords = aiResult.emotion_keywords.map(keyword => `#${keyword}`).join(' ');
+                    emotionKeywords.textContent = `오늘의 감정 키워드: ${keywords}`;
+                }
+                
+                // 인용문이 있는 경우 추가
+                if (aiResult.quote) {
+                    const quoteElement = document.createElement('p');
+                    quoteElement.className = 'text-[#8F9562] text-sm italic mt-2';
+                    quoteElement.textContent = `"${aiResult.quote}"`;
+                    aiCommentText.appendChild(quoteElement);
+                }
+                
+                // AI 코멘트 섹션 표시
+                aiCommentSection.classList.remove('hidden');
+                
+                console.log('AI Comment updated successfully');
+            }
+            
+            // 조언이 있는 경우 표시
+            if (aiResult.advice) {
+                console.log('AI Advice:', aiResult.advice);
+                // 필요시 조언을 UI에 표시하는 로직 추가
+            }
+            
+            showSuccessMessage('AI가 당신의 일기를 분석했습니다!');
+        } else {
+            console.warn('AI analysis completed but no data returned');
+        }
+        
+    } catch (error) {
+        console.error('Error in AI diary analysis:', error);
+        // AI 분석 실패는 사용자에게 알리지 않음 (선택적 기능이므로)
+    }
+}
+// ===================== END AI DIARY ANALYSIS =====================
+
 // 코멘트/기록 전환 버튼 관련 코드 제거됨
 // 이제 항상 기록 모드만 유지됨
 
@@ -421,15 +568,17 @@ aiChatButton.addEventListener('click', function() {
 
 // 초기 로드 시 설정
 document.addEventListener('DOMContentLoaded', async function() {
-    // 코멘트 보기 기능 제거로 항상 기록 모드만 유지
-    updateSectionVisibility();
-    updateDailyQuote(); // 초기 명언 설정
-    setInterval(updateDailyQuote, 10000); // 10초마다 명언 변경 (선택 사항)
-
     // 사용자 ID 설정 및 달력 데이터 로드
     await initUserId();
     fetchAndRender(); // 달력 데이터 로드 및 렌더링
 
+    // 오늘의 제출 상태 확인
+    await checkTodaySubmissionStatus();
+    
+    // 초기 명언 설정
+    updateDailyQuote();
+    setInterval(updateDailyQuote, 10000); // 10초마다 명언 변경 (선택 사항)
+    
     // 초기 기록이 없는 경우 placeholder 표시
     const initialRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
     if (initialRecords.length === 0) {
@@ -437,8 +586,36 @@ document.addEventListener('DOMContentLoaded', async function() {
     } else {
         noRecordsPlaceholder.classList.add('hidden');
     }
-    updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정 (숨겨져 있어도 내용 미리 준비)
+    updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정
 });
+
+// 오늘의 제출 상태 확인 함수
+async function checkTodaySubmissionStatus() {
+    if (!userId) {
+        updateSectionVisibility(false); // 로그인하지 않은 경우 기본 상태
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/diaries/today?userId=${userId}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+                const todayDiaries = data.data;
+                // 오늘 기록이 있고 제출된 상태인지 확인 (백엔드에서 제출 상태 필드 확인 필요)
+                const hasSubmitted = todayDiaries.some(diary => diary.submitted === true);
+                updateSectionVisibility(hasSubmitted);
+            } else {
+                updateSectionVisibility(false);
+            }
+        } else {
+            updateSectionVisibility(false);
+        }
+    } catch (error) {
+        console.error('Error checking submission status:', error);
+        updateSectionVisibility(false);
+    }
+}
 
 // ===================== CALENDAR FUNCTIONALITY =====================
 
@@ -722,7 +899,7 @@ function renderRecordsList(records, year, month, day) {
             }
         }
     } else {
-        // 오늘 또는 미래 날짜: 기록 입력 활성화 (로그인한 경우에만)
+        // 오늘 또는 미래 날짜: 제출 상태에 따라 섹션 결정
         if (!userId) {
             // 로그인하지 않은 경우 기록 입력 비활성화
             if (newRecordSection) {
@@ -734,28 +911,8 @@ function renderRecordsList(records, year, month, day) {
             }
             if (aiCommentSection) aiCommentSection.classList.add('hidden');
         } else {
-            // 로그인한 경우 기록 입력 활성화
-            if (newRecordSection) {
-                newRecordSection.classList.remove('hidden');
-                // 입력 필드 활성화
-                const diaryContent = document.getElementById('diary-content');
-                if (diaryContent) {
-                    diaryContent.disabled = false;
-                    diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
-                }
-                // 감정 버튼들 활성화
-                const emotionButtons = document.querySelectorAll('.emotion-btn');
-                emotionButtons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                });
-            }
-            if (saveDiaryBtn) {
-                saveDiaryBtn.classList.remove('hidden');
-                saveDiaryBtn.disabled = false;
-            }
-            if (aiCommentSection) aiCommentSection.classList.add('hidden');
+            // 로그인한 경우 제출 상태 확인 후 적절한 섹션 표시
+            checkTodaySubmissionStatus();
         }
     }
 }

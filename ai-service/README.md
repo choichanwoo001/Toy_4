@@ -1,202 +1,125 @@
-# AI Service - RAG 에이전트
+# AI Service
 
-일기 데이터를 기반으로 한 감정 분석 및 상담 RAG(Retrieval-Augmented Generation) 에이전트입니다.
+일기 분석 및 AI 코멘트 생성을 위한 FastAPI 서비스입니다.
 
-## 🚀 주요 기능
+## 기능
 
-- **사용자 입력 분석**: 감정, 상황, 시간 컨텍스트 자동 추출
-- **벡터 검색**: ChromaDB를 활용한 의미적 유사도 기반 검색
-- **RAG 응답 생성**: 관련 일기 데이터를 기반으로 한 분석 및 조언
-- **신뢰도 평가**: 검색 결과의 품질을 평가하는 신뢰도 점수
+### 1. 대화 관리 시스템 (Conversation Manager)
+- 사용자 입력 분석 및 ASK/REPLY 결정
+- 대화 히스토리 관리
+- 고급 채팅 기능 (RAG 포함)
 
-```
-ai-service/
-├── app/
-│   ├── api/                    # FastAPI 엔드포인트
-│   ├── core/                   # 설정 및 로깅
-│   ├── db/                     # 데이터베이스 클라이언트
-│   │   └── chroma_client.py    # ChromaDB 클라이언트
-│   ├── models/                 # 데이터 모델
-│   │   └── diary.py           # 일기 관련 모델
-│   ├── services/               # 비즈니스 로직
-│   │   ├── rag_agent.py       # RAG 에이전트 (핵심)
-│   │   ├── embedding.py       # 임베딩 서비스
-│   │   ├── data_loader.py     # 데이터 로더
-│   │   └── chroma_service.py  # ChromaDB 서비스
-│   └── utils/                  # 유틸리티
-├── tests/                      # 테스트 파일
-│   └── test_rag_agent.py      # RAG 에이전트 테스트
-├── test_rag_demo.py           # 데모 스크립트
-└── requirements.txt           # 의존성
-```
+### 2. 일기 분석 시스템 (Diary Analyzer) - NEW!
+- 일기 전처리 (문법/문맥 정리)
+- 의미 단위 청크 분할
+- 감정/상황 추출 및 카테고리 매핑
+- 유사한 과거 일기 검색
+- 관련 조언 검색 및 통합
+- 관련 인용문 검색
+- AI 코멘트 생성
+- 감정 키워드 추출
 
-## 🛠️ 설치 및 설정
+## 설치 및 실행
 
 ### 1. 의존성 설치
-
 ```bash
-cd ai-service
 pip install -r requirements.txt
 ```
 
-### 2. 환경 설정
+### 2. 환경 변수 설정
+`.env` 파일을 생성하고 다음 내용을 추가하세요:
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
 
+### 3. 서비스 실행
 ```bash
-# 가상환경 생성 (선택사항)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+cd ai-service
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## 🧪 테스트 방법
+## API 엔드포인트
 
-### 1. 단위 테스트 실행
+### 대화 관리 API
+- `POST /api/v1/conversation-manager/decide` - 대화 관리 의사결정
+- `GET /api/v1/conversation-manager/history/{user_id}` - 대화 히스토리 조회
+- `POST /api/v1/conversation-manager/chat` - 기본 채팅
+- `POST /api/v1/conversation-manager/chat-advanced` - 고급 채팅 (RAG 포함)
 
-```bash
-# 전체 테스트 실행
-pytest tests/ -v
+### 일기 분석 API - NEW!
+- `POST /api/v1/diary-analyzer/analyze` - 일기 분석 및 코멘트 생성
+- `GET /api/v1/diary-analyzer/health` - 서비스 상태 확인
 
-# 특정 테스트만 실행
-pytest tests/test_rag_agent.py::TestRAGAgent::test_emotion_extraction -v
+## 일기 분석 API 사용 예시
 
-# 통합 테스트만 실행
-pytest tests/test_rag_agent.py -m integration -v
-```
-
-### 2. 데모 스크립트 실행
-
-```bash
-# 대화형 데모 실행
-python test_rag_demo.py
-```
-
-### 3. 개별 모듈 테스트
-
-```python
-# Python 인터프리터에서 직접 테스트
-from app.services.rag_agent import RAGAgent
-from app.services.data_loader import DataLoader
-
-# 데이터 로더로 샘플 데이터 생성
-data_loader = DataLoader()
-sample_entries = data_loader.generate_sample_diary_data(20)
-data_loader.load_data_to_chroma(sample_entries)
-
-# RAG 에이전트 테스트
-rag_agent = RAGAgent()
-response = rag_agent.process_query("요즘 계속 우울한데 이번 주에 내가 뭐 때문에 그런지 모르겠어")
-print(response.analysis)
-```
-
-## 🔧 RAG 에이전트 동작 원리
-
-### 1. 사용자 입력 분석
-
-```python
-user_input = "요즘 계속 우울한데 이번 주에 회사에서 힘들었다"
-
-# 분석 결과
+### 요청
+```json
 {
-    "user_utterance": "요즘 계속 우울한데 이번 주에 회사에서 힘들었다",
-    "inferred_emotion": "우울",
-    "inferred_situation": "업무", 
-    "time_context": "이번_주"
+  "user_id": "user123",
+  "raw_diary": "오늘은 정말 힘든 하루였다. 회사에서 프로젝트 마감일이 다가와서 스트레스를 받았어. 하지만 팀원들과 함께 문제를 해결하면서 뿌듯함도 느꼈다."
 }
 ```
 
-### 2. 검색 쿼리 생성
-
-- **감정 키워드**: "우울", "슬픔", "절망", "무기력"
-- **시간 필터**: 이번 주 (7일)
-- **상황 필터**: 업무 관련
-
-### 3. 벡터 검색
-
-```python
-# ChromaDB에서 유사한 일기 검색
-search_results = chroma_client.search(
-    query_embeddings=[query_embedding],
-    n_results=15,
-    where_filter={
-        "context": "업무",
-        "date": {"$gte": "2024-11-18", "$lte": "2024-11-24"}
-    }
-)
+### 응답
+```json
+{
+  "processed_diary": "오늘은 정말 힘든 하루였다. 회사에서 프로젝트 마감일이 다가와서 스트레스를 받았지만, 팀원들과 함께 문제를 해결하면서 뿌듯함도 느꼈다.",
+  "chunks": [
+    "오늘은 정말 힘든 하루였다. 회사에서 프로젝트 마감일이 다가와서 스트레스를 받았어.",
+    "하지만 팀원들과 함께 문제를 해결하면서 뿌듯함도 느꼈다."
+  ],
+  "advice": "스트레스 상황에서도 팀워크를 통해 성취감을 느끼는 것은 매우 소중한 경험입니다.",
+  "comment": "사랑하는 제자님, 오늘의 기록을 읽으면서 정말 대견한 마음이 듭니다. 마감일이 다가오는 스트레스 속에서도 팀원들과 함께 문제를 해결해나가는 모습이 정말 아름답네요. 이런 경험들이 제자님을 더욱 성장시킬 거예요.",
+  "quote": "\"함께하면 더 강해진다\" - 팀워크의 힘",
+  "emotion_keywords": ["스트레스", "뿌듯함", "팀워크", "성취감"],
+  "similar_past_diaries": [
+    "지난주에도 비슷한 프로젝트 마감 스트레스를 겪었지만, 이번엔 더 잘 해결할 수 있었다."
+  ]
+}
 ```
 
-### 4. 유사도 기반 필터링
+## Spring Boot 연동
 
-- 코사인 유사도 계산
-- 상위 5개 결과 선택
-- 신뢰도 점수 계산
+Spring Boot 백엔드에서는 다음과 같이 AI 서비스를 호출할 수 있습니다:
 
-### 5. 응답 생성
-
-관련 일기 데이터를 기반으로 분석 및 조언 생성
-
-## 📊 테스트 시나리오
-
-### 기본 테스트 쿼리
-
-1. **우울한 감정**: "요즘 계속 우울한데 이번 주에 내가 뭐 때문에 그런지 모르겠어"
-2. **업무 스트레스**: "오늘 회의에서 내 의견이 무시당한 것 같아서 속상했다"
-3. **사회적 불안**: "친구들과 만나기로 했는데 갑자기 기분이 안 좋아져서 취소했다"
-4. **성취감**: "오늘 프로젝트가 성공적으로 완료되어서 정말 기뻤다"
-5. **분노**: "동료가 내 일을 방해해서 정말 화가 났다"
-6. **불안**: "내일 중요한 발표가 있어서 긴장된다"
-7. **평온**: "오늘은 날씨가 좋아서 산책을 다녀왔다"
-
-### 예상 결과
-
-- **감정 추출**: 정확한 감정 키워드 매칭
-- **상황 인식**: 업무, 가족, 친구, 건강 등 상황 분류
-- **시간 컨텍스트**: 오늘, 어제, 이번 주 등 시간 범위 설정
-- **유사도 검색**: 관련 일기 엔트리 검색 및 유사도 점수
-- **신뢰도 평가**: 검색 결과 품질에 따른 신뢰도 점수
-
-## 🔍 모니터링 및 디버깅
-
-### 로그 확인
-
-```python
-import logging
-logging.basicConfig(level=logging.INFO)
-
-# RAG 에이전트 실행 시 상세 로그 확인
-rag_agent = RAGAgent()
-response = rag_agent.process_query("테스트 쿼리")
+```java
+@PostMapping("/api/diaries/analyze")
+@ResponseBody
+public ResponseEntity<ApiResponse<Map<String, Object>>> analyzeDiaryWithAI(
+    @RequestParam Long userId,
+    @RequestParam String content) {
+    
+    // AI 서비스 호출
+    RestTemplate restTemplate = new RestTemplate();
+    String aiServiceUrl = "http://localhost:8000/api/v1/diary-analyzer/analyze";
+    
+    Map<String, Object> requestData = new HashMap<>();
+    requestData.put("user_id", String.valueOf(userId));
+    requestData.put("raw_diary", content);
+    
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestData, headers);
+    
+    ResponseEntity<Map> aiResponse = restTemplate.postForEntity(aiServiceUrl, requestEntity, Map.class);
+    
+    // 응답 처리...
+}
 ```
 
-### 성능 메트릭
+## 데이터베이스
 
-- **검색 시간**: 벡터 검색 소요 시간
-- **유사도 점수**: 검색 결과의 평균 유사도
-- **신뢰도 점수**: 전체 응답의 신뢰도
-- **관련 엔트리 수**: 검색된 관련 일기 개수
+ChromaDB를 사용하여 다음 컬렉션들을 관리합니다:
+- `diary_past_diaries` - 과거 일기 데이터
+- `diary_advice` - 조언 데이터
+- `diary_quotes` - 인용문 데이터
 
-## 🚀 향후 개선 사항
+## 개발 환경
 
-1. **LLM 통합**: 실제 LLM을 사용한 응답 생성
-2. **감정 분석 고도화**: 더 정교한 감정 분류
-3. **컨텍스트 윈도우**: 대화 히스토리 기반 컨텍스트
-4. **개인화**: 사용자별 맞춤 분석
-5. **실시간 학습**: 새로운 일기 데이터 자동 학습
-
-## 📝 API 사용 예시
-
-```python
-from app.services.rag_agent import RAGAgent
-
-# RAG 에이전트 초기화
-rag_agent = RAGAgent()
-
-# 쿼리 처리
-response = rag_agent.process_query("사용자 입력")
-
-# 결과 확인
-print(f"분석: {response.analysis}")
-print(f"신뢰도: {response.confidence_score}")
-print(f"관련 엔트리 수: {len(response.related_entries)}")
-
-for entry in response.related_entries:
-    print(f"- {entry.content} (유사도: {entry.similarity_score:.3f})")
-```
+- Python 3.8+
+- FastAPI
+- ChromaDB
+- OpenAI API
+- LangChain
+- PyTorch
+- Sentence Transformers
