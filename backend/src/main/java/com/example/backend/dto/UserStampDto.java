@@ -17,4 +17,10 @@ public class UserStampDto {
     private String isActive; // "Y" or "N"
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+     // 스탬프 정보 추가
+     private String stampName;
+     private String stampImage;
+     private String stampDescription;
+     private int stampPrice;
 } 
