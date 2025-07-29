@@ -5,6 +5,7 @@ import com.example.backend.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -14,6 +15,9 @@ import org.springframework.http.MediaType;
 
 import java.util.Map;
 import java.util.HashMap;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * API 엔드포인트를 제공하는 컨트롤러

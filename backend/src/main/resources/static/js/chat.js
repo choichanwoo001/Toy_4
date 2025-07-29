@@ -7,6 +7,11 @@ const popupOverlay = document.getElementById('popup-overlay');
 const cancelButton = document.getElementById('cancel-button');
 const confirmButton = document.getElementById('confirm-button');
 
+// URL 파라미터에서 일기 정보 가져오기
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('userId');
+const diaryDate = urlParams.get('diaryDate');
+
 // 뒤로가기 버튼 클릭 이벤트
 backButton.addEventListener('click', function() {
     // 대화 내용이 있다면 확인 팝업 표시, 없다면 바로 이동
@@ -160,4 +165,13 @@ if (chatInput) {
 // 페이지 로드 시 초기 설정
 window.addEventListener('load', function() {
     chatContainer.scrollTop = chatContainer.scrollHeight; // 최신 메시지로 스크롤
+    
+    // 일기 정보가 있는 경우 초기 메시지 수정
+    if (diaryDate) {
+        // 기존 AI 초기 메시지를 일기 기반으로 변경
+        const initialAiMessage = chatContainer.querySelector('.ai-bubble p');
+        if (initialAiMessage) {
+            initialAiMessage.textContent = `안녕하세요, 제자님! ${diaryDate}에 남겨주신 소중한 기록들을 읽어보니, 그날의 감정과 생각이 선생님 마음에 남아있어요. 어떤 점이 가장 궁금하신가요?`;
+        }
+    }
 }); 

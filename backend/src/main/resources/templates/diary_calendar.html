@@ -16,16 +16,16 @@
     <!-- 메인 컨텐츠 영역 -->
     <div class="contents_area">
         <div class="wrap_1280">
-            <div class="text-center mb-10">
-                <h1 class="text-5xl font-bold text-[#90533B] mb-2">일기 기록 및 달력</h1>
-                <p class="text-2xl text-[#495235]">당신의 소중한 순간들을 기록하세요</p>
+            <div class="page-title-section">
+                <h1>일기 기록 및 달력</h1>
+                <p>당신의 소중한 순간들을 기록하세요</p>
             </div>
 
-            <section id="diary-calendar-page-section" class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 py-10">
-                <div class="lg:w-1/2 container-card left-section-container">
+            <section id="diary-calendar-page-section">
+                <div class="container-card left-section-container">
                     <div class="flex justify-between items-center mb-6">
                         <button id="prev-month-btn" class="btn-nav">&lt; 이전 달</button>
-                        <h2 id="calendar-title" class="text-3xl font-semibold text-[#90533B]">2025년 7월</h2>
+                        <h2 id="calendar-title" class="text-3xl font-semibold text-[#90533B]"></h2>
                         <button id="next-month-btn" class="btn-nav">다음 달 &gt;</button>
                     </div>
                     <div id="calendar-grid" class="calendar-grid mb-4"></div>
@@ -41,7 +41,7 @@
                     </div>
                 </div>
 
-                <div class="lg:w-1/2 container-card flex flex-col right-section-container"> 
+                <div class="container-card flex flex-col right-section-container"> 
                     <!-- 기록 목록 섹션 (스크롤 가능) -->
                     <div class="flex-shrink-0 mb-4"> 
                         <div class="flex justify-between items-center mb-3">
@@ -62,27 +62,7 @@
                     <!-- 스크롤 가능한 기록 목록 -->
                     <div class="records-list-wrapper flex-1"> 
                         <div id="today-records-list-scrollable" class="space-y-2"> 
-                            <div class="record-item">
-                                <span class="text-[#8F9562] text-sm mr-2">[10:30]</span>
-                                오늘 아침 햇살이 너무 좋아서 기분 좋게 일어났어요.
-                            </div>
-                            <div class="record-item">
-                                <span class="text-[#8F9562] text-sm mr-2">[14:15]</span>
-                                점심으로 맛있는 파스타를 먹었는데, 정말 행복했어요!
-                            </div>
-                            <div class="record-item">
-                                <span class="text-[#8F9562] text-sm mr-2">[16:00]</span>
-                                오후에는 친구와 카페에서 수다를 떨었는데, 즐거웠어요!
-                            </div>
-                            <div class="record-item">
-                                <span class="text-[#8F9562] text-sm mr-2">[18:30]</span>
-                                저녁에 산책을 다녀왔는데, 시원한 바람이 정말 좋았어요.
-                            </div>
-                            <div class="record-item">
-                                <span class="text-[#8F9562] text-sm mr-2">[20:00]</span>
-                                오늘 하루도 정말 보람찼어요. 내일도 좋은 하루가 될 것 같아요!
-                            </div>
-                            <div id="no-records-placeholder" class="text-center text-[#8F9562] py-8 hidden">
+                            <div id="no-records-placeholder" class="text-center text-[#8F9562] py-8">
                                 아직 오늘의 기록이 없습니다.<br>첫 번째 기록을 남겨보세요!
                             </div>
                         </div>
@@ -124,7 +104,7 @@
                     <!-- AI 코멘트 섹션 (기본적으로 숨김) -->
                     <div id="ai-comment-section" class="flex-shrink-0 hidden">
                         <div class="ai-comment-box">
-                            <img src="/images/참잘했어요.png" alt="참잘했어요 스탬프" class="stamp-image-comment">
+                            <img src="/image/default_stamp.png" alt="참잘했어요 스탬프" class="stamp-image-comment">
                             <p id="ai-comment-text" class="text-[#495235] leading-relaxed mb-3">
                                 사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
                                 작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.

@@ -409,16 +409,26 @@ saveDiaryBtn.addEventListener('click', function() {
 
 // "AI와 채팅하기" 버튼 클릭 이벤트
 aiChatButton.addEventListener('click', function() {
-    alert('AI 채팅 페이지로 이동합니다!');
-    // 실제 구현 시 window.location.href = '/chat'; 등으로 페이지 이동
+    // 현재 선택된 날짜의 일기 정보를 채팅 페이지로 전달
+    const selectedDateStr = selectedDate ? 
+        `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+        new Date().toISOString().split('T')[0];
+    
+    // 현재 사용자 ID와 선택된 날짜를 쿼리 파라미터로 전달
+    const chatUrl = `/chat?userId=${userId}&diaryDate=${selectedDateStr}`;
+    window.location.href = chatUrl;
 });
 
 // 초기 로드 시 설정
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // 코멘트 보기 기능 제거로 항상 기록 모드만 유지
     updateSectionVisibility();
     updateDailyQuote(); // 초기 명언 설정
     setInterval(updateDailyQuote, 10000); // 10초마다 명언 변경 (선택 사항)
+
+    // 사용자 ID 설정 및 달력 데이터 로드
+    await initUserId();
+    fetchAndRender(); // 달력 데이터 로드 및 렌더링
 
     // 초기 기록이 없는 경우 placeholder 표시
     const initialRecords = Array.from(recordsListScrollable.children).filter(el => el.classList.contains('record-item') && el.id !== 'no-records-placeholder');
@@ -432,12 +442,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===================== CALENDAR FUNCTIONALITY =====================
 
+// 유틸 함수: 월요일 기준 주차 계산
+function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
+
 // 동적 달력/일기/모달 스크립트
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth() + 1;
-const userId = /*[[${user != null}]]*/ false ? '[[${user.userId}]]' : 1; // Thymeleaf에서 유저ID 주입, 없으면 1
+let userId = null; // 로그인하지 않은 상태를 나타내는 기본값
 let currentDiaries = [];
 let selectedDate = null;
+
+// 사용자 ID 초기화 함수
+async function initUserId() {
+    console.log('=== initUserId 시작 ===');
+    try {
+        // 현재 로그인한 사용자 정보 가져오기
+        console.log('API 호출: /api/current-user');
+        const userResponse = await fetch('/api/current-user');
+        console.log('API 응답 상태:', userResponse.status);
+        
+        if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log('API 응답 데이터:', userData);
+            
+            if (userData && userData.userId) {
+                userId = userData.userId;
+                console.log('✅ 현재 로그인한 사용자 ID:', userId);
+            } else {
+                console.log('❌ 로그인되지 않음 또는 userId 없음');
+                // 로그인되지 않은 경우, URL 파라미터에서 userId 확인
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlUserId = urlParams.get('userId');
+                if (urlUserId) {
+                    userId = parseInt(urlUserId);
+                    console.log('URL 파라미터에서 사용자 ID:', userId);
+                } else {
+                    console.log('기본 userId 사용:', userId);
+                }
+            }
+        } else {
+            console.log('❌ API 응답 실패:', userResponse.status);
+        }
+    } catch (error) {
+        console.error('❌ 사용자 정보 확인 실패:', error);
+        // 오류 발생 시 URL 파라미터에서 userId 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('userId');
+        if (urlUserId) {
+            userId = parseInt(urlUserId);
+        }
+    }
+    console.log('=== initUserId 완료, 최종 userId:', userId, '===');
+}
 
 function renderCalendar(year, month, diaryData) {
     const calendarGrid = document.getElementById('calendar-grid');
@@ -503,20 +564,12 @@ function renderCalendar(year, month, diaryData) {
             cell.classList.add('has-diary');
             // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
             const img = document.createElement('img');
-            img.dataset.src = '/images/참잘했어요.png';
+            img.src = '/image/default_stamp.png';
             img.alt = '참잘했어요 스탬프';
-            img.className = 'stamp-image-calendar loading';
+            img.className = 'stamp-image-calendar';
             cell.appendChild(img);
             
-            // Observe for lazy loading
-            imageObserver.observe(img);
-            
-            if (diary.emotion) {
-                const span = document.createElement('span');
-                span.className = 'emotion-icon';
-                span.textContent = diary.emotion;
-                cell.appendChild(span);
-            }
+            // 스탬프 이미지는 즉시 로드
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
@@ -595,7 +648,9 @@ function renderRecordsList(records, year, month, day) {
         (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
     
     if (records.length === 0) {
-        if (isPast) {
+        if (!userId) {
+            recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>로그인 후 기록을 남겨보세요!<br>소중한 순간들을 기록할 수 있어요.</p>`;
+        } else if (isPast) {
             recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>${month}월 ${day}일에는 기록이 없었어요.<br>그날의 소중한 순간들을 기록해보세요!</p>`;
         } else {
             recordsList.innerHTML = `<p class='text-[#8F9562] text-center py-4'>이 날짜의 기록이 없습니다. 기록을 남겨보세요!</p>`;
@@ -667,28 +722,41 @@ function renderRecordsList(records, year, month, day) {
             }
         }
     } else {
-        // 오늘 또는 미래 날짜: 기록 입력 활성화
-        if (newRecordSection) {
-            newRecordSection.classList.remove('hidden');
-            // 입력 필드 활성화
-            const diaryContent = document.getElementById('diary-content');
-            if (diaryContent) {
-                diaryContent.disabled = false;
-                diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+        // 오늘 또는 미래 날짜: 기록 입력 활성화 (로그인한 경우에만)
+        if (!userId) {
+            // 로그인하지 않은 경우 기록 입력 비활성화
+            if (newRecordSection) {
+                newRecordSection.classList.add('hidden');
             }
-            // 감정 버튼들 활성화
-            const emotionButtons = document.querySelectorAll('.emotion-btn');
-            emotionButtons.forEach(btn => {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
-            });
+            if (saveDiaryBtn) {
+                saveDiaryBtn.classList.add('hidden');
+                saveDiaryBtn.disabled = true;
+            }
+            if (aiCommentSection) aiCommentSection.classList.add('hidden');
+        } else {
+            // 로그인한 경우 기록 입력 활성화
+            if (newRecordSection) {
+                newRecordSection.classList.remove('hidden');
+                // 입력 필드 활성화
+                const diaryContent = document.getElementById('diary-content');
+                if (diaryContent) {
+                    diaryContent.disabled = false;
+                    diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+                }
+                // 감정 버튼들 활성화
+                const emotionButtons = document.querySelectorAll('.emotion-btn');
+                emotionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
+            if (saveDiaryBtn) {
+                saveDiaryBtn.classList.remove('hidden');
+                saveDiaryBtn.disabled = false;
+            }
+            if (aiCommentSection) aiCommentSection.classList.add('hidden');
         }
-        if (saveDiaryBtn) {
-            saveDiaryBtn.classList.remove('hidden');
-            saveDiaryBtn.disabled = false;
-        }
-        if (aiCommentSection) aiCommentSection.classList.add('hidden');
     }
 }
 
@@ -711,6 +779,28 @@ function fetchAndRender() {
     showWeeklyReportsSkeleton();
     
     document.getElementById('calendar-title').textContent = `${currentYear}년 ${currentMonth}월`;
+    
+    // 로그인하지 않은 경우 빈 달력만 표시
+    console.log('=== fetchAndRender - 현재 userId:', userId, '===');
+    if (!userId) {
+        console.log('❌ 로그인하지 않은 상태 - 빈 달력 표시');
+        currentDiaries = [];
+        renderCalendar(currentYear, currentMonth, currentDiaries);
+        updateCalendarSummary(currentDiaries, currentYear, currentMonth);
+        renderWeeklyReports(currentDiaries, currentYear, currentMonth);
+        
+        // 오늘 날짜의 빈 기록 표시
+        const today = new Date();
+        if (currentYear === today.getFullYear() && currentMonth === today.getMonth()+1) {
+            selectDiaryDate(currentYear, currentMonth, today.getDate(), currentDiaries);
+        } else {
+            renderRecordsList([], currentYear, currentMonth, 1);
+        }
+        isLoading = false;
+        return;
+    }
+    
+    console.log('✅ 로그인한 사용자 - API 호출:', `/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
     
     fetch(`/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
         .then(res => {
@@ -828,7 +918,20 @@ function renderWeeklyReports(diaryData, year, month) {
                 const btn = document.createElement('button');
                 btn.className = 'btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm';
                 btn.textContent = '리포트 보기';
-                btn.onclick = () => alert(`${weekLabel} 페이지로 이동합니다!`);
+                btn.onclick = () => {
+                    // 주차 정보를 계산하여 리포트 페이지로 이동
+                    // 현재 날짜를 기준으로 한 주차 오프셋 계산
+                    const today = new Date();
+                    const currentWeekStart = getMonday(today);
+                    const targetWeekStart = new Date(weekStart);
+                    
+                    // 두 날짜 간의 주차 차이 계산
+                    const timeDiff = currentWeekStart.getTime() - targetWeekStart.getTime();
+                    const weekDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24 * 7));
+                    
+                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekDiff}&year=${year}&month=${month}`;
+                    window.location.href = reportUrl;
+                };
                 div.appendChild(btn);
                 reportsList.appendChild(div);
             }

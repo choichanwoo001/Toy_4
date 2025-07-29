@@ -26,7 +26,13 @@ public class PointshopService {
     // 1. 사용자 포인트 조회
     public int getUserPoint(Long userId) {
         var history = userPointHistoryRepository.findTopByUserIdOrderByCreatedAtDesc(userId);
-        return history != null ? history.getAfterPoint() : 0;
+        int points = history != null ? history.getAfterPoint() : 0;
+        System.out.println("=== 포인트 조회 ===");
+        System.out.println("사용자 ID: " + userId);
+        System.out.println("최신 기록: " + (history != null ? history.getReason() : "없음"));
+        System.out.println("기록 시간: " + (history != null ? history.getCreatedAt() : "없음"));
+        System.out.println("현재 포인트: " + points);
+        return points;
     }
 
     // 2. 구매 가능한 도장 목록 조회
@@ -73,6 +79,12 @@ public class PointshopService {
         if (stamp == null) return false;
         int price = stamp.getPrice();
 
+        System.out.println("=== 구매 시도 ===");
+        System.out.println("사용자 ID: " + userId);
+        System.out.println("도장 ID: " + stampId);
+        System.out.println("현재 포인트: " + currentPoint);
+        System.out.println("도장 가격: " + price);
+
         // 3. 포인트 부족 시
         if (currentPoint < price) return false;
 
@@ -91,8 +103,18 @@ public class PointshopService {
         history.setAmount(-price);
         history.setAfterPoint(currentPoint - price);
         history.setReason("도장 구매: " + stamp.getName());
-        history.setCreatedAt(java.time.LocalDateTime.now());
-        userPointHistoryRepository.save(history);
+        history.setCreatedAt(java.time.LocalDateTime.now().plusSeconds(1)); // 1초 추가하여 최신 기록 보장
+        
+        UserPointHistory savedHistory = userPointHistoryRepository.save(history);
+        
+        System.out.println("=== 구매 완료 ===");
+        System.out.println("차감 후 포인트: " + (currentPoint - price));
+        System.out.println("기록 저장됨: " + savedHistory.getReason());
+        System.out.println("저장된 기록 ID: " + savedHistory.getUserPointHistoryId());
+        
+        // 저장 후 포인트 재확인
+        int updatedPoint = getUserPoint(userId);
+        System.out.println("저장 후 조회된 포인트: " + updatedPoint);
 
         return true;
     }

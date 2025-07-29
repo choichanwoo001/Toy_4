@@ -2,11 +2,9 @@ package com.example.backend.service;
 
 import com.example.backend.dto.EmotionChartDto;
 import com.example.backend.dto.ReportResponseDto;
-import com.example.backend.entity.CommentEmotionMapping;
-import com.example.backend.entity.DailyComment;
+import com.example.backend.entity.Diary;
 import com.example.backend.entity.WeeklyFeedback;
-import com.example.backend.repository.CommentEmotionMappingRepository;
-import com.example.backend.repository.DailyCommentRepository;
+import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.WeeklyFeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,8 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,96 +22,101 @@ import java.util.stream.Collectors;
 public class WeeklyReportService {
 
     private final WeeklyFeedbackRepository feedbackRepository;
-    private final DailyCommentRepository commentRepo;
-    private final CommentEmotionMappingRepository mappingRepo;
+    private final DiaryRepository diaryRepository;
 
     // 주차별 감정 리포트 weekOffset: 현재로부터 몇 주 전인지(0=이번주)
     @Transactional(readOnly = true)
     public ReportResponseDto getWeeklyReport(Long userId, int weekOffset) {
-        //  JS 기준 맞춤: offset 방향 통일
+        System.out.println("🔍 getWeeklyReport 호출 - userId: " + userId + ", weekOffset: " + weekOffset);
+        
+        // 해당 주차의 시작일과 종료일 계산
         LocalDate targetDate = LocalDate.now().plusWeeks(-weekOffset);
+        LocalDate monday = targetDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sunday = monday.plusDays(6);
+        
+        System.out.println("📅 주차 계산 - monday: " + monday + ", sunday: " + sunday);
+
+        // 해당 주차의 일기 데이터 조회
+        List<Diary> diaries = diaryRepository.findByUser_UserIdAndCreatedAtBetween(
+            userId, 
+            monday.atStartOfDay(), 
+            sunday.atTime(23, 59, 59)
+        );
+        
+        System.out.println("📝 조회된 일기 개수: " + diaries.size());
+        for (Diary diary : diaries) {
+            System.out.println("  - 일기: " + diary.getContent() + " (감정: " + diary.getEmotion() + ")");
+        }
+
+        // 주간 피드백 데이터 조회 (있는 경우)
         Optional<WeeklyFeedback> optional = feedbackRepository.findByUser_UserIdAndWeekOffset(userId, weekOffset);
 
-        if (optional.isEmpty()) {
-            return new ReportResponseDto(); // 빈 DTO 반환
-        };
+        // 감정 차트 데이터 생성
+        List<EmotionChartDto> emotionCharts = getEmotionChartsFromDiaries(diaries);
 
-        WeeklyFeedback feedback = optional.get();
-
-        LocalDate monday = LocalDate.parse(feedback.getFeedbackStart());
-        LocalDate sunday = LocalDate.parse(feedback.getFeedbackEnd());
-
-        List<DailyComment> comments = commentRepo
-                .findByUser_UserIdAndDiaryDateBetween(userId, monday.atStartOfDay(), sunday.atStartOfDay());
-
-        List<CommentEmotionMapping> mappings = mappingRepo.findByDailyCommentIn(comments);
-
-        return ReportResponseDto.builder()
-                .week(formatWeekString(LocalDate.parse(feedback.getFeedbackStart())))
-                .emotionSummary(feedback.getEmotionSummary())
-                .keywords(extractTopEmotionKeywords(mappings, 3)) // 3개만 출력
-                .evidenceSentences(feedback.getFeedbackProofs().stream().map(fp -> fp.getDetail()).toList())
-                .recommendations(feedback.getRecommendActivities().stream()
-                        .map(a -> ReportResponseDto.RecommendationDto.builder()
-                                .title(a.getTitle())
-                                .description(a.getDetail())
-                                .build())
-                        .toList())
+        // 기본 리포트 데이터 생성
+        var builder = ReportResponseDto.builder()
+                .week(formatWeekString(monday))
                 .dayLabels(List.of("월", "화", "수", "목", "금", "토", "일"))
-                .emotionCharts(getEmotionCharts(mappings))
-                .build();
+                .emotionCharts(emotionCharts);
+
+        // 주간 피드백이 있는 경우 추가 데이터 설정
+        if (optional.isPresent()) {
+            WeeklyFeedback feedback = optional.get();
+            builder.emotionSummary(feedback.getEmotionSummary())
+                    .evidenceSentences(feedback.getFeedbackProofs().stream()
+                            .map(fp -> fp.getDetail())
+                            .toList())
+                    .recommendations(feedback.getRecommendActivities().stream()
+                            .map(a -> ReportResponseDto.RecommendationDto.builder()
+                                    .title(a.getTitle())
+                                    .description(a.getDetail())
+                                    .build())
+                            .toList());
+        } else {
+            // 피드백이 없는 경우 기본값 설정
+            builder.emotionSummary("이번 주 감정 분석이 준비되지 않았습니다.")
+                    .evidenceSentences(List.of())
+                    .recommendations(List.of());
+        }
+
+        return builder.build();
     }
 
     // 주차 문자열 생성 유틸
     public String formatWeekString(LocalDate monday) {
-        // 기준이 되는 일요일을 계산
-        LocalDate sunday = monday.with(DayOfWeek.SUNDAY);
-
-        // 해당 달의 첫 일요일
-        LocalDate firstSunday = sunday.withDayOfMonth(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-
-        // 몇 번째 주인지 계산 (일요일 기준)
-        long weekOfMonth = ChronoUnit.WEEKS.between(firstSunday, sunday) + 1;
-
+        LocalDate sunday = monday.plusDays(6);
         return String.format(
-                "%d년 %d월 %d주차 (%d월 %d일 ~ %d월 %d일)",
-                sunday.getYear(), sunday.getMonthValue(), weekOfMonth,
-                monday.getMonthValue(), monday.getDayOfMonth(),
+                "%d년 %d월 %d일 ~ %d월 %d일",
+                monday.getYear(), monday.getMonthValue(), monday.getDayOfMonth(),
                 sunday.getMonthValue(), sunday.getDayOfMonth()
         );
     }
 
-    // 감정 키워드 추출 (상위 n개)
-    private String extractTopEmotionKeywords(List<CommentEmotionMapping> mappings, int topN) {
-        Map<String, Integer> emotionCount = new HashMap<>();
-
-        for (CommentEmotionMapping m : mappings) {
-            String emotion = m.getEmotionData().getName();
-            emotionCount.put(emotion, emotionCount.getOrDefault(emotion, 0) + 1);
+    // 일기 데이터에서 감정 차트 데이터 생성
+    private List<EmotionChartDto> getEmotionChartsFromDiaries(List<Diary> diaries) {
+        System.out.println("🎨 감정 차트 데이터 생성 시작 - 일기 개수: " + diaries.size());
+        
+        // 1. 감정별 요일 카운트 계산
+        Map<String, int[]> emotionCounts = new HashMap<>();
+        
+        for (Diary diary : diaries) {
+            if (diary.getEmotion() != null && !diary.getEmotion().trim().isEmpty()) {
+                String emotion = diary.getEmotion();
+                LocalDate diaryDate = diary.getCreatedAt().toLocalDate();
+                int dayIndex = diaryDate.getDayOfWeek().getValue() - 1; // 월요일=0, 일요일=6
+                
+                emotionCounts.putIfAbsent(emotion, new int[7]);
+                emotionCounts.get(emotion)[dayIndex]++;
+                
+                System.out.println("  📊 감정: " + emotion + ", 요일: " + diaryDate.getDayOfWeek() + ", 인덱스: " + dayIndex);
+            }
         }
 
-        return emotionCount.entrySet().stream()
-                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())) // 내림차순 정렬
-                .limit(topN)
-                .map(e -> "#" + e.getKey())
-                .collect(Collectors.joining(" "));
-    }
-
-    // 감정 데이터를 요일별로 추출하여 차트용 데이터 구성
-    private List<EmotionChartDto> getEmotionCharts(List<CommentEmotionMapping> mappings) {
-        // 1. Map<감정, int[7]> : 요일별 카운트
-        Map<String, int[]> countMap = new HashMap<>();
-        for (CommentEmotionMapping m : mappings) {
-            String emotion = m.getEmotionData().getName();
-            LocalDate date = m.getDailyComment().getDiaryDate().toLocalDate();
-            int dayIndex = date.getDayOfWeek().getValue() - 1;
-
-            countMap.putIfAbsent(emotion, new int[7]);
-            countMap.get(emotion)[dayIndex]++;
-        }
+        System.out.println("📈 감정별 카운트: " + emotionCounts);
 
         // 2. 감정별 총합으로 정렬 후 상위 4개만 추출
-        List<Map.Entry<String, int[]>> topEmotions = countMap.entrySet().stream()
+        List<Map.Entry<String, int[]>> topEmotions = emotionCounts.entrySet().stream()
                 .sorted((e1, e2) -> {
                     int sum1 = Arrays.stream(e1.getValue()).sum();
                     int sum2 = Arrays.stream(e2.getValue()).sum();
@@ -123,7 +125,7 @@ public class WeeklyReportService {
                 .limit(4)
                 .toList();
 
-        // 3. 동적으로 색상 배정
+        // 3. 색상 배정
         List<String> borderColors = List.of("#DA983C", "#B87B5C", "#8F9562", "#6B7280");
         List<String> backgroundColors = List.of(
                 "rgba(218, 152, 60, 0.2)",
@@ -142,6 +144,12 @@ public class WeeklyReportService {
                     borderColors.get(i % borderColors.size()),
                     backgroundColors.get(i % backgroundColors.size())
             ));
+        }
+
+        // 디버깅용 로그
+        System.out.println("✅ 생성된 감정 차트 개수: " + result.size());
+        for (EmotionChartDto chart : result) {
+            System.out.println("  📊 감정: " + chart.getEmotionLabel() + ", 데이터: " + chart.getEmotionData());
         }
 
         return result;

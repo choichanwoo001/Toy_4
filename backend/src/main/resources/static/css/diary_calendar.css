@@ -6,12 +6,76 @@ body {
     color: #495235; /* DARK FERN */
 }
 
+/* 메인 컨텐츠 영역 중앙 정렬 */
+.contents_area {
+    background-color: transparent; /* 주황색 배경 제거 */
+    min-height: calc(100vh - 80px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0rem 0; /* 상단 패딩 줄임 */
+}
+
+.wrap_1280 {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 제목 섹션 중앙 정렬 */
+.page-title-section {
+    text-align: center;
+    margin-bottom: 0.5rem; /* 마진 줄임 */
+    width: 100%;
+}
+
+.page-title-section h1 {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #90533B;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.page-title-section p {
+    font-size: 1.5rem;
+    color: #495235;
+    text-align: center;
+}
+
+/* 메인 섹션 컨테이너 중앙 정렬 */
+#diary-calendar-page-section {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 0 1rem;
+}
+
+/* 데스크톱에서 좌우 대칭 배치 */
+@media (min-width: 1024px) {
+    #diary-calendar-page-section {
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+}
+
 .container-card {
     background-color: white;
     border-radius: 1rem;
     padding: 2rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border: 1px solid #B87B5C; /* BROWN SUGAR */
+    width: 100%;
+    max-width: 580px;
 }
 
 .section-title {
@@ -162,9 +226,12 @@ body {
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
-    height: 320px; /* 달력 높이를 줄여서 주차별 리포트 공간 확보 */
+    gap: 0.8rem; /* 달력 간격을 늘림 */
+    height: 380px; /* 달력 높이를 늘려서 상단 여백 채움 */
     flex-shrink: 0; /* 부모 flex 컨테이너 내에서 줄어들지 않도록 함 */
+    width: 100%;
+    align-items: center;
+    justify-items: center;
 }
 
 .date-cell {
@@ -179,10 +246,12 @@ body {
     align-items: center;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+    transition: all 0.2s ease-in-out;
     position: relative;
     overflow: hidden;
     color: #495235;
+    min-height: 60px;
+    min-width: 60px;
 }
 
 .date-cell:hover {
@@ -218,11 +287,24 @@ body {
     opacity: 0;
 }
 
+
+
 .date-cell .date-number {
     position: relative;
     z-index: 3;
     font-weight: bold;
     font-size: 1.1em;
+    text-align: center;
+    line-height: 1;
+}
+
+/* 요일 헤더 스타일 */
+.calendar-grid > div:not(.date-cell) {
+    font-weight: 600;
+    color: #90533B;
+    font-size: 1rem;
+    padding: 0.5rem;
+    text-align: center;
 }
 
 .emotion-icon {
@@ -233,17 +315,16 @@ body {
 
 /* Left Section: Calendar container */
 .left-section-container {
-    flex-grow: 1; 
-    min-height: 550px; 
-    height: 800px; /* 고정 높이 설정 (스크린샷 비율에 맞춰 조정) */
-    overflow-y: auto; /* 리포트 목록이 많아지면 스크롤되도록 */
+    min-height: 750px; 
+    height: 870px; /* 고정 높이 설정 - 더 늘림 */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Right Section container */
 .right-section-container {
-    flex-grow: 1; /* 남은 공간을 채우도록 성장 */
-    min-height: 550px; /* 왼쪽과 비슷한 최소 높이 보장 */
-    height: 800px; /* 왼쪽과 동일하게 고정 높이 설정 */
+    min-height: 750px; /* 왼쪽과 비슷한 최소 높이 보장 */
+    height: 870px; /* 왼쪽과 동일하게 고정 높이 설정 - 더 늘림 */
     display: flex;
     flex-direction: column;
 }
@@ -471,15 +552,6 @@ body {
     white-space: nowrap;
 }
 
-/* 주차별 리포트 섹션 스타일 */
-.weekly-reports-section {
-    min-height: 150px;
-    max-height: 250px;
-    overflow-y: auto;
-    padding-right: 0.5rem;
-    margin-bottom: 1rem;
-}
-
 .weekly-reports-section::-webkit-scrollbar {
     width: 6px;
 }
@@ -502,6 +574,17 @@ body {
 .left-section-container {
     overflow: hidden;
     position: relative;
+}
+
+/* 주차별 리포트 섹션 스타일 */
+.weekly-reports-section {
+    min-height: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    margin-bottom: 0rem;
+    margin-top: 2rem; /* 상단 여백을 늘려서 아래로 내림 */
+    flex: 1;
 }
 
 /* 오른쪽 섹션 스크롤바 스타일 (브라운 계열 유지) */
@@ -552,12 +635,6 @@ body {
 .nav-link.active:hover {
     background-color: #8F9562;
     color: white;
-}
-
-/* 메인 컨텐츠 영역 조정 */
-.contents_area {
-    background-color: #F4DDB8;
-    min-height: calc(100vh - 80px);
 }
 
 /* ===================== END NEW EMOTION STATS STYLES ===================== */ 
