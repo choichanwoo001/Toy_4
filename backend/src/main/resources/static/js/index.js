@@ -191,8 +191,17 @@ function renderAuthButtons() {
  */
 function displayNextQuote() {
     if (mainQuoteDisplay) {
-        mainQuoteDisplay.textContent = `"${mainQuotes[currentQuoteIndex]}"`;
-        currentQuoteIndex = (currentQuoteIndex + 1) % mainQuotes.length;
+        // fade-out 효과
+        mainQuoteDisplay.style.opacity = '0';
+        
+        setTimeout(() => {
+            // 텍스트 변경
+            mainQuoteDisplay.textContent = `"${mainQuotes[currentQuoteIndex]}"`;
+            currentQuoteIndex = (currentQuoteIndex + 1) % mainQuotes.length;
+            
+            // fade-in 효과
+            mainQuoteDisplay.style.opacity = '1';
+        }, 500);
     }
 }
 

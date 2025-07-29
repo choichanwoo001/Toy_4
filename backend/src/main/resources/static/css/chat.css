@@ -76,6 +76,18 @@
     color: #495235; /* DARK FERN */
 }
 
+/* 일기 정보 표시 스타일 */
+.diary-info {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #F4DDB8; /* WHEAT */
+    border-radius: 0.5rem;
+    display: inline-block;
+    font-size: 0.9rem;
+    color: #90533B; /* CHESTNUT */
+    font-weight: 500;
+}
+
 .chat-container {
     flex-grow: 1; /* 남은 공간을 모두 채우도록 확장 */
     overflow-y: auto; /* 내용이 넘치면 스크롤 */

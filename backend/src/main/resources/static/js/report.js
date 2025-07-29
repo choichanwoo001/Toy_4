@@ -214,7 +214,20 @@ async function initReportPage() {
         return;
     }
 
-    currentIndex = 0;
+    // URL에서 전달받은 weekOffset이 있으면 해당 주차로 설정
+    if (weekOffset !== null) {
+        const targetWeekOffset = parseInt(weekOffset);
+        const weekIndex = validOffsets.indexOf(targetWeekOffset);
+        if (weekIndex !== -1) {
+            currentIndex = weekIndex;
+        } else {
+            // 해당 주차가 없으면 첫 번째 주차로 설정
+            currentIndex = 0;
+        }
+    } else {
+        currentIndex = 0;
+    }
+    
     updateReportContent(validOffsets[currentIndex]);
 }
 
@@ -234,7 +247,9 @@ nextWeekBtn.addEventListener('click', () => {
 });
 
 document.getElementById('go-chat').addEventListener('click', () => {
-    window.location.href = '/chat';
+    // 채팅 페이지로 이동할 때 현재 사용자 정보도 함께 전달
+    const chatUrl = reportUserId ? `/chat?userId=${reportUserId}` : '/chat';
+    window.location.href = chatUrl;
 });
 
 // 📌 초기 실행

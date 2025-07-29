@@ -409,8 +409,14 @@ saveDiaryBtn.addEventListener('click', function() {
 
 // "AI와 채팅하기" 버튼 클릭 이벤트
 aiChatButton.addEventListener('click', function() {
-    alert('AI 채팅 페이지로 이동합니다!');
-    // 실제 구현 시 window.location.href = '/chat'; 등으로 페이지 이동
+    // 현재 선택된 날짜의 일기 정보를 채팅 페이지로 전달
+    const selectedDateStr = selectedDate ? 
+        `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+        new Date().toISOString().split('T')[0];
+    
+    // 현재 사용자 ID와 선택된 날짜를 쿼리 파라미터로 전달
+    const chatUrl = `/chat?userId=${userId}&diaryDate=${selectedDateStr}`;
+    window.location.href = chatUrl;
 });
 
 // 초기 로드 시 설정
@@ -435,6 +441,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ===================== CALENDAR FUNCTIONALITY =====================
+
+// 유틸 함수: 월요일 기준 주차 계산
+function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+}
 
 // 동적 달력/일기/모달 스크립트
 let currentYear = new Date().getFullYear();
@@ -550,13 +564,12 @@ function renderCalendar(year, month, diaryData) {
             cell.classList.add('has-diary');
             // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
             const img = document.createElement('img');
-            img.dataset.src = '/images/참잘했어요.png';
+            img.src = '/image/default_stamp.png';
             img.alt = '참잘했어요 스탬프';
-            img.className = 'stamp-image-calendar loading';
+            img.className = 'stamp-image-calendar';
             cell.appendChild(img);
             
-            // Observe for lazy loading
-            imageObserver.observe(img);
+            // 스탬프 이미지는 즉시 로드
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
@@ -905,7 +918,20 @@ function renderWeeklyReports(diaryData, year, month) {
                 const btn = document.createElement('button');
                 btn.className = 'btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm';
                 btn.textContent = '리포트 보기';
-                btn.onclick = () => alert(`${weekLabel} 페이지로 이동합니다!`);
+                btn.onclick = () => {
+                    // 주차 정보를 계산하여 리포트 페이지로 이동
+                    // 현재 날짜를 기준으로 한 주차 오프셋 계산
+                    const today = new Date();
+                    const currentWeekStart = getMonday(today);
+                    const targetWeekStart = new Date(weekStart);
+                    
+                    // 두 날짜 간의 주차 차이 계산
+                    const timeDiff = currentWeekStart.getTime() - targetWeekStart.getTime();
+                    const weekDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24 * 7));
+                    
+                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekDiff}&year=${year}&month=${month}`;
+                    window.location.href = reportUrl;
+                };
                 div.appendChild(btn);
                 reportsList.appendChild(div);
             }

@@ -7,6 +7,11 @@ const popupOverlay = document.getElementById('popup-overlay');
 const cancelButton = document.getElementById('cancel-button');
 const confirmButton = document.getElementById('confirm-button');
 
+// URL 파라미터에서 일기 정보 가져오기
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('userId');
+const diaryDate = urlParams.get('diaryDate');
+
 // 뒤로가기 버튼 클릭 이벤트
 backButton.addEventListener('click', function() {
     // 대화 내용이 있다면 확인 팝업 표시, 없다면 바로 이동
@@ -63,13 +68,30 @@ async function getAIResponse(userMessage) {
     await new Promise(resolve => setTimeout(resolve, 1000)); 
 
     typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
-    // 사용자 입력에 따른 AI 응답 예시
+    
+    // 일기 정보가 있는 경우 개인화된 응답
     let aiResponse = "선생님은 제자님의 말씀을 잘 들었어요. 더 자세히 이야기해줄 수 있을까요?";
-    if (userMessage.includes("힘들") || userMessage.includes("지쳐")) {
-        aiResponse = "힘든 마음이 드셨군요. 선생님은 제자님의 그런 감정을 이해한답니다. 무엇이 제자님을 힘들게 했는지 좀 더 이야기해줄 수 있을까요?";
-    } else if (userMessage.includes("기분 좋") || userMessage.includes("행복")) {
-        aiResponse = "기분 좋은 일이 있으셨다니 선생님도 기쁘네요! 어떤 일이었는지 더 자세히 들려주세요!";
+    
+    if (diaryDate) {
+        // 일기 기반 개인화된 응답
+        if (userMessage.includes("힘들") || userMessage.includes("지쳐")) {
+            aiResponse = `${diaryDate}에 남겨주신 일기를 보니 그날도 힘든 마음이 드셨군요. 선생님은 제자님의 그런 감정을 이해한답니다. 무엇이 제자님을 힘들게 했는지 좀 더 이야기해줄 수 있을까요?`;
+        } else if (userMessage.includes("기분 좋") || userMessage.includes("행복")) {
+            aiResponse = `${diaryDate}에 남겨주신 일기에서도 기쁜 마음이 느껴졌는데, 오늘도 기분 좋은 일이 있으셨다니 선생님도 기쁘네요! 어떤 일이었는지 더 자세히 들려주세요!`;
+        } else if (userMessage.includes("일기") || userMessage.includes("기록")) {
+            aiResponse = `${diaryDate}에 남겨주신 소중한 기록들을 다시 한번 읽어보니, 제자님의 진솔한 마음이 느껴져요. 그날의 감정이나 생각에 대해 더 이야기해주실 수 있나요?`;
+        } else {
+            aiResponse = `${diaryDate}에 남겨주신 일기를 함께 보면서 이야기 나누는 것 같아서 선생님도 기쁘네요. 제자님의 생각이나 감정에 대해 더 자세히 들려주세요.`;
+        }
+    } else {
+        // 일반적인 응답
+        if (userMessage.includes("힘들") || userMessage.includes("지쳐")) {
+            aiResponse = "힘든 마음이 드셨군요. 선생님은 제자님의 그런 감정을 이해한답니다. 무엇이 제자님을 힘들게 했는지 좀 더 이야기해줄 수 있을까요?";
+        } else if (userMessage.includes("기분 좋") || userMessage.includes("행복")) {
+            aiResponse = "기분 좋은 일이 있으셨다니 선생님도 기쁘네요! 어떤 일이었는지 더 자세히 들려주세요!";
+        }
     }
+    
     addMessage(aiResponse, 'ai');
 }
 
@@ -103,4 +125,13 @@ if (chatInput) {
 // 페이지 로드 시 초기 설정
 window.addEventListener('load', function() {
     chatContainer.scrollTop = chatContainer.scrollHeight; // 최신 메시지로 스크롤
+    
+    // 일기 정보가 있는 경우 초기 메시지 수정
+    if (diaryDate) {
+        // 기존 AI 초기 메시지를 일기 기반으로 변경
+        const initialAiMessage = chatContainer.querySelector('.ai-bubble p');
+        if (initialAiMessage) {
+            initialAiMessage.textContent = `안녕하세요, 제자님! ${diaryDate}에 남겨주신 소중한 기록들을 읽어보니, 그날의 감정과 생각이 선생님 마음에 남아있어요. 어떤 점이 가장 궁금하신가요?`;
+        }
+    }
 }); 
