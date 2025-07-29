@@ -443,6 +443,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadActiveStamp();
     // 사용자 보유 스탬프 목록 조회
     await loadUserStamps();
+    // 스탬프 선택 UI 렌더링
+    renderStampSelection();
 });
 
 // ===================== CALENDAR FUNCTIONALITY =====================
@@ -492,11 +494,9 @@ async function loadUserStamps() {
         const response = await fetch('/pointshop/api/my-stamps');
         const data = await response.json();
         userStamps = data || [];
-        renderStampSelection();
     } catch (error) {
         console.error('보유 스탬프 조회 오류:', error);
         userStamps = [];
-        renderStampSelection();
     }
 }
 
@@ -529,8 +529,10 @@ function renderStampSelection() {
         stampSelection.appendChild(stampOption);
     });
     
-    // 기본 스탬프 선택 (초기 로드 시에는 silent 모드)
-    selectStampSilent('참잘했어요', 'image/default_stamp.png');
+    // 현재 적용된 스탬프 또는 기본 스탬프 선택
+    const stampToSelect = currentActiveStamp.stampName || '참잘했어요';
+    const stampToSelectImage = currentActiveStamp.stampImage || 'image/default_stamp.png';
+    selectStampSilent(stampToSelect, stampToSelectImage);
 }
 
 // 스탬프 선택 (사용자 클릭 시)
