@@ -401,7 +401,9 @@ function setupEventListeners() {
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('content', content);
-        formData.append('appliedStamp', '참잘했어요'); // 기본 스탬프
+        // 선택된 스탬프가 있으면 그것을 사용하고, 없으면 기본 스탬프 사용
+        const stampToUse = selectedStamp ? selectedStamp.stampName : '참잘했어요';
+        formData.append('appliedStamp', stampToUse);
         if (selectedEmotion) {
             formData.append('emotion', selectedEmotion);
         }
@@ -488,6 +490,20 @@ function setupEventListeners() {
                 // 2025-01-XX: 일기 저장 후 감정 통계 즉시 업데이트
                 updateEmotionStats(currentYear, currentMonth);
                 // ===================== END NEW EMOTION STATS UPDATE =====================
+                
+                // 기록 저장 후 선택된 스탬프 초기화 (실제로 적용되었으므로)
+                console.log('=== 기록 저장 완료, 스탬프 초기화 ===');
+                
+                // 서버에서 스탬프 선택 삭제
+                deleteUserStampPreference();
+                
+                selectedStamp = null;
+                
+                // UI 상태도 초기화 (멱등성 보장)
+                const stampOptions = document.querySelectorAll('.stamp-option');
+                stampOptions.forEach(option => {
+                    option.classList.remove('selected');
+                });
                 
                 // Show success message
                 showSuccessMessage('기록이 성공적으로 저장되었습니다!');
@@ -679,6 +695,16 @@ function setupAIChatButton() {
 
 // 초기 로드 시 설정
 document.addEventListener('DOMContentLoaded', async function() {
+
+    console.log('=== DOMContentLoaded 시작 ===');
+    console.log('초기 로컬 스토리지 상태:', localStorage.getItem('selectedStamp'));
+    
+    // 코멘트 보기 기능 제거로 항상 기록 모드만 유지
+    updateSectionVisibility();
+    updateDailyQuote(); // 초기 명언 설정
+    setInterval(updateDailyQuote, 10000); // 10초마다 명언 변경 (선택 사항)
+
+
     // DOM 요소 초기화
     initializeDOMElements();
     
@@ -689,6 +715,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     setupEmotionButtons();
     setupCalendarNavigation();
     
+
     // 사용자 ID 설정 및 달력 데이터 로드
     await initUserId();
     fetchAndRender(); // 달력 데이터 로드 및 렌더링
@@ -715,7 +742,25 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.warn('⚠️ noRecordsPlaceholder가 null입니다. placeholder를 숨길 수 없습니다.');
         }
     }
+
+
+    // 사용자 보유 스탬프 목록 조회
+    await loadUserStamps();
+    // 서버에서 사용자 스탬프 선택 조회
+    console.log('=== 페이지 로드 순서 1: 스탬프 선택 조회 시작 ===');
+    await loadUserStampPreference();
+    console.log('=== 페이지 로드 순서 2: 스탬프 선택 조회 완료, selectedStamp:', selectedStamp, '===');
+    
+    // 스탬프 선택 UI 렌더링
+    console.log('=== 페이지 로드 순서 3: UI 렌더링 시작 ===');
+    renderStampSelection();
+    console.log('=== 페이지 로드 순서 4: UI 렌더링 완료 ===');
+    // 현재 적용된 스탬프 조회 (백그라운드에서만, UI에는 영향 없음)
+    // 백그라운드에서 현재 활성 스탬프 로드 제거 - 사용자 선택 스탬프 사용
+    // loadActiveStamp();
+
     updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정
+
 });
 
 // 오늘의 제출 상태 확인 함수
@@ -762,6 +807,304 @@ let currentMonth = new Date().getMonth() + 1;
 let userId = null; // 로그인하지 않은 상태를 나타내는 기본값
 let currentDiaries = [];
 let selectedDate = null;
+
+// 전역 변수 추가
+let currentActiveStamp = {
+    stampName: '참잘했어요',
+    stampImage: 'image/default_stamp.png',
+    stampDescription: '기본 격려 스탬프'
+};
+let userStamps = []; // 사용자 보유 스탬프 목록
+let selectedStamp = null; // 선택된 스탬프
+
+// 현재 적용된 스탬프 조회 (백그라운드에서만, UI에는 영향 없음)
+async function loadActiveStamp() {
+    console.log('=== loadActiveStamp 시작 (백그라운드) ===');
+    
+    try {
+        const response = await fetch('/api/active-stamp');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            currentActiveStamp = data.data;
+            console.log('서버에서 받은 currentActiveStamp (백그라운드):', currentActiveStamp);
+            // UI 업데이트는 하지 않음 (멱등성 보장)
+        } else {
+            console.log('서버 응답이 실패하거나 데이터가 없음:', data);
+        }
+    } catch (error) {
+        console.error('스탬프 조회 오류:', error);
+    }
+    
+    console.log('=== loadActiveStamp 완료 (백그라운드) ===');
+}
+
+// 사용자 보유 스탬프 목록 조회
+async function loadUserStamps() {
+    try {
+        const response = await fetch('/pointshop/api/my-stamps');
+        const data = await response.json();
+        userStamps = data || [];
+    } catch (error) {
+        console.error('보유 스탬프 조회 오류:', error);
+        userStamps = [];
+    }
+}
+
+// 서버에서 사용자 스탬프 선택 조회
+async function loadUserStampPreference() {
+    console.log('=== loadUserStampPreference 시작 ===');
+    console.log('현재 userId:', userId);
+    
+    if (!userId) {
+        console.log('사용자 ID가 없어서 스탬프 선택을 조회할 수 없습니다.');
+        return;
+    }
+    
+    try {
+        console.log('API 호출: /api/user-stamp-preference?userId=' + userId);
+        const response = await fetch(`/api/user-stamp-preference?userId=${userId}`);
+        console.log('API 응답 상태:', response.status);
+        console.log('API 응답 헤더:', response.headers);
+        
+        const data = await response.json();
+        console.log('API 응답 데이터:', data);
+        console.log('API 응답 데이터 타입:', typeof data);
+        console.log('API 응답 success 필드:', data.success);
+        console.log('API 응답 data 필드:', data.data);
+        
+        if (data.success && data.data) {
+            selectedStamp = {
+                stampName: data.data.stampName,
+                stampImage: data.data.stampImage,
+                stampDescription: '서버에서 로드된 스탬프'
+            };
+            console.log('서버에서 스탬프 선택 로드 성공:', selectedStamp);
+        } else {
+            console.log('서버에 저장된 스탬프 선택이 없습니다. 응답:', data);
+            selectedStamp = null;
+        }
+    } catch (error) {
+        console.error('스탬프 선택 조회 오류:', error);
+        selectedStamp = null;
+    }
+    
+    console.log('=== loadUserStampPreference 완료, 최종 selectedStamp:', selectedStamp, '===');
+}
+
+// 서버에서 사용자 스탬프 선택 삭제
+async function deleteUserStampPreference() {
+    if (!userId) {
+        console.log('사용자 ID가 없어서 스탬프 선택을 삭제할 수 없습니다.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/user-stamp-preference?userId=${userId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            console.log('서버에서 스탬프 선택 삭제 성공');
+        } else {
+            console.error('서버에서 스탬프 선택 삭제 실패:', data.message);
+        }
+    } catch (error) {
+        console.error('스탬프 선택 삭제 API 오류:', error);
+    }
+}
+
+// 스탬프 선택 UI 렌더링
+function renderStampSelection() {
+    const stampSelection = document.getElementById('stamp-selection');
+    if (!stampSelection) return;
+    
+    stampSelection.innerHTML = '';
+    
+    // 기본 스탬프 추가
+    const defaultStamp = document.createElement('div');
+    defaultStamp.className = 'stamp-option';
+    defaultStamp.innerHTML = `
+        <img src="/image/default_stamp.png" alt="참잘했어요" class="stamp-option-image">
+        <span class="stamp-option-name">참잘했어요</span>
+    `;
+    defaultStamp.addEventListener('click', () => selectStamp('참잘했어요', 'image/default_stamp.png'));
+    stampSelection.appendChild(defaultStamp);
+    
+    // 보유 스탬프들 추가
+    userStamps.forEach(stamp => {
+        const stampOption = document.createElement('div');
+        stampOption.className = 'stamp-option';
+        stampOption.innerHTML = `
+            <img src="/${stamp.stampImage}" alt="${stamp.stampName}" class="stamp-option-image">
+            <span class="stamp-option-name">${stamp.stampName}</span>
+        `;
+        stampOption.addEventListener('click', () => selectStamp(stamp.stampName, stamp.stampImage));
+        stampSelection.appendChild(stampOption);
+    });
+    
+    // MVC 원칙에 따른 서버 기반 스탬프 선택
+    console.log('=== renderStampSelection 시작 ===');
+    console.log('selectedStamp 상태:', selectedStamp);
+    
+    let stampToSelect, stampToSelectImage;
+    
+    if (selectedStamp) {
+        // 서버에서 로드된 스탬프 선택 사용
+        stampToSelect = selectedStamp.stampName;
+        stampToSelectImage = selectedStamp.stampImage;
+        console.log('서버에서 로드된 스탬프 사용:', stampToSelect);
+    } else {
+        // 선택된 스탬프가 없으면 기본 스탬프 사용
+        stampToSelect = '참잘했어요';
+        stampToSelectImage = 'image/default_stamp.png';
+        console.log('기본 스탬프 사용 (서버에 선택 없음)');
+    }
+    
+    selectStampSilent(stampToSelect, stampToSelectImage);
+    
+    console.log('=== renderStampSelection 완료 ===');
+    console.log('최종 selectedStamp:', selectedStamp);
+}
+
+// 스탬프 선택 (사용자 클릭 시)
+async function selectStamp(stampName, stampImage) {
+    console.log('=== selectStamp 시작 ===');
+    console.log('선택 요청:', stampName, stampImage);
+    
+    // 이미 선택된 스탬프와 같으면 무시 (멱등성 보장)
+    if (selectedStamp && selectedStamp.stampName === stampName) {
+        console.log('이미 선택된 스탬프와 동일, 무시');
+        return;
+    }
+    
+    // 확인 메시지 표시
+    const confirmed = confirm(`${stampName} 스탬프를 선택하시겠습니까?\n\n이 스탬프는 다음 기록 작성 시에 적용됩니다.`);
+    if (!confirmed) {
+        console.log('사용자가 취소함');
+        return;
+    }
+    
+    // 멱등성을 위한 상태 설정
+    selectedStamp = { 
+        stampName, 
+        stampImage,
+        stampDescription: '선택된 스탬프'
+    };
+    
+    // 서버에 선택된 스탬프 저장 (MVC 원칙)
+    try {
+        console.log('=== 서버 저장 시작 ===');
+        console.log('저장할 데이터:', { userId, stampName, stampImage });
+        
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('stampName', stampName);
+        formData.append('stampImage', stampImage);
+        
+        console.log('API 호출: POST /api/user-stamp-preference');
+        const response = await fetch('/api/user-stamp-preference', {
+            method: 'POST',
+            body: formData
+        });
+        
+        console.log('API 응답 상태:', response.status);
+        const data = await response.json();
+        console.log('API 응답 데이터:', data);
+        
+        if (data.success) {
+            console.log('서버에 스탬프 선택 저장 성공:', stampName);
+        } else {
+            console.error('서버에 스탬프 선택 저장 실패:', data.message);
+        }
+    } catch (error) {
+        console.error('스탬프 선택 저장 API 오류:', error);
+    }
+    
+    // UI 상태 업데이트 (멱등성 보장)
+    const stampOptions = document.querySelectorAll('.stamp-option');
+    stampOptions.forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    stampOptions.forEach(option => {
+        const optionName = option.querySelector('.stamp-option-name').textContent;
+        if (optionName === stampName) {
+            option.classList.add('selected');
+        }
+    });
+    
+    // 성공 메시지 표시
+                 showSuccessMessage(`${stampName} 스탬프가 선택되었습니다. 다음 기록 작성 시 적용됩니다.`);
+             updateStampDisplay(); // 스탬프 선택 후 달력에 즉시 반영
+             console.log('=== selectStamp 완료 ===');
+}
+
+// 스탬프 선택 (조용한 모드 - 초기 로드 시 사용)
+function selectStampSilent(stampName, stampImage) {
+    console.log('=== selectStampSilent 시작 ===');
+    console.log('선택할 스탬프:', stampName, stampImage);
+    
+    // 멱등성을 위한 상태 설정
+    selectedStamp = { 
+        stampName, 
+        stampImage,
+        stampDescription: '선택된 스탬프'
+    };
+    
+    console.log('selectedStamp 설정됨:', selectedStamp);
+    
+    // UI 상태 초기화 (멱등성 보장)
+    const stampOptions = document.querySelectorAll('.stamp-option');
+    stampOptions.forEach(option => {
+        option.classList.remove('selected');
+    });
+
+    // 선택된 스탬프에 선택 상태 추가
+    stampOptions.forEach(option => {
+        const optionName = option.querySelector('.stamp-option-name').textContent;
+        if (optionName === stampName) {
+            option.classList.add('selected');
+        }
+    });
+    
+    console.log('=== selectStampSilent 완료 ===');
+}
+
+
+
+// 스탬프 이름으로 이미지 경로 찾기
+function getStampImagePath(stampName) {
+    // 기본 스탬프
+    if (stampName === '참잘했어요') {
+        return '/image/default_stamp.png';
+    }
+    
+    // 보유한 스탬프에서 찾기
+    const userStamp = userStamps.find(stamp => stamp.stampName === stampName);
+    if (userStamp) {
+        return '/' + userStamp.stampImage;
+    }
+    
+    // 찾지 못하면 기본 스탬프 반환
+    return '/image/default_stamp.png';
+}
+
+// 스탬프 표시 업데이트
+function updateStampDisplay() {
+    const stampImage = document.querySelector('.stamp-image-comment');
+    if (stampImage) {
+        // 사용자가 선택한 스탬프 사용
+        if (selectedStamp) {
+            stampImage.src = '/' + selectedStamp.stampImage;
+            stampImage.alt = selectedStamp.stampName + ' 스탬프';
+        } else {
+            // 선택된 스탬프가 없으면 기본 스탬프 사용
+            stampImage.src = '/image/default_stamp.png';
+            stampImage.alt = '참잘했어요 스탬프';
+        }
+    }
+}
 
 // 사용자 ID 초기화 함수
 async function initUserId() {
@@ -868,15 +1211,14 @@ function renderCalendar(year, month, diaryData) {
         const diary = diaryData.find(item => new Date(item.createdAt).getDate() === d);
         if (diary) {
             cell.classList.add('has-diary');
-            // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
+            // 실제 적용된 스탬프 표시
             const img = document.createElement('img');
-            img.src = '/image/default_stamp.png';
-            img.alt = '참잘했어요 스탬프';
+            img.src = getStampImagePath(diary.appliedStamp);
+            img.alt = diary.appliedStamp + ' 스탬프';
             img.className = 'stamp-image-calendar';
             cell.appendChild(img);
-            
-            // 스탬프 이미지는 즉시 로드
         }
+        
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
         }
@@ -1067,6 +1409,9 @@ function setupCalendarNavigation() {
 }
 
 function fetchAndRender() {
+    console.log('=== fetchAndRender 시작 ===');
+    console.log('로컬 스토리지 상태:', localStorage.getItem('selectedStamp'));
+    
     // Show loading state
     isLoading = true;
     showCalendarSkeleton();
@@ -1107,6 +1452,7 @@ function fetchAndRender() {
         .then(data => {
             currentDiaries = data.data || [];
             renderCalendar(currentYear, currentMonth, currentDiaries);
+            updateStampDisplay(); // 사용자 선택 스탬프로 달력 스탬프 업데이트
             updateCalendarSummary(currentDiaries, currentYear, currentMonth);
             renderWeeklyReports(currentDiaries, currentYear, currentMonth);
             
@@ -1325,5 +1671,4 @@ function updateEmotionStats(year, month) {
 }
 // ===================== END NEW EMOTION STATS FUNCTION =====================
 
-// 최초 렌더링
-fetchAndRender(); 
+ 

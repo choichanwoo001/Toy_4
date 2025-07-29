@@ -1,4 +1,6 @@
+
 // DOM이 완전히 로드된 후에 실햰
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM이 로드되었습니다.');
     
@@ -12,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelButton = document.getElementById('cancel-button');
     const confirmButton = document.getElementById('confirm-button');
     
+
     // DOM 요소들 null 체크 및 로깅
     const domElements = {
         chatInput,
@@ -36,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+
     // URL 파라미터에서 일기 정보 가져오기
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
@@ -48,14 +52,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // 대화 내용이 있다면 확인 팝업 표시, 없다면 바로 이동
             const messages = chatContainer.querySelectorAll('.message-bubble');
             if (messages.length > 1) { // 초기 메시지 1개보다 많으면 (사용자가 대화한 경우)
+
                 if (popupOverlay) {
                     popupOverlay.style.display = 'flex';
                 }
+
             } else {
                 // 바로 이전 페이지로 이동
                 window.history.back();
             }
         });
+
     }
 
     // 팝업 닫기 (아니오 버튼)
@@ -246,5 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+
     console.log('모든 이벤트 리스너가 등록되었습니다.');
 }); 
