@@ -1150,7 +1150,17 @@ async function initUserId() {
 }
 
 function renderCalendar(year, month, diaryData) {
+    console.log('=== renderCalendar 시작 ===');
+    console.log('year:', year, 'month:', month, 'diaryData:', diaryData);
+    
     const calendarGrid = document.getElementById('calendar-grid');
+    console.log('calendarGrid element:', calendarGrid);
+    
+    if (!calendarGrid) {
+        console.error('❌ calendar-grid 요소를 찾을 수 없습니다!');
+        return;
+    }
+    
     calendarGrid.innerHTML = '';
     const days = ['월','화','수','목','금','토','일'];
     days.forEach(d => {
@@ -1418,14 +1428,22 @@ function fetchAndRender() {
     showRecordsSkeleton();
     showWeeklyReportsSkeleton();
     
-    document.getElementById('calendar-title').textContent = `${currentYear}년 ${currentMonth}월`;
+    const calendarTitle = document.getElementById('calendar-title');
+    if (calendarTitle) {
+        calendarTitle.textContent = `${currentYear}년 ${currentMonth}월`;
+        console.log('✅ 달력 제목 업데이트됨:', calendarTitle.textContent);
+    } else {
+        console.error('❌ calendar-title 요소를 찾을 수 없습니다!');
+    }
     
     // 로그인하지 않은 경우 빈 달력만 표시
     console.log('=== fetchAndRender - 현재 userId:', userId, '===');
     if (!userId) {
         console.log('❌ 로그인하지 않은 상태 - 빈 달력 표시');
         currentDiaries = [];
+        console.log('renderCalendar 호출 전');
         renderCalendar(currentYear, currentMonth, currentDiaries);
+        console.log('renderCalendar 호출 후');
         updateCalendarSummary(currentDiaries, currentYear, currentMonth);
         renderWeeklyReports(currentDiaries, currentYear, currentMonth);
         
