@@ -140,31 +140,8 @@ public class PointshopService {
 
     // 7. 현재 적용중인 도장 조회
     public UserStampDto getActiveStamp(Long userId) {
-        List<UserStamp> userStamps = userStampRepository.findByUserId(userId);
-        for (UserStamp us : userStamps) {
-            if ("Y".equals(us.getIsActive())) {
-                // 스탬프 정보 조회
-                Stamp stamp = stampRepository.findById(us.getStampId()).orElse(null);
-                if (stamp != null) {
-                    UserStampDto dto = new UserStampDto();
-                    dto.setUserStampId(us.getUserStampId());
-                    dto.setUserId(us.getUserId());
-                    dto.setStampId(us.getStampId());
-                    dto.setIsActive(us.getIsActive());
-                    dto.setCreatedAt(us.getCreatedAt());
-                    dto.setUpdatedAt(us.getUpdatedAt());
-                    
-                    // 스탬프 정보 설정
-                    dto.setStampName(stamp.getName());
-                    dto.setStampImage(stamp.getImage());
-                    dto.setStampDescription(stamp.getDescription());
-                    dto.setStampPrice(stamp.getPrice());
-                    
-                    return dto;
-                }
-            }
-        }
-        return null; // 적용된 스탬프가 없음
+        // TODO: 현재 적용중인 도장 반환
+        return null;
     }
 
     // 8. 내가 보유한 도장 목록 조회
@@ -172,25 +149,14 @@ public class PointshopService {
         List<UserStamp> userStamps = userStampRepository.findByUserId(userId);
         List<UserStampDto> result = new ArrayList<>();
         for (UserStamp us : userStamps) {
-            // 스탬프 정보 조회
-            Stamp stamp = stampRepository.findById(us.getStampId()).orElse(null);
-            if (stamp != null) {
-                UserStampDto dto = new UserStampDto();
-                dto.setUserStampId(us.getUserStampId());
-                dto.setUserId(us.getUserId());
-                dto.setStampId(us.getStampId());
-                dto.setIsActive(us.getIsActive());
-                dto.setCreatedAt(us.getCreatedAt());
-                dto.setUpdatedAt(us.getUpdatedAt());
-                
-                // 스탬프 정보 설정
-                dto.setStampName(stamp.getName());
-                dto.setStampImage(stamp.getImage());
-                dto.setStampDescription(stamp.getDescription());
-                dto.setStampPrice(stamp.getPrice());
-                
-                result.add(dto);
-            }
+            UserStampDto dto = new UserStampDto();
+            dto.setUserStampId(us.getUserStampId());
+            dto.setUserId(us.getUserId());
+            dto.setStampId(us.getStampId());
+            dto.setIsActive(us.getIsActive());
+            dto.setCreatedAt(us.getCreatedAt());
+            dto.setUpdatedAt(us.getUpdatedAt());
+            result.add(dto);
         }
         return result;
     }
