@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routers.conversation_manager_router import conversation_router
+from app.api.v1.routers.diary_analyzer_router import diary_analyzer_router
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -21,6 +22,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(conversation_router, prefix="/api/v1")
+app.include_router(diary_analyzer_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
