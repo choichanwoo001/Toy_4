@@ -127,6 +127,26 @@ public class DiaryController {
     }
     // ===================== END NEW API ENDPOINT =====================
 
+    // 2025-01-XX: 일기 스탬프 업데이트 기능 추가
+    // 기존 일기의 스탬프만 업데이트하는 API
+    @PutMapping("/api/diaries/{diaryId}/stamp")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Diary>> updateDiaryStamp(@PathVariable Long diaryId,
+                                                              @RequestBody Map<String, String> request) {
+        try {
+            String appliedStamp = request.get("appliedStamp");
+            if (appliedStamp == null || appliedStamp.trim().isEmpty()) {
+                return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 정보가 필요합니다.", null));
+            }
+            
+            Diary updatedDiary = diaryService.updateDiaryStamp(diaryId, appliedStamp);
+            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 업데이트 성공", updatedDiary));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 업데이트 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW API ENDPOINT =====================
+
     // 일기 상세 조회 (REST)
     @GetMapping("/api/diaries/{id}")
     @ResponseBody

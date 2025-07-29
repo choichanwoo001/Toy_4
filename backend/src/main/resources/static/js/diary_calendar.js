@@ -534,7 +534,18 @@ function renderStampSelection() {
 }
 
 // 스탬프 선택
-function selectStamp(stampName, stampImage) {
+async function selectStamp(stampName, stampImage) {
+    // 이미 선택된 스탬프와 같으면 무시
+    if (selectedStamp && selectedStamp.stampName === stampName) {
+        return;
+    }
+    
+    // 확인 메시지 표시
+    const confirmed = confirm(`${stampName} 스탬프를 오늘 날짜에 적용하시겠습니까?\n\n이 스탬프는 오늘 날짜에 자동으로 적용됩니다.`);
+    if (!confirmed) {
+        return;
+    }
+    
     selectedStamp = { stampName, stampImage };
     
     // 모든 스탬프 옵션에서 선택 상태 제거
@@ -549,6 +560,94 @@ function selectStamp(stampName, stampImage) {
             option.classList.add('selected');
         }
     });
+    
+    // 오늘 날짜에 자동으로 스탬프 적용
+    await applyStampToToday(stampName);
+}
+
+// 오늘 날짜에 스탬프 자동 적용
+async function applyStampToToday(stampName) {
+    try {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        // 오늘 날짜의 기존 일기 확인
+        const existingDiary = currentDiaries.find(diary => {
+            const diaryDate = new Date(diary.createdAt);
+            return diaryDate.toISOString().split('T')[0] === todayStr;
+        });
+        
+        if (existingDiary) {
+            // 기존 일기가 있으면 스탬프만 업데이트
+            await updateDiaryStamp(existingDiary.diaryId, stampName);
+        } else {
+            // 기존 일기가 없으면 새로 생성
+            await createDiaryWithStamp(stampName);
+        }
+        
+        // 달력 새로고침
+        fetchAndRender();
+        
+        // 성공 메시지 표시
+        showSuccessMessage(`${stampName} 스탬프가 적용되었습니다!`);
+        
+    } catch (error) {
+        console.error('스탬프 적용 오류:', error);
+        showErrorMessage('스탬프 적용에 실패했습니다.');
+    }
+}
+
+// 기존 일기의 스탬프 업데이트
+async function updateDiaryStamp(diaryId, stampName) {
+    const response = await fetch(`/api/diaries/${diaryId}/stamp`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ appliedStamp: stampName })
+    });
+    
+    if (!response.ok) {
+        throw new Error('스탬프 업데이트 실패');
+    }
+    
+    return response.json();
+}
+
+// 스탬프와 함께 새 일기 생성
+async function createDiaryWithStamp(stampName) {
+    const formData = new FormData();
+    formData.append('userId', userId);
+    formData.append('content', `${stampName} 스탬프가 적용된 하루입니다.`);
+    formData.append('appliedStamp', stampName);
+    
+    const response = await fetch('/api/diaries', {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (!response.ok) {
+        throw new Error('일기 생성 실패');
+    }
+    
+    return response.json();
+}
+
+// 스탬프 이름으로 이미지 경로 찾기
+function getStampImagePath(stampName) {
+    // 기본 스탬프
+    if (stampName === '참잘했어요') {
+        return '/image/default_stamp.png';
+    }
+    
+    // 보유한 스탬프에서 찾기
+    const userStamp = userStamps.find(stamp => stamp.stampName === stampName);
+    if (userStamp) {
+        return '/' + userStamp.stampImage;
+    }
+    
+    // 찾지 못하면 기본 스탬프 반환
+    return '/image/default_stamp.png';
 }
 
 // 스탬프 표시 업데이트
@@ -665,17 +764,39 @@ function renderCalendar(year, month, diaryData) {
         const diary = diaryData.find(item => new Date(item.createdAt).getDate() === d);
         if (diary) {
             cell.classList.add('has-diary');
-            // appliedStamp는 포인트 계산용이므로 이미지로 사용하지 않음, 참잘했어요 스탬프만 고정 표시
+            // 실제 적용된 스탬프 표시
             const img = document.createElement('img');
-            img.src = '/image/default_stamp.png';
-            img.alt = '참잘했어요 스탬프';
+            img.src = getStampImagePath(diary.appliedStamp);
+            img.alt = diary.appliedStamp + ' 스탬프';
             img.className = 'stamp-image-calendar';
             cell.appendChild(img);
-            
-            // 스탬프 이미지는 즉시 로드
         }
+        
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
+            
+            // 오늘 날짜이고 일기가 없는 경우, 선택된 스탬프 미리보기 표시
+            if (!diary && selectedStamp) {
+                const previewImg = document.createElement('img');
+                previewImg.src = getStampImagePath(selectedStamp.stampName);
+                previewImg.alt = selectedStamp.stampName + ' 스탬프 (미리보기)';
+                previewImg.className = 'stamp-image-calendar preview';
+                cell.appendChild(previewImg);
+            }
+            // 오늘 날짜이고 일기가 있는 경우, 선택된 스탬프를 작게 오버레이로 표시
+            else if (diary && selectedStamp && selectedStamp.stampName !== diary.appliedStamp) {
+                const overlayImg = document.createElement('img');
+                overlayImg.src = getStampImagePath(selectedStamp.stampName);
+                overlayImg.alt = selectedStamp.stampName + ' 스탬프 (선택됨)';
+                overlayImg.className = 'stamp-image-calendar overlay';
+                overlayImg.style.position = 'absolute';
+                overlayImg.style.top = '5px';
+                overlayImg.style.right = '5px';
+                overlayImg.style.width = '25px';
+                overlayImg.style.height = '25px';
+                overlayImg.style.zIndex = '3';
+                cell.appendChild(overlayImg);
+            }
         }
         const isFuture = (year > today.getFullYear()) ||
             (year === today.getFullYear() && month > today.getMonth()+1) ||

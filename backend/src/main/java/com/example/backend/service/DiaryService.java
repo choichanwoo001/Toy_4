@@ -46,6 +46,19 @@ public class DiaryService {
     }
     // ===================== END COMPATIBILITY METHOD =====================
 
+    // ===================== NEW METHOD ADDED =====================
+    // 2025-01-XX: 일기 스탬프 업데이트 기능 추가
+    // 기존 일기의 스탬프만 업데이트하는 메서드
+    @Transactional
+    public Diary updateDiaryStamp(Long diaryId, String appliedStamp) {
+        Diary diary = diaryRepository.findById(diaryId)
+            .orElseThrow(() -> new IllegalArgumentException("일기를 찾을 수 없습니다."));
+        
+        diary.setAppliedStamp(appliedStamp);
+        return diaryRepository.save(diary);
+    }
+    // ===================== END NEW METHOD =====================
+
     // 유저별, 월별 일기 목록 조회
     @Transactional(readOnly = true)
     public List<Diary> getDiariesByUserAndMonth(Long userId, int year, int month) {
