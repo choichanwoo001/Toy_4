@@ -3,17 +3,8 @@ let validOffsets = [];
 let currentIndex = 0;
 let emotionChartInstance = null;
 
-<<<<<<< HEAD
-// URL 파라미터에서 정보 가져오기
-const urlParams = new URLSearchParams(window.location.search);
-const userId = urlParams.get('userId');
-const weekOffset = urlParams.get('weekOffset');
-const year = urlParams.get('year');
-const month = urlParams.get('month');
-=======
 // 📌 세션에서 userId를 Thymeleaf로 안전하게 받음
 let reportUserId = window.reportUserId;
->>>>>>> bfaa47858efb982e3f3d55bafc70ff315a7e031c
 
 // 📌 DOM 요소
 const currentWeekDisplay = document.getElementById('current-week-display');
@@ -47,12 +38,6 @@ function getWeekFromOffset(offset) {
 // 📌 API 호출 함수
 async function loadWeeklyReport(weekOffset) {
     try {
-<<<<<<< HEAD
-        const targetUserId = userId || 1; // URL에서 userId가 없으면 기본값 1 사용
-        const response = await fetch(`/api/report?userId=${targetUserId}&weekOffset=${weekOffset}`);
-        if (!response.ok) throw new Error('리포트 데이터를 불러오지 못했습니다.');
-        return await response.json();
-=======
         console.log(`🔍 API 호출: /api/report?userId=${reportUserId}&weekOffset=${weekOffset}`);
         const response = await fetch(`/api/report?userId=${reportUserId}&weekOffset=${weekOffset}`);
         console.log(`📡 API 응답 상태:`, response.status);
@@ -65,7 +50,6 @@ async function loadWeeklyReport(weekOffset) {
         const data = await response.json();
         console.log(`📊 API 응답 데이터:`, data);
         return data;
->>>>>>> bfaa47858efb982e3f3d55bafc70ff315a7e031c
     } catch (error) {
         console.error(`❌ API 호출 오류:`, error);
         return null;
@@ -215,10 +199,6 @@ async function updateReportContent(weekOffset) {
 
 // 📌 주차 목록 로딩
 async function initReportPage() {
-<<<<<<< HEAD
-    const targetUserId = userId || 1; // URL에서 userId가 없으면 기본값 1 사용
-    const res = await fetch(`/api/report/weeks?userId=${targetUserId}`);
-=======
     // userId가 없으면 로그인 페이지로 리다이렉트
     if (!reportUserId) {
         console.error('사용자 ID가 없습니다. 로그인이 필요합니다.');
@@ -227,7 +207,6 @@ async function initReportPage() {
     }
 
     const res = await fetch(`/api/report/weeks?userId=${reportUserId}`);
->>>>>>> bfaa47858efb982e3f3d55bafc70ff315a7e031c
     validOffsets = await res.json();
 
     if (validOffsets.length === 0) {
@@ -269,7 +248,7 @@ nextWeekBtn.addEventListener('click', () => {
 
 document.getElementById('go-chat').addEventListener('click', () => {
     // 채팅 페이지로 이동할 때 현재 사용자 정보도 함께 전달
-    const chatUrl = userId ? `/chat?userId=${userId}` : '/chat';
+    const chatUrl = reportUserId ? `/chat?userId=${reportUserId}` : '/chat';
     window.location.href = chatUrl;
 });
 
