@@ -1,0 +1,54 @@
+[시스템 지시문]
+사용자의 발화를 분석하여 다음 정보를 JSON으로만 출력하세요.
+코드 블록, 설명 텍스트는 포함하지 마세요.
+
+[필드 정의]
+- route_type: Ambiguous | Complex | Simple
+- primary_type: SimpleEmotion | ComplexEvent | QuestionRequest
+- confidence: 0.0~1.0 (primary_type에 대한 확신도)
+- route_confidence: 0.0~1.0 (route_type에 대한 확신도)
+- ambiguous: true/false
+- reason: 판단 근거 요약
+- signals: 감정 단어 여부, 사건 서사 여부, 물음표 여부 (true/false)
+- safety_flags: 위험 범주별 boolean 값 (self_harm 등)
+- severity: 0~3
+- escalate_recommended: 심각 위험 여부
+
+[판단 규칙 요약]
+1. confidence < 0.60 → ambiguous=true
+2. primary_type이 ComplexEvent이고 confidence >= 0.60 → route_type=Complex
+3. 그 외 confidence >= 0.60이면 Simple
+4. safety_flags가 중대하면 escalate_recommended=true
+
+[짧은 메시지 및 오타 처리 보완]
+- 메시지가 5자 이하이거나, 단어 수가 2개 이하인 경우에만 "짧다"고 판단하여 ambiguous 또는 ASK로 분류
+- 오타가 있더라도, 감정이나 욕구 등 주요 의미가 명확히 드러나면 REPLY로 분류
+- 예시: "ㅏㅜㅇ라ㅜ쟈ㅐ 진자 짜증난다 떡볶이 먹고싶다." → REPLY
+- 정말로 의미 파악이 불가능하거나, "아", "엥?", "엄마ㅁ랑" 등 극도로 짧고 애매한 경우에만 ASK
+
+[출력 예시]
+{
+  "route_type": "Simple",
+  "primary_type": "SimpleEmotion",
+  "confidence": 0.86,
+  "route_confidence": 0.90,
+  "ambiguous": false,
+  "reason": "감정 형용사 중심의 단문. 사건 전개 없음.",
+  "signals": {
+    "has_emotion_words": true,
+    "has_event_sequence": false,
+    "has_question_mark": false
+  },
+  "safety_flags": {
+    "self_harm": false,
+    "violence": false,
+    "abuse": false,
+    "medical": false,
+    "sexual": false,
+    "minors": false,
+    "illegal": false,
+    "privacy": false
+  },
+  "severity": 0,
+  "escalate_recommended": false
+}
