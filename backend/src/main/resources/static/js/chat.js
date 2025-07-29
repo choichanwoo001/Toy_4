@@ -11,7 +11,7 @@ const confirmButton = document.getElementById('confirm-button');
 backButton.addEventListener('click', function() {
     // 대화 내용이 있다면 확인 팝업 표시, 없다면 바로 이동
     const messages = chatContainer.querySelectorAll('.message-bubble');
-    if (messages.length > 3) { // 초기 메시지 3개보다 많으면
+    if (messages.length > 1) { // 초기 메시지 1개보다 많으면 (사용자가 대화한 경우)
         popupOverlay.style.display = 'flex';
     } else {
         // 바로 이전 페이지로 이동
@@ -29,8 +29,13 @@ confirmButton.addEventListener('click', function() {
     // 팝업 닫기
     popupOverlay.style.display = 'none';
     
-    // 이전 페이지로 이동
-    window.history.back();
+    // 대화 요약 요청 후 이전 페이지로 이동
+    getChatSummary().then(() => {
+        // 요약 표시 후 잠시 후 이동
+        setTimeout(() => {
+            window.history.back();
+        }, 3000); // 3초 후 이동
+    });
 });
 
 // 팝업 외부 클릭 시 닫기
@@ -49,7 +54,9 @@ function addMessage(text, sender) {
     } else {
         messageDiv.classList.add('ai-bubble');
     }
-    messageDiv.innerHTML = `<p>${text}</p>`;
+    // 줄바꿈 문자를 <br> 태그로 변환
+    const formattedText = text.replace(/\n/g, '<br>');
+    messageDiv.innerHTML = `<p>${formattedText}</p>`;
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight; // 맨 아래로 스크롤
 }
@@ -59,18 +66,68 @@ async function getAIResponse(userMessage) {
     typingIndicator.style.display = 'block'; // 타이핑 표시기 보이기
     chatContainer.scrollTop = chatContainer.scrollHeight;
 
-    // API 호출 지연 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    try {
+        // Spring Boot API 호출
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'message': userMessage
+            })
+        });
 
-    typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
-    // 사용자 입력에 따른 AI 응답 예시
-    let aiResponse = "선생님은 제자님의 말씀을 잘 들었어요. 더 자세히 이야기해줄 수 있을까요?";
-    if (userMessage.includes("힘들") || userMessage.includes("지쳐")) {
-        aiResponse = "힘든 마음이 드셨군요. 선생님은 제자님의 그런 감정을 이해한답니다. 무엇이 제자님을 힘들게 했는지 좀 더 이야기해줄 수 있을까요?";
-    } else if (userMessage.includes("기분 좋") || userMessage.includes("행복")) {
-        aiResponse = "기분 좋은 일이 있으셨다니 선생님도 기쁘네요! 어떤 일이었는지 더 자세히 들려주세요!";
+        if (!response.ok) {
+            throw new Error('네트워크 응답이 정상적이지 않습니다.');
+        }
+
+        const data = await response.json();
+        
+        typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
+        
+        if (data.success) {
+            addMessage(data.response, 'ai');
+        } else {
+            addMessage(data.error || '죄송합니다. 응답을 생성하는 중 오류가 발생했습니다.', 'ai');
+        }
+        
+    } catch (error) {
+        console.error('채팅 API 호출 오류:', error);
+        typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
+        addMessage('네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.', 'ai');
     }
-    addMessage(aiResponse, 'ai');
+}
+
+// 대화 요약을 요청하는 함수
+async function getChatSummary() {
+    try {
+        addMessage("대화를 종료합니다. 지금까지의 대화를 요약해드릴게요...", 'ai');
+        
+        const response = await fetch('/api/chat/summary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('요약 요청 중 네트워크 오류가 발생했습니다.');
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            addMessage("📝 대화 요약:\n\n" + data.summary, 'ai');
+            addMessage("이용해주셔서 감사합니다! 언제든 다시 찾아주세요. 👋", 'ai');
+        } else {
+            addMessage(data.error || '요약을 생성하는 중 오류가 발생했습니다.', 'ai');
+        }
+        
+    } catch (error) {
+        console.error('대화 요약 API 호출 오류:', error);
+        addMessage('요약 생성 중 오류가 발생했습니다. 이용해주셔서 감사합니다!', 'ai');
+    }
 }
 
 if (sendButton) {
