@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import jakarta.servlet.http.HttpSession;
+import java.util.HashMap;
 
 @Controller
 public class DiaryController {
@@ -22,6 +23,8 @@ public class DiaryController {
     private DiaryService diaryService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private com.example.backend.service.PointshopService pointshopService;
 
     // ===================== REST API =====================
 
@@ -87,6 +90,40 @@ public class DiaryController {
                                                                                           @RequestParam int month) {
         Map<String, Object> emotionStats = diaryService.getEmotionStatsByUserAndMonth(userId, year, month);
         return ResponseEntity.ok(new ApiResponse<>(true, "감정 통계 조회 성공", emotionStats));
+    }
+    // ===================== END NEW API ENDPOINT =====================
+
+    // 2025-01-XX: 현재 적용된 스탬프 조회 기능 추가
+    // 사용자가 포인트샵에서 구매한 스탬프 중 현재 적용된 스탬프 정보 조회
+    @GetMapping("/api/active-stamp")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveStamp(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "로그인이 필요합니다.", null));
+        }
+        
+        try {
+            com.example.backend.dto.UserStampDto activeStamp = 
+                pointshopService.getActiveStamp(user.getUserId());
+            
+            Map<String, Object> result = new HashMap<>();
+            if (activeStamp != null) {
+                result.put("stampName", activeStamp.getStampName());
+                result.put("stampImage", activeStamp.getStampImage());
+                result.put("stampDescription", activeStamp.getStampDescription());
+                result.put("isActive", activeStamp.getIsActive());
+            } else {
+                result.put("stampName", "참잘했어요");
+                result.put("stampImage", "image/default_stamp.png");
+                result.put("stampDescription", "기본 격려 스탬프");
+                result.put("isActive", "Y");
+            }
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "적용된 스탬프 조회 성공", result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 조회 실패: " + e.getMessage(), null));
+        }
     }
     // ===================== END NEW API ENDPOINT =====================
 

@@ -191,9 +191,9 @@ function renderOwnedStamps(data) {
             : '';
         card.innerHTML = `
             ${activeBadge}
-            <img src="/${us.image}" alt="${us.name}" class="stamp-preview-image-shop">
-            <h3 class="text-xl font-semibold text-[#90533B] mb-2">${us.name}</h3>
-            <p class="text-[#495235] mb-4">${us.description}</p>
+            <img src="/${us.stampImage}" alt="${us.stampName}" class="stamp-preview-image-shop">
+            <h3 class="text-xl font-semibold text-[#90533B] mb-2">${us.stampName}</h3>
+            <p class="text-[#495235] mb-4">${us.stampDescription}</p>
             <button class="btn-apply" data-user-stamp-id="${us.userStampId}">적용하기</button>
         `;
         ownedStampsGrid.appendChild(card);

@@ -323,7 +323,7 @@ saveDiaryBtn.addEventListener('click', function() {
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('content', content);
-        formData.append('appliedStamp', '참잘했어요'); // 기본 스탬프
+        formData.append('appliedStamp', selectedStamp ? selectedStamp.stampName : currentActiveStamp.stampName); // 선택된 스탬프 또는 현재 적용된 스탬프 사용
         if (selectedEmotion) {
             formData.append('emotion', selectedEmotion);
         }
@@ -438,6 +438,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         noRecordsPlaceholder.classList.add('hidden');
     }
     updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정 (숨겨져 있어도 내용 미리 준비)
+
+    // 현재 적용된 스탬프 조회
+    await loadActiveStamp();
+    // 사용자 보유 스탬프 목록 조회
+    await loadUserStamps();
 });
 
 // ===================== CALENDAR FUNCTIONALITY =====================
@@ -456,6 +461,104 @@ let currentMonth = new Date().getMonth() + 1;
 let userId = null; // 로그인하지 않은 상태를 나타내는 기본값
 let currentDiaries = [];
 let selectedDate = null;
+
+// 전역 변수 추가
+let currentActiveStamp = {
+    stampName: '참잘했어요',
+    stampImage: 'image/default_stamp.png',
+    stampDescription: '기본 격려 스탬프'
+};
+let userStamps = []; // 사용자 보유 스탬프 목록
+let selectedStamp = null; // 선택된 스탬프
+
+// 현재 적용된 스탬프 조회
+async function loadActiveStamp() {
+    try {
+        const response = await fetch('/api/active-stamp');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            currentActiveStamp = data.data;
+            updateStampDisplay();
+        }
+    } catch (error) {
+        console.error('스탬프 조회 오류:', error);
+    }
+}
+
+// 사용자 보유 스탬프 목록 조회
+async function loadUserStamps() {
+    try {
+        const response = await fetch('/pointshop/api/my-stamps');
+        const data = await response.json();
+        userStamps = data || [];
+        renderStampSelection();
+    } catch (error) {
+        console.error('보유 스탬프 조회 오류:', error);
+        userStamps = [];
+        renderStampSelection();
+    }
+}
+
+// 스탬프 선택 UI 렌더링
+function renderStampSelection() {
+    const stampSelection = document.getElementById('stamp-selection');
+    if (!stampSelection) return;
+    
+    stampSelection.innerHTML = '';
+    
+    // 기본 스탬프 추가
+    const defaultStamp = document.createElement('div');
+    defaultStamp.className = 'stamp-option';
+    defaultStamp.innerHTML = `
+        <img src="/image/default_stamp.png" alt="참잘했어요" class="stamp-option-image">
+        <span class="stamp-option-name">참잘했어요</span>
+    `;
+    defaultStamp.addEventListener('click', () => selectStamp('참잘했어요', 'image/default_stamp.png'));
+    stampSelection.appendChild(defaultStamp);
+    
+    // 보유 스탬프들 추가
+    userStamps.forEach(stamp => {
+        const stampOption = document.createElement('div');
+        stampOption.className = 'stamp-option';
+        stampOption.innerHTML = `
+            <img src="/${stamp.stampImage}" alt="${stamp.stampName}" class="stamp-option-image">
+            <span class="stamp-option-name">${stamp.stampName}</span>
+        `;
+        stampOption.addEventListener('click', () => selectStamp(stamp.stampName, stamp.stampImage));
+        stampSelection.appendChild(stampOption);
+    });
+    
+    // 기본 스탬프 선택
+    selectStamp('참잘했어요', 'image/default_stamp.png');
+}
+
+// 스탬프 선택
+function selectStamp(stampName, stampImage) {
+    selectedStamp = { stampName, stampImage };
+    
+    // 모든 스탬프 옵션에서 선택 상태 제거
+    document.querySelectorAll('.stamp-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // 선택된 스탬프에 선택 상태 추가
+    document.querySelectorAll('.stamp-option').forEach(option => {
+        const optionName = option.querySelector('.stamp-option-name').textContent;
+        if (optionName === stampName) {
+            option.classList.add('selected');
+        }
+    });
+}
+
+// 스탬프 표시 업데이트
+function updateStampDisplay() {
+    const stampImage = document.querySelector('.stamp-image-comment');
+    if (stampImage) {
+        stampImage.src = '/' + currentActiveStamp.stampImage;
+        stampImage.alt = currentActiveStamp.stampName + ' 스탬프';
+    }
+}
 
 // 사용자 ID 초기화 함수
 async function initUserId() {
