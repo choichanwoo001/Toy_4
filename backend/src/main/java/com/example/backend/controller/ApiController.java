@@ -7,15 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-
-import java.util.Map;
-import java.util.HashMap;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,6 +74,37 @@ public class ApiController {
             // 세션에서 사용자 정보를 가져올 때 오류가 발생하면 로그아웃 상태로 처리
             session.removeAttribute("user");
             return "false";
+        }
+    }
+
+    /**
+     * 현재 로그인한 사용자 정보 조회 API
+     * 세션에서 사용자 정보를 JSON 형태로 반환
+     * 
+     * @param session HTTP 세션 객체
+     * @return 사용자 정보 JSON 또는 null
+     */
+    @GetMapping("/current-user")
+    public ResponseEntity<Map<String, Object>> getCurrentUser(HttpSession session) {
+        log.info("현재 사용자 정보 조회 요청 받음");
+        try {
+            User user = (User) session.getAttribute("user");
+            if (user != null && user.isActive()) {
+                Map<String, Object> userInfo = new HashMap<>();
+                userInfo.put("userId", user.getUserId());
+                userInfo.put("userEmail", user.getUserEmail());
+                userInfo.put("nickname", user.getUserNickname());
+                userInfo.put("isActive", user.isActive());
+                
+                log.info("사용자 정보 반환: {}", userInfo);
+                return ResponseEntity.ok(userInfo);
+            } else {
+                log.info("로그인된 사용자가 없음");
+                return ResponseEntity.ok(null);
+            }
+        } catch (Exception e) {
+            log.error("사용자 정보 조회 중 오류 발생", e);
+            return ResponseEntity.ok(null);
         }
     }
 
