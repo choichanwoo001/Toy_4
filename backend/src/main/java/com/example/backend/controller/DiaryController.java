@@ -10,10 +10,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.HashMap;
 import jakarta.servlet.http.HttpSession;
 
 @Controller
@@ -22,6 +27,9 @@ public class DiaryController {
     private DiaryService diaryService;
     @Autowired
     private UserRepository userRepository;
+    
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final String AI_SERVICE_URL = "http://localhost:8000/api/v1/diary-analyzer/analyze";
 
     // ===================== REST API =====================
 
@@ -87,6 +95,82 @@ public class DiaryController {
                                                                                           @RequestParam int month) {
         Map<String, Object> emotionStats = diaryService.getEmotionStatsByUserAndMonth(userId, year, month);
         return ResponseEntity.ok(new ApiResponse<>(true, "감정 통계 조회 성공", emotionStats));
+    }
+    // ===================== END NEW API ENDPOINT =====================
+
+    // ===================== AI DIARY ANALYSIS API =====================
+    // 2025-01-XX: AI 일기 분석 및 코멘트 생성 기능 추가
+    @PostMapping("/api/diaries/analyze")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> analyzeDiaryWithAI(@RequestParam Long userId,
+                                                                              @RequestParam String content) {
+        System.out.println("=== AI Diary Analysis API Called ===");
+        System.out.println("userId: " + userId);
+        System.out.println("content: " + content);
+        
+        try {
+            // AI 서비스에 요청할 데이터 준비
+            Map<String, Object> requestData = new HashMap<>();
+            requestData.put("user_id", String.valueOf(userId));
+            requestData.put("raw_diary", content);
+            
+            // HTTP 헤더 설정
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // HTTP 엔티티 생성
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestData, headers);
+            
+            // AI 서비스 호출
+            ResponseEntity<Map> aiResponse = restTemplate.postForEntity(AI_SERVICE_URL, requestEntity, Map.class);
+            
+            if (aiResponse.getStatusCode().is2xxSuccessful() && aiResponse.getBody() != null) {
+                Map<String, Object> aiResult = aiResponse.getBody();
+                
+                // 응답 데이터 구성
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("processed_diary", aiResult.get("processed_diary"));
+                responseData.put("chunks", aiResult.get("chunks"));
+                responseData.put("advice", aiResult.get("advice"));
+                responseData.put("comment", aiResult.get("comment"));
+                responseData.put("quote", aiResult.get("quote"));
+                responseData.put("emotion_keywords", aiResult.get("emotion_keywords"));
+                responseData.put("similar_past_diaries", aiResult.get("similar_past_diaries"));
+                
+                System.out.println("AI Analysis completed successfully");
+                return ResponseEntity.ok(new ApiResponse<>(true, "AI 일기 분석 완료", responseData));
+            } else {
+                System.err.println("AI service returned error: " + aiResponse.getStatusCode());
+                return ResponseEntity.ok(new ApiResponse<>(false, "AI 서비스 오류", null));
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error in AI diary analysis: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "AI 일기 분석 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END AI DIARY ANALYSIS API =====================
+
+    // ===================== NEW API ENDPOINT =====================
+    // 2025-01-XX: 오늘의 모든 기록을 가져오는 API 추가
+    // 오늘의 모든 기록 조회 (REST)
+    @GetMapping("/api/diaries/today")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<List<Diary>>> getTodayDiaries(@RequestParam Long userId) {
+        System.out.println("=== Get Today Diaries API Called ===");
+        System.out.println("userId: " + userId);
+        
+        try {
+            List<Diary> todayDiaries = diaryService.getTodayDiaries(userId);
+            System.out.println("Today diaries count: " + todayDiaries.size());
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "오늘의 기록 조회 성공", todayDiaries));
+        } catch (Exception e) {
+            System.err.println("Error getting today diaries: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "오늘의 기록 조회 실패: " + e.getMessage(), null));
+        }
     }
     // ===================== END NEW API ENDPOINT =====================
 
