@@ -117,6 +117,22 @@ public class DiaryService {
     }
     // ===================== END NEW EMOTION STATS METHOD =====================
 
+    // ===================== NEW METHOD ADDED =====================
+    // 2025-01-XX: 오늘의 모든 기록을 가져오는 메서드 추가
+    // 오늘의 모든 기록 조회
+    @Transactional(readOnly = true)
+    public List<Diary> getTodayDiaries(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        // 오늘 날짜의 시작과 끝 시간 설정
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(23, 59, 59);
+        
+        return diaryRepository.findByUserAndCreatedAtBetween(user, startOfDay, endOfDay);
+    }
+    // ===================== END NEW METHOD =====================
+
     // 일기 상세 조회
     @Transactional(readOnly = true)
     public Optional<Diary> getDiaryById(Long diaryId) {

@@ -1,4 +1,6 @@
-// DOM이 완전히 로드된 후에 실행
+
+// DOM이 완전히 로드된 후에 실햰
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM이 로드되었습니다.');
     
@@ -12,18 +14,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelButton = document.getElementById('cancel-button');
     const confirmButton = document.getElementById('confirm-button');
     
-    // DOM 요소들 null 체크 및 로그
-    console.log('DOM 요소들:', {
-        chatInput: chatInput,
-        sendButton: sendButton,
-        chatContainer: chatContainer,
-        typingIndicator: typingIndicator,
-        backButton: backButton,
-        popupOverlay: popupOverlay,
-        cancelButton: cancelButton,
-        confirmButton: confirmButton
-    });
+
+    // DOM 요소들 null 체크 및 로깅
+    const domElements = {
+        chatInput,
+        sendButton,
+        chatContainer,
+        typingIndicator,
+        backButton,
+        popupOverlay,
+        cancelButton,
+        confirmButton
+    };
     
+    console.log('DOM 요소들:', domElements);
+    
+    // 필수 요소들이 없는 경우 경고
+    if (!chatInput || !sendButton || !chatContainer) {
+        console.error('필수 DOM 요소를 찾을 수 없습니다:', {
+            chatInput: !!chatInput,
+            sendButton: !!sendButton,
+            chatContainer: !!chatContainer
+        });
+        return;
+    }
+
+
     // URL 파라미터에서 일기 정보 가져오기
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
@@ -36,28 +52,37 @@ document.addEventListener('DOMContentLoaded', function() {
             // 대화 내용이 있다면 확인 팝업 표시, 없다면 바로 이동
             const messages = chatContainer.querySelectorAll('.message-bubble');
             if (messages.length > 1) { // 초기 메시지 1개보다 많으면 (사용자가 대화한 경우)
-                popupOverlay.style.display = 'flex';
+
+                if (popupOverlay) {
+                    popupOverlay.style.display = 'flex';
+                }
+
             } else {
                 // 바로 이전 페이지로 이동
                 window.history.back();
             }
         });
+
     }
 
     // 팝업 닫기 (아니오 버튼)
     if (cancelButton) {
         cancelButton.addEventListener('click', function() {
-            console.log('팝업 취소 버튼 클릭됨');
-            popupOverlay.style.display = 'none';
+            console.log('취소 버튼 클릭됨');
+            if (popupOverlay) {
+                popupOverlay.style.display = 'none';
+            }
         });
     }
 
     // 팝업 확인 (예 버튼) - 이전 페이지로 이동
     if (confirmButton) {
         confirmButton.addEventListener('click', function() {
-            console.log('팝업 확인 버튼 클릭됨');
+            console.log('확인 버튼 클릭됨');
             // 팝업 닫기
-            popupOverlay.style.display = 'none';
+            if (popupOverlay) {
+                popupOverlay.style.display = 'none';
+            }
             
             // 대화 요약 요청 후 이전 페이지로 이동
             getChatSummary().then(() => {
@@ -80,7 +105,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 채팅에 메시지 추가하는 함수
     function addMessage(text, sender) {
-        console.log('메시지 추가:', { text: text, sender: sender });
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message-bubble');
         if (sender === 'user') {
@@ -97,8 +121,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // AI 응답 시뮬레이션 (실제 앱에서는 Gemini API 호출)
     async function getAIResponse(userMessage) {
-        console.log('AI 응답 요청:', userMessage);
-        typingIndicator.style.display = 'block'; // 타이핑 표시기 보이기
+        if (typingIndicator) {
+            typingIndicator.style.display = 'block'; // 타이핑 표시기 보이기
+        }
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
         try {
@@ -118,9 +143,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const data = await response.json();
-            console.log('AI 응답 받음:', data);
             
-            typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
+            if (typingIndicator) {
+                typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
+            }
             
             if (data.success) {
                 addMessage(data.response, 'ai');
@@ -130,7 +156,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('채팅 API 호출 오류:', error);
-            typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
+            if (typingIndicator) {
+                typingIndicator.style.display = 'none'; // 타이핑 표시기 숨기기
+            }
             addMessage('네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.', 'ai');
         }
     }
@@ -187,11 +215,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Enter 키 이벤트
         chatInput.addEventListener('keypress', function(e) {
-            console.log('키 입력:', e.key);
             if (e.key === 'Enter' && !e.shiftKey) { // Shift 없이 Enter 키
                 e.preventDefault(); // 줄바꿈 방지
-                console.log('Enter 키 감지됨, 전송 버튼 클릭');
-                sendButton.click();
+                console.log('Enter 키 입력됨');
+                if (sendButton) {
+                    sendButton.click();
+                }
             }
         });
 
@@ -200,31 +229,30 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
-
-        // 입력창 클릭 이벤트 (디버깅용)
+        
+        // 입력창 클릭 이벤트
         chatInput.addEventListener('click', function() {
             console.log('입력창 클릭됨');
         });
-
-        // 입력창 포커스 이벤트 (디버깅용)
+        
+        // 입력창 포커스 이벤트
         chatInput.addEventListener('focus', function() {
             console.log('입력창 포커스됨');
         });
     }
 
     // 페이지 로드 시 초기 설정
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight; // 최신 메시지로 스크롤
-        
-        // 일기 정보가 있는 경우 초기 메시지 수정
-        if (diaryDate) {
-            // 기존 AI 초기 메시지를 일기 기반으로 변경
-            const initialAiMessage = chatContainer.querySelector('.ai-bubble p');
-            if (initialAiMessage) {
-                initialAiMessage.textContent = `안녕하세요, 제자님! ${diaryDate}에 남겨주신 소중한 기록들을 읽어보니, 그날의 감정과 생각이 선생님 마음에 남아있어요. 어떤 점이 가장 궁금하신가요?`;
-            }
+    chatContainer.scrollTop = chatContainer.scrollHeight; // 최신 메시지로 스크롤
+    
+    // 일기 정보가 있는 경우 초기 메시지 수정
+    if (diaryDate) {
+        // 기존 AI 초기 메시지를 일기 기반으로 변경
+        const initialAiMessage = chatContainer.querySelector('.ai-bubble p');
+        if (initialAiMessage) {
+            initialAiMessage.textContent = `안녕하세요, 제자님! ${diaryDate}에 남겨주신 소중한 기록들을 읽어보니, 그날의 감정과 생각이 선생님 마음에 남아있어요. 어떤 점이 가장 궁금하신가요?`;
         }
     }
+    
 
     console.log('모든 이벤트 리스너가 등록되었습니다.');
 }); 
