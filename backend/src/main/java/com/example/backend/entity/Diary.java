@@ -27,9 +27,6 @@ public class Diary {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "applied_stamp", nullable = false, length = 50)
-    private String appliedStamp;
-
     // ===================== NEW ENTITY FIELD ADDED =====================
     // 2025-01-XX: 감정 표현 기능 추가를 위한 emotion 필드 추가
     // 사용자가 일기 작성 시 선택한 감정 이모지를 저장
@@ -47,8 +44,6 @@ public class Diary {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
-    public String getAppliedStamp() { return appliedStamp; }
-    public void setAppliedStamp(String appliedStamp) { this.appliedStamp = appliedStamp; }
 
     // ===================== NEW GETTER/SETTER ADDED =====================
     // 2025-01-XX: emotion 필드에 대한 getter/setter 추가

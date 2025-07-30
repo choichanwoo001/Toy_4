@@ -43,16 +43,14 @@ public class DiaryController {
     @ResponseBody
     public ResponseEntity<ApiResponse<Diary>> saveDiary(@RequestParam Long userId,
                                            @RequestParam String content,
-                                           @RequestParam String appliedStamp,
                                            @RequestParam(required = false) String emotion) {
         System.out.println("=== Diary Save API Called ===");
         System.out.println("userId: " + userId);
         System.out.println("content: " + content);
-        System.out.println("appliedStamp: " + appliedStamp);
         System.out.println("emotion: " + emotion);
         
         try {
-            Diary saved = diaryService.saveDiary(userId, content, appliedStamp, emotion);
+            Diary saved = diaryService.saveDiary(userId, content, emotion);
             System.out.println("Diary saved successfully with ID: " + saved.getDiaryId());
             
             // 간단한 응답 형태로 변경 (디버깅용)
@@ -100,19 +98,15 @@ public class DiaryController {
     }
     // ===================== END NEW API ENDPOINT =====================
 
+    // ===================== NEW API ENDPOINT =====================
     // 2025-01-XX: 현재 적용된 스탬프 조회 기능 추가
     // 사용자가 포인트샵에서 구매한 스탬프 중 현재 적용된 스탬프 정보 조회
     @GetMapping("/api/active-stamp")
     @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveStamp(HttpSession session) {
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "로그인이 필요합니다.", null));
-        }
-        
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveStamp(@RequestParam Long userId) {
         try {
             com.example.backend.dto.UserStampDto activeStamp = 
-                pointshopService.getActiveStamp(user.getUserId());
+                pointshopService.getActiveStamp(userId);
             
             Map<String, Object> result = new HashMap<>();
             if (activeStamp != null) {
@@ -133,82 +127,6 @@ public class DiaryController {
         }
     }
     // ===================== END NEW API ENDPOINT =====================
-
-    // 2025-01-XX: 일기 스탬프 업데이트 기능 추가
-    // 기존 일기의 스탬프만 업데이트하는 API
-    @PutMapping("/api/diaries/{diaryId}/stamp")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Diary>> updateDiaryStamp(@PathVariable Long diaryId,
-                                                              @RequestBody Map<String, String> request) {
-        try {
-            String appliedStamp = request.get("appliedStamp");
-            if (appliedStamp == null || appliedStamp.trim().isEmpty()) {
-                return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 정보가 필요합니다.", null));
-            }
-            
-            Diary updatedDiary = diaryService.updateDiaryStamp(diaryId, appliedStamp);
-            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 업데이트 성공", updatedDiary));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 업데이트 실패: " + e.getMessage(), null));
-        }
-    }
-    // ===================== END NEW API ENDPOINT =====================
-
-    // ===================== STAMP PREFERENCE API =====================
-    // 사용자 스탬프 선택 저장/업데이트
-    @PostMapping("/api/user-stamp-preference")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> saveUserStampPreference(
-            @RequestParam Long userId,
-            @RequestParam String stampName,
-            @RequestParam String stampImage) {
-        try {
-            com.example.backend.entity.UserStampPreference saved = 
-                diaryService.saveUserStampPreference(userId, stampName, stampImage);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("stampName", saved.getSelectedStampName());
-            result.put("stampImage", saved.getSelectedStampImage());
-            
-            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 저장 성공", result));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 저장 실패: " + e.getMessage(), null));
-        }
-    }
-
-    // 사용자 스탬프 선택 조회
-    @GetMapping("/api/user-stamp-preference")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStampPreference(@RequestParam Long userId) {
-        try {
-            Optional<com.example.backend.entity.UserStampPreference> preference = 
-                diaryService.getUserStampPreference(userId);
-            
-            if (preference.isPresent()) {
-                Map<String, Object> result = new HashMap<>();
-                result.put("stampName", preference.get().getSelectedStampName());
-                result.put("stampImage", preference.get().getSelectedStampImage());
-                return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 조회 성공", result));
-            } else {
-                return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 없음", null));
-            }
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 조회 실패: " + e.getMessage(), null));
-        }
-    }
-
-    // 사용자 스탬프 선택 삭제 (기록 저장 후)
-    @DeleteMapping("/api/user-stamp-preference")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<String>> deleteUserStampPreference(@RequestParam Long userId) {
-        try {
-            diaryService.deleteUserStampPreference(userId);
-            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 삭제 성공", "deleted"));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 삭제 실패: " + e.getMessage(), null));
-        }
-    }
-    // ===================== END STAMP PREFERENCE API =====================
 
     // ===================== AI DIARY ANALYSIS API =====================
     // 2025-01-XX: AI 일기 분석 및 코멘트 생성 기능 추가
@@ -324,10 +242,9 @@ public class DiaryController {
     @PostMapping("/diary")
     public String saveDiaryForm(@RequestParam Long userId,
                                 @RequestParam String content,
-                                @RequestParam String appliedStamp,
                                 @RequestParam(required = false) String emotion,
                                 Model model) {
-        diaryService.saveDiary(userId, content, appliedStamp, emotion);
+        diaryService.saveDiary(userId, content, emotion);
         return "redirect:/diary-calendar";
     }
     // ===================== END UPDATED FORM ENDPOINT =====================

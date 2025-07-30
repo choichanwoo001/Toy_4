@@ -2,10 +2,8 @@ package com.example.backend.service;
 
 import com.example.backend.entity.Diary;
 import com.example.backend.entity.User;
-import com.example.backend.entity.UserStampPreference;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
-import com.example.backend.repository.UserStampPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,20 +19,17 @@ import java.util.stream.Collectors;
 public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
-    private final UserStampPreferenceRepository userStampPreferenceRepository;
 
     // ===================== NEW METHOD ADDED =====================
     // 2025-01-XX: 감정 표현 기능 추가를 위한 새로운 일기 저장 메서드
-    // 기존 saveDiary 메서드를 확장하여 emotion 파라미터를 추가로 받음
     // 일기 저장 (감정 포함)
     @Transactional
-    public Diary saveDiary(Long userId, String content, String appliedStamp, String emotion) {
+    public Diary saveDiary(Long userId, String content, String emotion) {
         User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         Diary diary = new Diary();
         diary.setUser(user);
         diary.setCreatedAt(LocalDateTime.now());
         diary.setContent(content);
-        diary.setAppliedStamp(appliedStamp);
         diary.setEmotion(emotion); // 새로운 emotion 필드 설정
         return diaryRepository.save(diary);
     }
@@ -44,23 +39,10 @@ public class DiaryService {
     // 2025-01-XX: 기존 코드 호환성을 위한 오버로드 메서드 추가
     // 기존 saveDiary 메서드 호출 시 emotion은 null로 설정됨
     @Transactional
-    public Diary saveDiary(Long userId, String content, String appliedStamp) {
-        return saveDiary(userId, content, appliedStamp, null);
+    public Diary saveDiary(Long userId, String content) {
+        return saveDiary(userId, content, null);
     }
     // ===================== END COMPATIBILITY METHOD =====================
-
-    // ===================== NEW METHOD ADDED =====================
-    // 2025-01-XX: 일기 스탬프 업데이트 기능 추가
-    // 기존 일기의 스탬프만 업데이트하는 메서드
-    @Transactional
-    public Diary updateDiaryStamp(Long diaryId, String appliedStamp) {
-        Diary diary = diaryRepository.findById(diaryId)
-            .orElseThrow(() -> new IllegalArgumentException("일기를 찾을 수 없습니다."));
-        
-        diary.setAppliedStamp(appliedStamp);
-        return diaryRepository.save(diary);
-    }
-    // ===================== END NEW METHOD =====================
 
     // 유저별, 월별 일기 목록 조회
     @Transactional(readOnly = true)
@@ -139,44 +121,4 @@ public class DiaryService {
     public Optional<Diary> getDiaryById(Long diaryId) {
         return diaryRepository.findById(diaryId);
     }
-
-    // ===================== STAMP PREFERENCE METHODS =====================
-    // 사용자 스탬프 선택 저장/업데이트
-    @Transactional
-    public UserStampPreference saveUserStampPreference(Long userId, String stampName, String stampImage) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
-        // 기존 선택이 있는지 확인
-        Optional<UserStampPreference> existingPreference = userStampPreferenceRepository.findByUser(user);
-        
-        if (existingPreference.isPresent()) {
-            // 기존 선택 업데이트
-            UserStampPreference preference = existingPreference.get();
-            preference.setSelectedStampName(stampName);
-            preference.setSelectedStampImage(stampImage);
-            return userStampPreferenceRepository.save(preference);
-        } else {
-            // 새로운 선택 생성
-            UserStampPreference newPreference = UserStampPreference.builder()
-                .user(user)
-                .selectedStampName(stampName)
-                .selectedStampImage(stampImage)
-                .build();
-            return userStampPreferenceRepository.save(newPreference);
-        }
-    }
-
-    // 사용자 스탬프 선택 조회
-    @Transactional(readOnly = true)
-    public Optional<UserStampPreference> getUserStampPreference(Long userId) {
-        return userStampPreferenceRepository.findByUserUserId(userId);
-    }
-
-    // 사용자 스탬프 선택 삭제 (기록 저장 후)
-    @Transactional
-    public void deleteUserStampPreference(Long userId) {
-        Optional<UserStampPreference> preference = userStampPreferenceRepository.findByUserUserId(userId);
-        preference.ifPresent(userStampPreferenceRepository::delete);
-    }
-    // ===================== END STAMP PREFERENCE METHODS =====================
 } 
