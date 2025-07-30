@@ -3,13 +3,18 @@ package com.example.backend.service;
 import com.example.backend.dto.StampDto;
 import com.example.backend.dto.UserStampDto;
 import com.example.backend.entity.Stamp;
+import com.example.backend.entity.User;
+import com.example.backend.entity.UserStamp;
+import com.example.backend.entity.UserPointHistory;
+import com.example.backend.entity.UserStampHistory;
 import com.example.backend.repository.StampRepository;
 import com.example.backend.repository.UserPointHistoryRepository;
 import com.example.backend.repository.UserStampRepository;
-import com.example.backend.entity.UserStamp;
-import com.example.backend.entity.UserPointHistory;
+import com.example.backend.repository.UserStampHistoryRepository;
+import com.example.backend.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +27,10 @@ public class PointshopService {
     private StampRepository stampRepository;
     @Autowired
     private UserStampRepository userStampRepository;
+    @Autowired
+    private UserStampHistoryRepository userStampHistoryRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     // 1. 사용자 포인트 조회
     public int getUserPoint(Long userId) {
@@ -69,73 +78,150 @@ public class PointshopService {
 
     @Transactional
     public boolean purchaseStamp(Long userId, Long stampId) {
-        // 1. 이미 보유한 도장인지 확인
-        UserStamp owned = userStampRepository.findByUserIdAndStampId(userId, stampId);
-        if (owned != null) return false;
+        try {
+            System.out.println("=== 구매 시도 ===");
+            System.out.println("사용자 ID: " + userId);
+            System.out.println("도장 ID: " + stampId);
+            
+            // 1. 이미 보유한 도장인지 확인
+            UserStamp owned = userStampRepository.findByUserIdAndStampId(userId, stampId);
+            if (owned != null) {
+                System.out.println("이미 보유한 도장입니다.");
+                return false;
+            }
 
-        // 2. 포인트 및 도장 가격 조회
-        int currentPoint = getUserPoint(userId);
-        Stamp stamp = stampRepository.findById(stampId).orElse(null);
-        if (stamp == null) return false;
-        int price = stamp.getPrice();
+            // 2. 포인트 및 도장 가격 조회
+            int currentPoint = getUserPoint(userId);
+            Stamp stamp = stampRepository.findById(stampId).orElse(null);
+            if (stamp == null) {
+                System.out.println("도장을 찾을 수 없습니다: " + stampId);
+                return false;
+            }
+            int price = stamp.getPrice();
 
-        System.out.println("=== 구매 시도 ===");
-        System.out.println("사용자 ID: " + userId);
-        System.out.println("도장 ID: " + stampId);
-        System.out.println("현재 포인트: " + currentPoint);
-        System.out.println("도장 가격: " + price);
+            System.out.println("현재 포인트: " + currentPoint);
+            System.out.println("도장 가격: " + price);
 
-        // 3. 포인트 부족 시
-        if (currentPoint < price) return false;
+            // 3. 포인트 부족 시
+            if (currentPoint < price) {
+                System.out.println("포인트가 부족합니다.");
+                return false;
+            }
 
-        // 4. user_stamp에 추가
-        UserStamp userStamp = new UserStamp();
-        userStamp.setUserId(userId);
-        userStamp.setStampId(stampId);
-        userStamp.setIsActive("N");
-        userStamp.setCreatedAt(java.time.LocalDateTime.now());
-        userStampRepository.save(userStamp);
+            // 4. user_stamp에 추가
+            UserStamp userStamp = new UserStamp();
+            userStamp.setUserId(userId);
+            userStamp.setStampId(stampId);
+            userStamp.setIsActive("N");
+            userStamp.setCreatedAt(LocalDateTime.now());
+            UserStamp savedUserStamp = userStampRepository.save(userStamp);
+            System.out.println("UserStamp 저장 완료: " + savedUserStamp.getUserStampId());
 
-        // 5. 포인트 차감 기록
-        UserPointHistory history = new UserPointHistory();
-        history.setUserId(userId);
-        history.setBeforePoint(currentPoint);
-        history.setAmount(-price);
-        history.setAfterPoint(currentPoint - price);
-        history.setReason("도장 구매: " + stamp.getName());
-        history.setCreatedAt(java.time.LocalDateTime.now().plusSeconds(1)); // 1초 추가하여 최신 기록 보장
-        
-        UserPointHistory savedHistory = userPointHistoryRepository.save(history);
-        
-        System.out.println("=== 구매 완료 ===");
-        System.out.println("차감 후 포인트: " + (currentPoint - price));
-        System.out.println("기록 저장됨: " + savedHistory.getReason());
-        System.out.println("저장된 기록 ID: " + savedHistory.getUserPointHistoryId());
-        
-        // 저장 후 포인트 재확인
-        int updatedPoint = getUserPoint(userId);
-        System.out.println("저장 후 조회된 포인트: " + updatedPoint);
+            // 5. 포인트 차감 기록
+            UserPointHistory history = new UserPointHistory();
+            history.setUserId(userId);
+            history.setBeforePoint(currentPoint);
+            history.setAmount(-price);
+            history.setAfterPoint(currentPoint - price);
+            history.setReason("도장 구매: " + stamp.getName());
+            history.setCreatedAt(LocalDateTime.now().plusSeconds(1)); // 1초 추가하여 최신 기록 보장
+            
+            UserPointHistory savedHistory = userPointHistoryRepository.save(history);
+            
+            System.out.println("=== 구매 완료 ===");
+            System.out.println("차감 후 포인트: " + (currentPoint - price));
+            System.out.println("기록 저장됨: " + savedHistory.getReason());
+            System.out.println("저장된 기록 ID: " + savedHistory.getUserPointHistoryId());
+            
+            // 저장 후 포인트 재확인
+            int updatedPoint = getUserPoint(userId);
+            System.out.println("저장 후 조회된 포인트: " + updatedPoint);
 
-        return true;
+            // 6. UserStampHistory에 구매 기록 추가 (임시로 제거)
+            /*
+            UserStampHistory stampHistory = new UserStampHistory();
+            stampHistory.setUserId(userId);
+            stampHistory.setPrevStampId(null); // 구매 시에는 이전 스탬프가 없음
+            stampHistory.setNewStampId(stampId);
+            stampHistory.setCreatedAt(LocalDateTime.now());
+            userStampHistoryRepository.save(stampHistory);
+            
+            System.out.println("=== UserStampHistory 기록 추가 ===");
+            System.out.println("새로운 스탬프 ID: " + stampId);
+            System.out.println("스탬프 이름: " + stamp.getName());
+            */
+            System.out.println("UserStampHistory 기록 추가 건너뜀 (임시)");
+
+            return true;
+        } catch (Exception e) {
+            System.out.println("=== 구매 중 오류 발생 ===");
+            System.out.println("오류 메시지: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Transactional
     public boolean applyStamp(Long userId, Long userStampId) {
-        // 1. 모든 도장 isActive="N"으로
-        List<UserStamp> userStamps = userStampRepository.findByUserId(userId);
-        for (UserStamp us : userStamps) {
-            us.setIsActive("N");
-        }
-        userStampRepository.saveAll(userStamps);
+        try {
+            System.out.println("=== 스탬프 적용 시작 ===");
+            System.out.println("사용자 ID: " + userId);
+            System.out.println("적용할 UserStamp ID: " + userStampId);
+            
+            // 1. 적용할 스탬프가 존재하는지 먼저 확인
+            UserStamp toActivate = userStampRepository.findById(userStampId).orElse(null);
+            if (toActivate == null) {
+                System.out.println("적용할 스탬프를 찾을 수 없음: " + userStampId);
+                return false;
+            }
+            
+            if (!toActivate.getUserId().equals(userId)) {
+                System.out.println("스탬프 소유자가 일치하지 않음");
+                return false;
+            }
+            
+            // 2. 모든 도장 isActive="N"으로
+            List<UserStamp> userStamps = userStampRepository.findByUserId(userId);
+            System.out.println("사용자 보유 스탬프 수: " + userStamps.size());
+            for (UserStamp us : userStamps) {
+                us.setIsActive("N");
+            }
+            userStampRepository.saveAll(userStamps);
+            System.out.println("모든 스탬프 비활성화 완료");
 
-        // 2. 선택한 도장만 isActive="Y"로
-        UserStamp toActivate = userStampRepository.findById(userStampId).orElse(null);
-        if (toActivate != null && toActivate.getUserId().equals(userId)) {
+            // 3. 선택한 도장만 isActive="Y"로
             toActivate.setIsActive("Y");
             userStampRepository.save(toActivate);
+            System.out.println("스탬프 활성화 완료: " + toActivate.getStampId());
+            
+            // 4. UserStampHistory에 기록 추가 (임시로 제거)
+            /*
+            UserStampHistory history = new UserStampHistory();
+            history.setUserId(userId);
+            
+            // 이전 스탬프 ID 찾기 (현재 활성화된 스탬프가 있다면)
+            UserStamp currentActive = userStampRepository.findByUserIdAndIsActive(userId, "Y");
+            if (currentActive != null && !currentActive.getUserStampId().equals(userStampId)) {
+                history.setPrevStampId(currentActive.getStampId());
+            } else {
+                history.setPrevStampId(null); // 첫 번째 스탬프인 경우
+            }
+            
+            history.setNewStampId(toActivate.getStampId());
+            history.setCreatedAt(LocalDateTime.now());
+            userStampHistoryRepository.save(history);
+            System.out.println("UserStampHistory 기록 추가 완료");
+            */
+            System.out.println("UserStampHistory 기록 추가 건너뜀 (임시)");
+            
+            System.out.println("=== 스탬프 적용 완료 ===");
             return true;
+        } catch (Exception e) {
+            System.out.println("=== 스탬프 적용 중 오류 발생 ===");
+            System.out.println("오류 메시지: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
-        return false;
     }
 
     // 7. 현재 적용중인 도장 조회
