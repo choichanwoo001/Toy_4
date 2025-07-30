@@ -29,9 +29,6 @@ public class FeedbackProof {
     @Column(name = "proof_detail", columnDefinition = "TEXT")
     private String detail;
 
-    @Column(name = "proof_reference", columnDefinition = "TEXT")
-    private String reference;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

@@ -81,21 +81,21 @@ function renderShopItems(data) {
         card.className = 'shop-item-card';
         card.dataset.stampId = stamp.stampId;
         let buttonHtml = '';
+        
         if (status === 'owned') {
-            if (currentFilter === 'owned') {
-                if (isActive === "Y") {
-                    buttonHtml = '<button class="btn-buy disabled" disabled>적용중</button>';
-                } else {
-                    buttonHtml = `<button class="btn-buy btn-apply-owned" data-user-stamp-id="${userStampId}">적용하기</button>`;
-                }
+            if (isActive === "Y") {
+                // 적용중인 스탬프
+                buttonHtml = '<button class="btn-buy disabled" disabled>적용중</button>';
             } else {
-                buttonHtml = '<button class="btn-buy disabled" disabled>보유중</button>';
+                // 보유중이지만 적용되지 않은 스탬프
+                buttonHtml = `<button class="btn-buy btn-apply-owned" data-user-stamp-id="${userStampId}">적용하기</button>`;
             }
         } else if (status === 'insufficient') {
             buttonHtml = `<button class="btn-buy insufficient" data-stamp-id="${stamp.stampId}" type="button">구매하기</button>`;
         } else {
             buttonHtml = `<button class="btn-buy" data-stamp-id="${stamp.stampId}" type="button">구매하기</button>`;
         }
+        
         card.innerHTML = `
             <img src="/${stamp.image}" alt="${stamp.name}" class="stamp-preview-image-shop">
             <h3 class="text-xl font-semibold text-[#90533B] mb-2">${stamp.name}</h3>
@@ -103,48 +103,26 @@ function renderShopItems(data) {
             <p class="text-lg font-bold text-[#DA983C] mb-4">${stamp.price.toLocaleString()} P</p>
             ${buttonHtml}
         `;
-        shopGrid.appendChild(card);
-    });
-    // 적용하기 버튼 이벤트 연결
-    document.querySelectorAll('.btn-apply-owned').forEach(button => {
-        button.addEventListener('click', function() {
-            const userStampId = this.dataset.userStampId;
-            fetch('/pointshop/api/apply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `userStampId=${userStampId}`
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result) {
-                    showApplySuccessPopup();
-                    loadStamps('owned'); // 보유중 카테고리 새로고침
-                } else {
-                    alert('적용 실패');
-                }
+        
+        // 적용하기 버튼 이벤트 리스너
+        const applyButton = card.querySelector('.btn-apply-owned');
+        if (applyButton) {
+            applyButton.addEventListener('click', function() {
+                const userStampId = this.dataset.userStampId;
+                onApplyStamp(userStampId);
             });
-        });
-    });
-    // 기존 구매 버튼 이벤트 연결
-    document.querySelectorAll('.btn-buy').forEach(button => {
-        if (button.classList.contains('disabled') || button.classList.contains('btn-apply-owned')) return;
-        button.addEventListener('click', function(e) {
-            e.preventDefault(); // 기본 동작 방지
-            e.stopPropagation(); // 이벤트 버블링 방지
-            
-            const card = this.closest('.shop-item-card');
-            const stampId = card.dataset.stampId;
-            onBuyButtonClick(stampId);
-        });
-    });
-    
-    // insufficient 버튼 이벤트 연결
-    document.querySelectorAll('.btn-buy.insufficient').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            showInsufficientPopup();
-        });
+        }
+        
+        // 구매하기 버튼 이벤트 리스너
+        const buyButton = card.querySelector('.btn-buy:not(.btn-apply-owned):not(.disabled)');
+        if (buyButton) {
+            buyButton.addEventListener('click', function() {
+                const stampId = card.dataset.stampId;
+                onBuyButtonClick(stampId);
+            });
+        }
+        
+        shopGrid.appendChild(card);
     });
 }
 
@@ -218,6 +196,9 @@ function onApplyStamp(userStampId) {
     .then(result => {
         if (result) {
             showApplySuccessPopup();
+            // 현재 필터에 따라 새로고침
+            const currentFilter = document.getElementById('stamp-filter').value;
+            loadStamps(currentFilter);
             loadMyStamps();
         } else {
             alert('적용 실패');
