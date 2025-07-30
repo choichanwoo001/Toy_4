@@ -21,6 +21,7 @@ public class MyPageService {
     private final DailyCommentRepository dailyCommentRepository;
     private final CommentEmotionMappingRepository commentEmotionMappingRepository;
     private final UserRepository userRepository;
+    private final PointshopService pointshopService;
 
     // 마이페이지 요약 정보 조회
     @Transactional
@@ -31,6 +32,7 @@ public class MyPageService {
         List<String> mainEmotions = List.of();
         String recentCommentContent = null;
         String recentStampImage = null;
+        
         if (recentComment != null) {
             // 감정 매핑 조회 및 감정명 추출
             List<CommentEmotionMapping> mappings = commentEmotionMappingRepository.findByDailyCommentIn(List.of(recentComment));
@@ -38,10 +40,20 @@ public class MyPageService {
                 .map(m -> m.getEmotionData().getName())
                 .toList();
             recentCommentContent = recentComment.getContent();
-            if (recentComment.getDiary() != null) {
-                recentStampImage = recentComment.getDiary().getAppliedStamp();
-            }
         }
+        
+        // 현재 적용된 스탬프 정보 가져오기
+        try {
+            com.example.backend.dto.UserStampDto activeStamp = pointshopService.getActiveStamp(user.getUserId());
+            if (activeStamp != null) {
+                recentStampImage = activeStamp.getStampImage();
+            } else {
+                recentStampImage = "image/default_stamp.png";
+            }
+        } catch (Exception e) {
+            recentStampImage = "image/default_stamp.png";
+        }
+        
         // mainEmotions를 '#행복 #피로' 형식의 1개 문자열 리스트로 가공
         String mainEmotionsStr = mainEmotions.stream()
             .map(e -> "#" + e)
@@ -56,7 +68,7 @@ public class MyPageService {
         dto.setConsecutiveDiaryDays(consecutiveDiaryDays);
         dto.setMainEmotions(List.of(mainEmotionsStr));
         dto.setRecentAiComment(recentCommentContent != null ? recentCommentContent : "AI 코멘트가 없습니다.");
-        dto.setRecentStampImage(recentStampImage != null ? recentStampImage : "default_stamp.png");
+        dto.setRecentStampImage(recentStampImage);
         dto.setCommentTime(user.getUserCommentTime());
         return dto;
     }

@@ -457,8 +457,7 @@ class DiaryAnalyzer:
         system_prompt = "당신은 사용자의 감정을 진심으로 이해하고 위로해주는 따뜻한 선생님입니다."
         
         if quote:
-            human_prompt = f"""\
-아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
+            human_prompt = f"""아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
 
 일기:
 {current_diary}
@@ -474,11 +473,9 @@ class DiaryAnalyzer:
 - 반드시 조언 내용을 참고하되, 코멘트에 '조언에 따라', '조언을 참고하여' 등 조언을 직접적으로 언급하지 마세요.
 - 과거 일기 기록이 있는 경우 해당 내용을 구체적으로 언급해주세요.
 - 관련 인용문을 따옴표("")로 감싸고 저자와 함께 표시해주세요.
-- 따뜻하고 공감 어린 말투를 유지해주세요.
-"""
+- 따뜻하고 공감 어린 말투를 유지해주세요."""
         else:
-            human_prompt = f"""\
-아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
+            human_prompt = f"""아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
 
 일기:
 {current_diary}
@@ -492,8 +489,7 @@ class DiaryAnalyzer:
 - 코멘트는 3~4문장으로 하나의 문단을 이루어야 합니다.
 - 반드시 조언 내용을 참고하되, 코멘트에 '조언에 따라', '조언을 참고하여' 등 조언을 직접적으로 언급하지 마세요.
 - 과거 일기 기록이 있는 경우 해당 내용을 구체적으로 언급해주세요.
-- 따뜻하고 공감 어린 말투를 유지해주세요.
-"""
+- 따뜻하고 공감 어린 말투를 유지해주세요."""
         
         messages = [
             SystemMessage(content=system_prompt),
@@ -513,8 +509,7 @@ class DiaryAnalyzer:
         selector = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, n=1)
         
         select_system = SystemMessage(content="당신은 공정하고 객관적인 평가자입니다.")
-        select_human = HumanMessage(content=f"""\
-위에 생성된 세 개의 코멘트 중에서
+        select_human = HumanMessage(content=f"""위에 생성된 세 개의 코멘트 중에서
 "일기의 감정과 상황, 제시된 조언, 과거 유사 일기, 그리고 인용문"을
 가장 잘 반영한 한 가지 코멘트를 골라서, 번호와 함께 해당 코멘트만 출력해주세요.
 
@@ -522,8 +517,7 @@ class DiaryAnalyzer:
 
 2) {comments[1]}
 
-3) {comments[2]}
-""")
+3) {comments[2]}""")
         
         selection = selector.invoke([select_system, select_human])
         final_comment = selection.content.strip()

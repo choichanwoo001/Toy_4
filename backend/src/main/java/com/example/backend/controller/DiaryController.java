@@ -43,16 +43,14 @@ public class DiaryController {
     @ResponseBody
     public ResponseEntity<ApiResponse<Diary>> saveDiary(@RequestParam Long userId,
                                            @RequestParam String content,
-                                           @RequestParam String appliedStamp,
                                            @RequestParam(required = false) String emotion) {
         System.out.println("=== Diary Save API Called ===");
         System.out.println("userId: " + userId);
         System.out.println("content: " + content);
-        System.out.println("appliedStamp: " + appliedStamp);
         System.out.println("emotion: " + emotion);
         
         try {
-            Diary saved = diaryService.saveDiary(userId, content, appliedStamp, emotion);
+            Diary saved = diaryService.saveDiary(userId, content, emotion);
             System.out.println("Diary saved successfully with ID: " + saved.getDiaryId());
             
             // 간단한 응답 형태로 변경 (디버깅용)
@@ -100,19 +98,86 @@ public class DiaryController {
     }
     // ===================== END NEW API ENDPOINT =====================
 
+    // ===================== NEW DAILY COMMENT API =====================
+    // 2025-01-XX: 일별 코멘트 저장 기능 추가
+    // 코멘트 저장 시 현재 적용중인 스탬프 정보도 함께 저장
+    @PostMapping("/api/daily-comments")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveDailyComment(@RequestParam Long userId,
+                                                                             @RequestParam String content,
+                                                                             @RequestParam String diaryDate) {
+        try {
+            // diaryDate 문자열을 LocalDateTime으로 변환
+            java.time.LocalDateTime parsedDate = java.time.LocalDateTime.parse(diaryDate);
+            
+            // 코멘트 저장 (스탬프 정보 포함)
+            com.example.backend.entity.DailyComment savedComment = diaryService.saveDailyComment(userId, content, parsedDate);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("commentId", savedComment.getId());
+            result.put("content", savedComment.getContent());
+            result.put("diaryDate", savedComment.getDiaryDate());
+            result.put("createdAt", savedComment.getCreatedAt());
+            
+            // 스탬프 정보 포함
+            if (savedComment.getUserStampPreference() != null) {
+                result.put("stampName", savedComment.getUserStampPreference().getSelectedStampName());
+                result.put("stampImage", savedComment.getUserStampPreference().getSelectedStampImage());
+            }
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "코멘트 저장 성공", result));
+        } catch (Exception e) {
+            System.err.println("Error saving daily comment: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "코멘트 저장 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW DAILY COMMENT API =====================
+
+    // ===================== NEW CALENDAR DATA API =====================
+    // 2025-01-XX: 달력 데이터 조회 기능 추가
+    // 일기와 코멘트(스탬프 포함) 정보를 함께 조회
+    @GetMapping("/api/calendar-data")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCalendarData(@RequestParam Long userId,
+                                                                           @RequestParam int year,
+                                                                           @RequestParam int month) {
+        try {
+            Map<String, Object> calendarData = diaryService.getCalendarData(userId, year, month);
+            return ResponseEntity.ok(new ApiResponse<>(true, "달력 데이터 조회 성공", calendarData));
+        } catch (Exception e) {
+            System.err.println("Error getting calendar data: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "달력 데이터 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW CALENDAR DATA API =====================
+
+    // ===================== DEBUG API ENDPOINT =====================
+    // 2025-01-XX: 디버깅을 위한 모든 코멘트 조회 API 추가
+    @GetMapping("/api/debug/comments")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllComments(@RequestParam Long userId) {
+        try {
+            List<Map<String, Object>> comments = diaryService.getAllCommentsForDebug(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "모든 코멘트 조회 성공", comments));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "모든 코멘트 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END DEBUG API ENDPOINT =====================
+
+
+
+    // ===================== NEW API ENDPOINT =====================
     // 2025-01-XX: 현재 적용된 스탬프 조회 기능 추가
     // 사용자가 포인트샵에서 구매한 스탬프 중 현재 적용된 스탬프 정보 조회
     @GetMapping("/api/active-stamp")
     @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveStamp(HttpSession session) {
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "로그인이 필요합니다.", null));
-        }
-        
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveStamp(@RequestParam Long userId) {
         try {
             com.example.backend.dto.UserStampDto activeStamp = 
-                pointshopService.getActiveStamp(user.getUserId());
+                pointshopService.getActiveStamp(userId);
             
             Map<String, Object> result = new HashMap<>();
             if (activeStamp != null) {
@@ -133,82 +198,6 @@ public class DiaryController {
         }
     }
     // ===================== END NEW API ENDPOINT =====================
-
-    // 2025-01-XX: 일기 스탬프 업데이트 기능 추가
-    // 기존 일기의 스탬프만 업데이트하는 API
-    @PutMapping("/api/diaries/{diaryId}/stamp")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Diary>> updateDiaryStamp(@PathVariable Long diaryId,
-                                                              @RequestBody Map<String, String> request) {
-        try {
-            String appliedStamp = request.get("appliedStamp");
-            if (appliedStamp == null || appliedStamp.trim().isEmpty()) {
-                return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 정보가 필요합니다.", null));
-            }
-            
-            Diary updatedDiary = diaryService.updateDiaryStamp(diaryId, appliedStamp);
-            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 업데이트 성공", updatedDiary));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 업데이트 실패: " + e.getMessage(), null));
-        }
-    }
-    // ===================== END NEW API ENDPOINT =====================
-
-    // ===================== STAMP PREFERENCE API =====================
-    // 사용자 스탬프 선택 저장/업데이트
-    @PostMapping("/api/user-stamp-preference")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> saveUserStampPreference(
-            @RequestParam Long userId,
-            @RequestParam String stampName,
-            @RequestParam String stampImage) {
-        try {
-            com.example.backend.entity.UserStampPreference saved = 
-                diaryService.saveUserStampPreference(userId, stampName, stampImage);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("stampName", saved.getSelectedStampName());
-            result.put("stampImage", saved.getSelectedStampImage());
-            
-            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 저장 성공", result));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 저장 실패: " + e.getMessage(), null));
-        }
-    }
-
-    // 사용자 스탬프 선택 조회
-    @GetMapping("/api/user-stamp-preference")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserStampPreference(@RequestParam Long userId) {
-        try {
-            Optional<com.example.backend.entity.UserStampPreference> preference = 
-                diaryService.getUserStampPreference(userId);
-            
-            if (preference.isPresent()) {
-                Map<String, Object> result = new HashMap<>();
-                result.put("stampName", preference.get().getSelectedStampName());
-                result.put("stampImage", preference.get().getSelectedStampImage());
-                return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 조회 성공", result));
-            } else {
-                return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 없음", null));
-            }
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 조회 실패: " + e.getMessage(), null));
-        }
-    }
-
-    // 사용자 스탬프 선택 삭제 (기록 저장 후)
-    @DeleteMapping("/api/user-stamp-preference")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<String>> deleteUserStampPreference(@RequestParam Long userId) {
-        try {
-            diaryService.deleteUserStampPreference(userId);
-            return ResponseEntity.ok(new ApiResponse<>(true, "스탬프 선택 삭제 성공", "deleted"));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "스탬프 선택 삭제 실패: " + e.getMessage(), null));
-        }
-    }
-    // ===================== END STAMP PREFERENCE API =====================
 
     // ===================== AI DIARY ANALYSIS API =====================
     // 2025-01-XX: AI 일기 분석 및 코멘트 생성 기능 추가
@@ -286,6 +275,47 @@ public class DiaryController {
     }
     // ===================== END NEW API ENDPOINT =====================
 
+    // ===================== NEW DAILY COMMENT BY DATE API =====================
+    // 2025-01-XX: 특정 날짜의 DailyComment 조회 기능 추가
+    // 과거 날짜의 AI 코멘트를 조회하기 위한 API
+    @GetMapping("/api/daily-comments/date")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDailyCommentByDate(@RequestParam Long userId,
+                                                                                  @RequestParam int year,
+                                                                                  @RequestParam int month,
+                                                                                  @RequestParam int day) {
+        try {
+            java.util.Optional<com.example.backend.entity.DailyComment> comment = 
+                diaryService.getDailyCommentByDate(userId, year, month, day);
+            
+            Map<String, Object> result = new HashMap<>();
+            
+            if (comment.isPresent()) {
+                com.example.backend.entity.DailyComment dailyComment = comment.get();
+                result.put("success", true);
+                result.put("content", dailyComment.getContent());
+                result.put("diaryDate", dailyComment.getDiaryDate());
+                result.put("createdAt", dailyComment.getCreatedAt());
+                
+                // 스탬프 정보 포함
+                if (dailyComment.getUserStampPreference() != null) {
+                    result.put("stampName", dailyComment.getUserStampPreference().getSelectedStampName());
+                    result.put("stampImage", dailyComment.getUserStampPreference().getSelectedStampImage());
+                }
+            } else {
+                result.put("success", false);
+                result.put("message", "해당 날짜의 코멘트가 없습니다.");
+            }
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "특정 날짜 코멘트 조회 성공", result));
+        } catch (Exception e) {
+            System.err.println("Error getting daily comment by date: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "특정 날짜 코멘트 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW DAILY COMMENT BY DATE API =====================
+
     // 일기 상세 조회 (REST)
     @GetMapping("/api/diaries/{id}")
     @ResponseBody
@@ -324,10 +354,9 @@ public class DiaryController {
     @PostMapping("/diary")
     public String saveDiaryForm(@RequestParam Long userId,
                                 @RequestParam String content,
-                                @RequestParam String appliedStamp,
                                 @RequestParam(required = false) String emotion,
                                 Model model) {
-        diaryService.saveDiary(userId, content, appliedStamp, emotion);
+        diaryService.saveDiary(userId, content, emotion);
         return "redirect:/diary-calendar";
     }
     // ===================== END UPDATED FORM ENDPOINT =====================
