@@ -14,16 +14,16 @@ public interface DailyCommentRepository extends JpaRepository<DailyComment, Long
     DailyComment findByDiary(Diary diary);
     DailyComment findTopByUserOrderByCreatedAtDesc(User user);
     
-    // ===================== NEW QUERY METHOD ADDED =====================
-    // 2025-01-XX: 달력 조회를 위한 월별 코멘트 조회 메서드 추가
-    // 특정 월의 코멘트를 조회하여 스탬프 정보와 함께 반환
+    // ===================== UPDATED QUERY METHOD =====================
+    // 2025-01-XX: 달력 조회를 위한 월별 코멘트 조회 메서드 수정
+    // 특정 월의 코멘트를 조회하여 UserStampPreference 정보와 함께 반환
     @Query("SELECT dc FROM DailyComment dc " +
-           "LEFT JOIN FETCH dc.userStamp us " +
+           "LEFT JOIN FETCH dc.userStampPreference usp " +
            "WHERE dc.user.userId = :userId " +
            "AND YEAR(dc.diaryDate) = :year " +
            "AND MONTH(dc.diaryDate) = :month")
-    List<DailyComment> findByUserAndYearMonthWithStamp(@Param("userId") Long userId, 
-                                                      @Param("year") int year, 
-                                                      @Param("month") int month);
-    // ===================== END NEW QUERY METHOD =====================
+    List<DailyComment> findByUserAndYearMonthWithStampPreference(@Param("userId") Long userId, 
+                                                               @Param("year") int year, 
+                                                               @Param("month") int month);
+    // ===================== END UPDATED QUERY METHOD =====================
 }

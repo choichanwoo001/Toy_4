@@ -3,12 +3,12 @@ package com.example.backend.service;
 import com.example.backend.entity.Diary;
 import com.example.backend.entity.User;
 import com.example.backend.entity.DailyComment;
-import com.example.backend.entity.UserStamp;
+import com.example.backend.entity.UserStampPreference;
 import com.example.backend.dto.UserStampDto;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.DailyCommentRepository;
-import com.example.backend.repository.UserStampRepository;
+import com.example.backend.repository.UserStampPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +25,7 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
     private final DailyCommentRepository dailyCommentRepository;
-    private final UserStampRepository userStampRepository;
+    private final UserStampPreferenceRepository userStampPreferenceRepository;
     private final PointshopService pointshopService;
 
     // ===================== NEW METHOD ADDED =====================
@@ -52,19 +52,22 @@ public class DiaryService {
     }
     // ===================== END COMPATIBILITY METHOD =====================
 
-    // ===================== NEW DAILY COMMENT METHOD =====================
-    // 2025-01-XX: 일별 코멘트 저장 기능 추가
-    // 코멘트 저장 시 현재 적용중인 스탬프 정보도 함께 저장
+    // ===================== UPDATED DAILY COMMENT METHOD =====================
+    // 2025-01-XX: 일별 코멘트 저장 기능 수정
+    // 코멘트 저장 시 현재 적용중인 스탬프 선호도 정보도 함께 저장
     @Transactional
     public DailyComment saveDailyComment(Long userId, String content, LocalDateTime diaryDate) {
         User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         
-        // 현재 적용중인 스탬프 정보 가져오기
+        // 현재 적용중인 스탬프 선호도 정보 가져오기
         UserStampDto activeStamp = pointshopService.getActiveStamp(userId);
-        UserStamp userStamp = null;
+        UserStampPreference userStampPreference = null;
         
         if (activeStamp != null) {
-            userStamp = userStampRepository.findById(activeStamp.getUserStampId()).orElse(null);
+            // UserStampPreference에서 해당 사용자의 현재 활성 스탬프 찾기
+            userStampPreference = userStampPreferenceRepository.findByUser_UserIdAndSelectedStampName(
+                userId, activeStamp.getStampName()
+            ).orElse(null);
         }
         
         DailyComment comment = new DailyComment();
@@ -72,15 +75,15 @@ public class DiaryService {
         comment.setContent(content);
         comment.setDiaryDate(diaryDate);
         comment.setCreatedAt(LocalDateTime.now());
-        comment.setUserStamp(userStamp); // 현재 적용중인 스탬프 설정
+        comment.setUserStampPreference(userStampPreference); // 현재 적용중인 스탬프 선호도 설정
         
         return dailyCommentRepository.save(comment);
     }
-    // ===================== END NEW DAILY COMMENT METHOD =====================
+    // ===================== END UPDATED DAILY COMMENT METHOD =====================
 
-    // ===================== NEW CALENDAR DATA METHOD =====================
-    // 2025-01-XX: 달력 조회를 위한 통합 데이터 조회 메서드 추가
-    // 일기와 코멘트(스탬프 포함) 정보를 함께 조회
+    // ===================== UPDATED CALENDAR DATA METHOD =====================
+    // 2025-01-XX: 달력 조회를 위한 통합 데이터 조회 메서드 수정
+    // 일기와 코멘트(UserStampPreference 포함) 정보를 함께 조회
     @Transactional(readOnly = true)
     public Map<String, Object> getCalendarData(Long userId, int year, int month) {
         User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -88,15 +91,15 @@ public class DiaryService {
         // 월별 일기 조회
         List<Diary> diaries = getDiariesByUserAndMonth(userId, year, month);
         
-        // 월별 코멘트 조회 (스탬프 정보 포함)
-        List<DailyComment> comments = dailyCommentRepository.findByUserAndYearMonthWithStamp(userId, year, month);
+        // 월별 코멘트 조회 (UserStampPreference 정보 포함)
+        List<DailyComment> comments = dailyCommentRepository.findByUserAndYearMonthWithStampPreference(userId, year, month);
         
         // 기존 코멘트들에 기본 스탬프 정보 추가
         for (DailyComment comment : comments) {
-            if (comment.getUserStamp() == null) {
+            if (comment.getUserStampPreference() == null) {
                 // 기본 스탬프 더미 데이터 생성
-                UserStamp defaultStamp = createDefaultStamp();
-                comment.setUserStamp(defaultStamp);
+                UserStampPreference defaultStamp = createDefaultStamp();
+                comment.setUserStampPreference(defaultStamp);
             }
         }
         
@@ -109,32 +112,23 @@ public class DiaryService {
         
         return result;
     }
-    // ===================== END NEW CALENDAR DATA METHOD =====================
+    // ===================== END UPDATED CALENDAR DATA METHOD =====================
 
-    // ===================== NEW DEFAULT STAMP METHOD =====================
-    // 2025-01-XX: 기본 스탬프 더미 데이터 생성 메서드 추가
+    // ===================== UPDATED DEFAULT STAMP METHOD =====================
+    // 2025-01-XX: 기본 스탬프 더미 데이터 생성 메서드 수정
     // 기존 코멘트들에 기본 스탬프 정보를 제공하기 위한 메서드
-    private UserStamp createDefaultStamp() {
-        UserStamp defaultStamp = new UserStamp();
-        defaultStamp.setUserStampId(-1L); // 더미 ID
-        defaultStamp.setUserId(1L); // 더미 사용자 ID
-        defaultStamp.setStampId(1L); // 기본 스탬프 ID
-        defaultStamp.setIsActive("Y");
+    private UserStampPreference createDefaultStamp() {
+        UserStampPreference defaultStamp = new UserStampPreference();
+        defaultStamp.setPreferenceId(-1L); // 더미 ID
+        defaultStamp.setUser(userRepository.findById(1L).orElse(null)); // 더미 사용자
+        defaultStamp.setSelectedStampName("참잘했어요");
+        defaultStamp.setSelectedStampImage("image/default_stamp.png"); // 경로 수정
         defaultStamp.setCreatedAt(LocalDateTime.now());
         defaultStamp.setUpdatedAt(LocalDateTime.now());
         
-        // Stamp 엔티티 정보도 설정 (프론트엔드에서 사용)
-        try {
-            // Stamp 정보를 가져오기 위해 StampRepository 주입이 필요하지만,
-            // 현재는 더미 데이터로 처리
-            // 실제로는 Stamp 엔티티를 별도로 생성하거나 다른 방법 사용
-        } catch (Exception e) {
-            // 더미 데이터이므로 예외 무시
-        }
-        
         return defaultStamp;
     }
-    // ===================== END NEW DEFAULT STAMP METHOD =====================
+    // ===================== END UPDATED DEFAULT STAMP METHOD =====================
 
     // ===================== DEBUG METHOD =====================
     // 2025-01-XX: 디버깅을 위한 모든 코멘트 조회 메서드 추가
@@ -154,7 +148,7 @@ public class DiaryService {
             commentData.put("content", comment.getContent());
             commentData.put("diaryDate", comment.getDiaryDate());
             commentData.put("createdAt", comment.getCreatedAt());
-            commentData.put("userStamp", comment.getUserStamp());
+            commentData.put("userStampPreference", comment.getUserStampPreference());
             result.add(commentData);
         }
         
@@ -177,7 +171,6 @@ public class DiaryService {
             tempDiary.setCreatedAt(LocalDateTime.of(2024, 12, day, 10, 0));
             tempDiary.setContent("2024년 12월 " + day + "일의 임시 일기입니다.");
             tempDiary.setEmotion("😊");
-            tempDiary.setAppliedStamp(null); // 임시 필드
             Diary savedDiary = diaryRepository.save(tempDiary);
             
             // AI 코멘트 생성
@@ -189,8 +182,8 @@ public class DiaryService {
             comment.setCreatedAt(LocalDateTime.of(2024, 12, day, 15, 0));
             
             // 기본 스탬프 설정 (더미)
-            UserStamp dummyStamp = createDefaultStamp();
-            comment.setUserStamp(dummyStamp);
+            UserStampPreference dummyStamp = createDefaultStamp();
+            comment.setUserStampPreference(dummyStamp);
             
             createdComments.add(dailyCommentRepository.save(comment));
         }
@@ -280,4 +273,26 @@ public class DiaryService {
     public Optional<Diary> getDiaryById(Long diaryId) {
         return diaryRepository.findById(diaryId);
     }
+
+    // ===================== NEW DAILY COMMENT BY DATE METHOD =====================
+    // 2025-01-XX: 특정 날짜의 DailyComment 조회 기능 추가
+    // 과거 날짜의 AI 코멘트를 조회하기 위한 메서드
+    @Transactional(readOnly = true)
+    public Optional<DailyComment> getDailyCommentByDate(Long userId, int year, int month, int day) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        // 해당 날짜의 시작과 끝 시간 설정
+        LocalDateTime startOfDay = LocalDateTime.of(year, month, day, 0, 0, 0);
+        LocalDateTime endOfDay = LocalDateTime.of(year, month, day, 23, 59, 59);
+        
+        // 해당 날짜의 DailyComment 조회
+        List<DailyComment> comments = dailyCommentRepository.findByUser_UserIdAndDiaryDateBetween(
+            userId, startOfDay, endOfDay
+        );
+        
+        // 가장 최근 코멘트 반환 (여러 개가 있을 경우)
+        return comments.stream()
+                .max(Comparator.comparing(DailyComment::getCreatedAt));
+    }
+    // ===================== END NEW DAILY COMMENT BY DATE METHOD =====================
 } 

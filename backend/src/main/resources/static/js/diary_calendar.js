@@ -214,8 +214,22 @@ async function loadActiveStamp() {
 function updateAICommentWithStamp() {
     const stampImageComment = document.querySelector('.stamp-image-comment');
     if (stampImageComment && currentActiveStamp) {
-        stampImageComment.src = '/' + currentActiveStamp.stampImage;
+        // 이미지 경로 처리
+        let stampImagePath = currentActiveStamp.stampImage;
+        if (!stampImagePath.startsWith('/')) {
+            stampImagePath = '/' + stampImagePath;
+        }
+        
+        stampImageComment.src = stampImagePath;
         stampImageComment.alt = currentActiveStamp.stampName + ' 스탬프';
+        
+        // 이미지 로드 실패 시 기본 스탬프로 대체
+        stampImageComment.onerror = function() {
+            console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
+            this.src = '/image/default_stamp.png';
+            this.alt = '참잘했어요 스탬프';
+        };
+        
         console.log('AI 코멘트 스탬프 업데이트:', currentActiveStamp.stampName);
     }
 }
@@ -318,41 +332,122 @@ function updateAIComment(allTodayRecords) {
         return;
     }
     
+    // 과거 날짜인지 확인
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
+    
+    if (isPast) {
+        // 과거 날짜인 경우 DailyComment API 호출
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth() + 1;
+        const day = selectedDate.getDate();
+        
+        console.log(`과거 날짜 감지: ${year}-${month}-${day}, DailyComment API 호출`);
+        
+        fetch(`/api/daily-comments/date?userId=${userId}&year=${year}&month=${month}&day=${day}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('DailyComment API Response:', data);
+                
+                if (data.success && data.data && data.data.success) {
+                    // DailyComment에서 가져온 코멘트 표시
+                    aiCommentText.innerText = data.data.content;
+                    
+                    // 스탬프 정보가 있으면 업데이트 (UserStampPreference 사용)
+                    if (data.data.stampName && data.data.stampImage) {
+                        const stampImageComment = document.querySelector('.stamp-image-comment');
+                        if (stampImageComment) {
+                            // 이미지 경로 처리
+                            let stampImagePath = data.data.stampImage;
+                            if (!stampImagePath.startsWith('/')) {
+                                stampImagePath = '/' + stampImagePath;
+                            }
+                            
+                            stampImageComment.src = stampImagePath;
+                            stampImageComment.alt = data.data.stampName + ' 스탬프';
+                            
+                            // 이미지 로드 실패 시 기본 스탬프로 대체
+                            stampImageComment.onerror = function() {
+                                console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
+                                this.src = '/image/default_stamp.png';
+                                this.alt = '참잘했어요 스탬프';
+                            };
+                            
+                            console.log('AI 코멘트 스탬프 업데이트:', data.data.stampName);
+                        }
+                    }
+                    
+                    // 감정 키워드는 과거 날짜에서는 표시하지 않음
+                    if (emotionKeywords) {
+                        emotionKeywords.innerText = '';
+                    }
+                } else {
+                    // 해당 날짜의 코멘트가 없는 경우
+                    aiCommentText.innerText = '해당 날짜의 AI 코멘트가 없습니다.';
+                    if (emotionKeywords) {
+                        emotionKeywords.innerText = '';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching daily comment:', error);
+                aiCommentText.innerText = '과거 날짜의 코멘트를 불러오는데 실패했습니다.';
+                if (emotionKeywords) {
+                    emotionKeywords.innerText = '';
+                }
+            });
+        
+        return; // 과거 날짜 처리 완료
+    }
+    
+    // 오늘 날짜인 경우 기존 로직 유지
+    // 백엔드에서 실제 AI 코멘트 데이터가 있는지 확인
+    // allTodayRecords가 실제 백엔드 API에서 온 데이터인지 확인
+    const hasBackendData = allTodayRecords && allTodayRecords.length > 0 && 
+                          allTodayRecords.some(record => 
+                              record.id !== undefined && 
+                              record.createdAt !== undefined
+                          );
+    
+    if (!hasBackendData) {
+        aiCommentText.innerText = 'AI 코멘트가 백엔드와 연결되지 않았습니다.';
+        if (emotionKeywords) {
+            emotionKeywords.innerText = '';
+        }
+        return;
+    }
+    
     if (allTodayRecords.length > 0) {
-        // 기록에서 감정 추출
+        // 백엔드에서 받아온 실제 AI 코멘트 데이터가 있는지 확인
+        const aiCommentData = allTodayRecords.find(record => record.aiComment);
+        
+        if (aiCommentData && aiCommentData.aiComment) {
+            // 백엔드에서 받아온 실제 AI 코멘트 표시
+            aiCommentText.innerText = aiCommentData.aiComment;
+        } else {
+            // 백엔드에 AI 코멘트 데이터가 없는 경우
+            aiCommentText.innerText = 'AI 코멘트가 백엔드와 연결되지 않았습니다.';
+        }
+        
+        // 감정 키워드는 백엔드 데이터에서 추출
         const emotions = allTodayRecords
             .map(record => record.emotion)
             .filter(emotion => emotion && emotion.trim() !== '')
-            .slice(0, 3); // 최대 3개까지만 표시
+            .slice(0, 3);
         
-        // 감정 키워드 생성
         const emotionKeywordsList = emotions.length > 0 
             ? emotions.map(emotion => `#${getEmotionKeyword(emotion)}`).join(' ')
-            : '#기쁨 #평온 #대견함';
-        
-                    // 과거 날짜인지 확인
-            const today = new Date();
-            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
-        
-        if (isPast) {
-            // 과거 날짜에 대한 따뜻한 코멘트
-            const dateStr = `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`;
-            aiCommentText.innerText = `사랑하는 제자님, ${dateStr}의 소중한 기록들을 다시 읽어보니 그때의 마음이 생생하게 느껴져요.
-            제자님이 그날 느끼신 감정들과 생각들이 지금도 선생님 마음에 따뜻하게 남아있어요.
-            그때의 기록들이 지금의 제자님을 더욱 풍요롭게 만들어주고 있네요.
-            꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
-        } else {
-            // 오늘 날짜에 대한 코멘트
-            aiCommentText.innerText = `사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
-            작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
-            오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
-            꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
-        }
+            : '';
         
         // emotionKeywords가 존재할 때만 설정
         if (emotionKeywords) {
-            emotionKeywords.innerText = `오늘의 감정 키워드: ${emotionKeywordsList}`;
+            emotionKeywords.innerText = emotionKeywordsList ? `오늘의 감정 키워드: ${emotionKeywordsList}` : '';
         }
     } else {
         aiCommentText.innerText = '아직 오늘의 기록이 없어서 선생님의 코멘트가 준비되지 않았어요. 첫 기록을 남겨보세요!';
@@ -951,21 +1046,41 @@ function renderCalendar(year, month, diaryData, comments = []) {
         const comment = comments.find(item => new Date(item.diaryDate).getDate() === d);
         if (comment) {
             cell.classList.add('has-comment');
-            // AI 코멘트에 저장된 스탬프 표시
+            // AI 코멘트에 저장된 스탬프 표시 (UserStampPreference 사용)
             const img = document.createElement('img');
-            if (comment.userStamp && comment.userStamp.stampImage) {
-                img.src = '/' + comment.userStamp.stampImage;
-                img.alt = comment.userStamp.stampName + ' 스탬프';
-            } else if (comment.userStamp && comment.userStamp.userStampId === -1) {
-                // 더미 스탬프 (기존 코멘트)
-                img.src = '/image/default_stamp.png';
-                img.alt = '참잘했어요 스탬프';
-            } else {
-                // 기존 코멘트는 기본 스탬프 사용
-                img.src = '/image/default_stamp.png';
-                img.alt = '참잘했어요 스탬프';
+            
+            // 스탬프 이미지 경로 결정
+            let stampImagePath = 'image/default_stamp.png'; // 기본값
+            let stampAlt = '참잘했어요 스탬프'; // 기본값
+            
+            if (comment.userStampPreference) {
+                if (comment.userStampPreference.selectedStampImage) {
+                    // 선택된 스탬프 이미지가 있으면 사용
+                    stampImagePath = comment.userStampPreference.selectedStampImage;
+                    stampAlt = comment.userStampPreference.selectedStampName + ' 스탬프';
+                } else if (comment.userStampPreference.preferenceId === -1) {
+                    // 더미 스탬프 (기본 스탬프)
+                    stampImagePath = 'image/default_stamp.png';
+                    stampAlt = '참잘했어요 스탬프';
+                }
             }
+            
+            // 이미지 경로에 '/'가 없으면 추가
+            if (!stampImagePath.startsWith('/')) {
+                stampImagePath = '/' + stampImagePath;
+            }
+            
+            img.src = stampImagePath;
+            img.alt = stampAlt;
             img.className = 'stamp-image-calendar';
+            
+            // 이미지 로드 실패 시 기본 스탬프로 대체
+            img.onerror = function() {
+                console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
+                this.src = '/image/default_stamp.png';
+                this.alt = '참잘했어요 스탬프';
+            };
+            
             cell.appendChild(img);
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
@@ -1113,10 +1228,13 @@ function renderRecordsList(records, year, month, day) {
                     aiChatButton.classList.remove('hidden');
                 }
             } else {
-                aiCommentSection.classList.add('hidden');
-                // AI와 채팅하기 버튼도 숨김
+                // 과거 날짜에서는 기록이 없어도 AI 코멘트를 표시할 수 있음
+                aiCommentSection.classList.remove('hidden');
+                // 빈 배열을 전달하여 updateAIComment에서 DailyComment API 호출
+                updateAIComment([]);
+                // AI와 채팅하기 버튼도 활성화
                 if (aiChatButton) {
-                    aiChatButton.classList.add('hidden');
+                    aiChatButton.classList.remove('hidden');
                 }
             }
         }

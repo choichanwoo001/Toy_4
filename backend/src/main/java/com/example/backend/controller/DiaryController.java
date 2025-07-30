@@ -120,8 +120,9 @@ public class DiaryController {
             result.put("createdAt", savedComment.getCreatedAt());
             
             // 스탬프 정보 포함
-            if (savedComment.getUserStamp() != null) {
-                result.put("stampName", savedComment.getUserStamp().getStampId()); // 실제로는 Stamp 엔티티에서 이름을 가져와야 함
+            if (savedComment.getUserStampPreference() != null) {
+                result.put("stampName", savedComment.getUserStampPreference().getSelectedStampName());
+                result.put("stampImage", savedComment.getUserStampPreference().getSelectedStampImage());
             }
             
             return ResponseEntity.ok(new ApiResponse<>(true, "코멘트 저장 성공", result));
@@ -285,6 +286,47 @@ public class DiaryController {
         }
     }
     // ===================== END NEW API ENDPOINT =====================
+
+    // ===================== NEW DAILY COMMENT BY DATE API =====================
+    // 2025-01-XX: 특정 날짜의 DailyComment 조회 기능 추가
+    // 과거 날짜의 AI 코멘트를 조회하기 위한 API
+    @GetMapping("/api/daily-comments/date")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDailyCommentByDate(@RequestParam Long userId,
+                                                                                  @RequestParam int year,
+                                                                                  @RequestParam int month,
+                                                                                  @RequestParam int day) {
+        try {
+            java.util.Optional<com.example.backend.entity.DailyComment> comment = 
+                diaryService.getDailyCommentByDate(userId, year, month, day);
+            
+            Map<String, Object> result = new HashMap<>();
+            
+            if (comment.isPresent()) {
+                com.example.backend.entity.DailyComment dailyComment = comment.get();
+                result.put("success", true);
+                result.put("content", dailyComment.getContent());
+                result.put("diaryDate", dailyComment.getDiaryDate());
+                result.put("createdAt", dailyComment.getCreatedAt());
+                
+                // 스탬프 정보 포함
+                if (dailyComment.getUserStampPreference() != null) {
+                    result.put("stampName", dailyComment.getUserStampPreference().getSelectedStampName());
+                    result.put("stampImage", dailyComment.getUserStampPreference().getSelectedStampImage());
+                }
+            } else {
+                result.put("success", false);
+                result.put("message", "해당 날짜의 코멘트가 없습니다.");
+            }
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "특정 날짜 코멘트 조회 성공", result));
+        } catch (Exception e) {
+            System.err.println("Error getting daily comment by date: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "특정 날짜 코멘트 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW DAILY COMMENT BY DATE API =====================
 
     // 일기 상세 조회 (REST)
     @GetMapping("/api/diaries/{id}")
