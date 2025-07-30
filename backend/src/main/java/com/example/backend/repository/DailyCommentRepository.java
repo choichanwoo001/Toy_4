@@ -13,6 +13,7 @@ public interface DailyCommentRepository extends JpaRepository<DailyComment, Long
     List<DailyComment> findByUser_UserIdAndDiaryDateBetween(Long userId, LocalDateTime start, LocalDateTime end);
     DailyComment findByDiary(Diary diary);
     DailyComment findTopByUserOrderByCreatedAtDesc(User user);
+    List<DailyComment> findByUser(User user);
     
     // ===================== UPDATED QUERY METHOD =====================
     // 2025-01-XX: 달력 조회를 위한 월별 코멘트 조회 메서드 수정

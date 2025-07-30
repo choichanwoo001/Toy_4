@@ -6,6 +6,9 @@ import com.example.backend.entity.DailyComment;
 import com.example.backend.entity.UserStampHistory;
 import com.example.backend.entity.UserStamp;
 import com.example.backend.entity.Stamp;
+import com.example.backend.entity.CommentEmotionMapping;
+import com.example.backend.entity.CommentEmotionId;
+import com.example.backend.entity.EmotionData;
 import com.example.backend.dto.UserStampDto;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
@@ -13,9 +16,16 @@ import com.example.backend.repository.DailyCommentRepository;
 import com.example.backend.repository.UserStampHistoryRepository;
 import com.example.backend.repository.UserStampRepository;
 import com.example.backend.repository.StampRepository;
+import com.example.backend.repository.CommentEmotionMappingRepository;
+import com.example.backend.repository.EmotionDataRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,7 +42,11 @@ public class DiaryService {
     private final UserStampHistoryRepository userStampHistoryRepository;
     private final UserStampRepository userStampRepository;
     private final StampRepository stampRepository;
+    private final CommentEmotionMappingRepository commentEmotionMappingRepository;
+    private final EmotionDataRepository emotionDataRepository;
     private final PointshopService pointshopService;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final String AI_SERVICE_URL = "http://localhost:8000/api/v1/diary-analyzer/analyze";
 
     // ===================== NEW METHOD ADDED =====================
     // 2025-01-XX: 감정 표현 기능 추가를 위한 새로운 일기 저장 메서드
@@ -61,6 +75,7 @@ public class DiaryService {
     // ===================== UPDATED DAILY COMMENT METHOD =====================
     // 2025-01-XX: 일별 코멘트 저장 기능 수정
     // 코멘트 저장 시 현재 적용중인 스탬프 선호도 정보도 함께 저장
+    // 감정 분석 결과를 CommentEmotionMapping 테이블에 저장
     @Transactional
     public DailyComment saveDailyComment(Long userId, String content, LocalDateTime diaryDate) {
         System.out.println("=== DiaryService.saveDailyComment called ===");
@@ -92,9 +107,148 @@ public class DiaryService {
         System.out.println("DailyComment saved with ID: " + savedComment.getId());
         System.out.println("UserStamp ID: " + (savedComment.getUserStamp() != null ? savedComment.getUserStamp().getUserStampId() : "null"));
         
+        // 감정 분석 및 CommentEmotionMapping 저장
+        try {
+            System.out.println("Starting emotion analysis...");
+            List<String> emotions = analyzeEmotionsFromContent(content);
+            System.out.println("Analyzed emotions: " + emotions);
+            
+            // 감정들을 CommentEmotionMapping에 저장
+            saveEmotionMappings(savedComment, emotions);
+            System.out.println("Emotion mappings saved successfully");
+        } catch (Exception e) {
+            System.err.println("Error in emotion analysis: " + e.getMessage());
+            e.printStackTrace();
+            // 감정 분석 실패해도 코멘트는 저장됨
+        }
+        
         return savedComment;
     }
     // ===================== END UPDATED DAILY COMMENT METHOD =====================
+
+    // ===================== EMOTION ANALYSIS METHODS =====================
+    // 2025-01-XX: 감정 분석 및 매핑 저장 기능 추가
+    
+    // AI 서비스를 통해 감정 분석 수행
+    private List<String> analyzeEmotionsFromContent(String content) {
+        try {
+            System.out.println("Calling AI service for emotion analysis...");
+            
+            // AI 서비스에 요청할 데이터 준비
+            Map<String, Object> requestData = new HashMap<>();
+            requestData.put("raw_diary", content);
+            
+            // HTTP 헤더 설정
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // HTTP 엔티티 생성
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestData, headers);
+            
+            // AI 서비스 호출
+            ResponseEntity<Map> aiResponse = restTemplate.postForEntity(AI_SERVICE_URL, requestEntity, Map.class);
+            
+            if (aiResponse.getStatusCode().is2xxSuccessful() && aiResponse.getBody() != null) {
+                Map<String, Object> aiResult = aiResponse.getBody();
+                
+                // emotion_keywords에서 감정 추출
+                @SuppressWarnings("unchecked")
+                List<String> emotionKeywords = (List<String>) aiResult.get("emotion_keywords");
+                
+                if (emotionKeywords != null && !emotionKeywords.isEmpty()) {
+                    System.out.println("AI returned emotions: " + emotionKeywords);
+                    return emotionKeywords;
+                } else {
+                    System.out.println("No emotion keywords found in AI response");
+                    return new ArrayList<>();
+                }
+            } else {
+                System.err.println("AI service returned error: " + aiResponse.getStatusCode());
+                return new ArrayList<>();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error calling AI service: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    
+    // 감정들을 CommentEmotionMapping에 저장
+    private void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
+        System.out.println("Saving emotion mappings for comment ID: " + dailyComment.getId());
+        System.out.println("Emotions to save: " + emotions);
+        
+        for (String emotionName : emotions) {
+            try {
+                // EmotionData 조회 또는 생성
+                EmotionData emotionData = getOrCreateEmotionData(emotionName);
+                
+                // CommentEmotionMapping 생성
+                CommentEmotionMapping mapping = new CommentEmotionMapping();
+                
+                // 복합키 설정
+                CommentEmotionId id = new CommentEmotionId();
+                id.setDailyCommentId(dailyComment.getId());
+                id.setEmotionId(emotionData.getId());
+                mapping.setId(id);
+                
+                // 연관관계 설정
+                mapping.setDailyComment(dailyComment);
+                mapping.setEmotionData(emotionData);
+                
+                // 저장
+                commentEmotionMappingRepository.save(mapping);
+                System.out.println("Saved emotion mapping: " + emotionName + " for comment ID: " + dailyComment.getId());
+                
+            } catch (Exception e) {
+                System.err.println("Error saving emotion mapping for " + emotionName + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    // EmotionData 조회 또는 생성
+    private EmotionData getOrCreateEmotionData(String emotionName) {
+        // 기존 EmotionData 조회
+        Optional<EmotionData> existingEmotion = emotionDataRepository.findByName(emotionName);
+        
+        if (existingEmotion.isPresent()) {
+            System.out.println("Found existing emotion: " + emotionName);
+            return existingEmotion.get();
+        } else {
+            // 새로운 EmotionData 생성
+            System.out.println("Creating new emotion: " + emotionName);
+            EmotionData newEmotion = new EmotionData();
+            newEmotion.setName(emotionName);
+            newEmotion.setCreatedAt(LocalDateTime.now());
+            return emotionDataRepository.save(newEmotion);
+        }
+    }
+    // ===================== END EMOTION ANALYSIS METHODS =====================
+
+    // ===================== EMOTION MAPPING QUERY METHODS =====================
+    // 2025-01-XX: 감정 매핑 조회 기능 추가
+    
+    // 특정 DailyComment의 감정 매핑 조회
+    @Transactional(readOnly = true)
+    public List<CommentEmotionMapping> getCommentEmotionMappings(Long dailyCommentId) {
+        DailyComment dailyComment = dailyCommentRepository.findById(dailyCommentId)
+            .orElseThrow(() -> new IllegalArgumentException("DailyComment not found"));
+        
+        return commentEmotionMappingRepository.findByDailyComment(dailyComment);
+    }
+    
+    // 특정 사용자의 모든 감정 매핑 조회
+    @Transactional(readOnly = true)
+    public List<CommentEmotionMapping> getUserEmotionMappings(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        List<DailyComment> userComments = dailyCommentRepository.findByUser(user);
+        return commentEmotionMappingRepository.findByDailyCommentIn(userComments);
+    }
+    // ===================== END EMOTION MAPPING QUERY METHODS =====================
 
     // ===================== UPDATED CALENDAR DATA METHOD =====================
     // 2025-01-XX: 달력 조회를 위한 통합 데이터 조회 메서드 수정

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.HashMap;
+import java.util.ArrayList;
 import jakarta.servlet.http.HttpSession;
 
 @Controller
@@ -103,6 +104,7 @@ public class DiaryController {
     // ===================== NEW DAILY COMMENT API =====================
     // 2025-01-XX: 일별 코멘트 저장 기능 추가
     // 코멘트 저장 시 현재 적용중인 스탬프 정보도 함께 저장
+    // 감정 분석 결과도 함께 반환
     @PostMapping("/api/daily-comments")
     @ResponseBody
     public ResponseEntity<ApiResponse<Map<String, Object>>> saveDailyComment(@RequestParam Long userId,
@@ -118,7 +120,7 @@ public class DiaryController {
             java.time.LocalDateTime parsedDate = java.time.LocalDateTime.parse(diaryDate);
             System.out.println("Parsed date: " + parsedDate);
             
-            // 코멘트 저장 (스탬프 정보 포함)
+            // 코멘트 저장 (스탬프 정보 포함, 감정 분석 자동 수행)
             System.out.println("Calling diaryService.saveDailyComment...");
             com.example.backend.entity.DailyComment savedComment = diaryService.saveDailyComment(userId, content, parsedDate);
             System.out.println("Comment saved successfully with ID: " + savedComment.getId());
@@ -142,6 +144,22 @@ public class DiaryController {
                 }
             } else {
                 System.out.println("No UserStamp found for saved comment");
+            }
+            
+            // 감정 분석 결과 포함 (CommentEmotionMapping에서 조회)
+            try {
+                List<com.example.backend.entity.CommentEmotionMapping> emotionMappings = 
+                    diaryService.getCommentEmotionMappings(savedComment.getId());
+                
+                List<String> emotions = emotionMappings.stream()
+                    .map(mapping -> mapping.getEmotionData().getName())
+                    .collect(java.util.stream.Collectors.toList());
+                
+                result.put("analyzedEmotions", emotions);
+                System.out.println("Analyzed emotions: " + emotions);
+            } catch (Exception e) {
+                System.err.println("Error getting emotion mappings: " + e.getMessage());
+                result.put("analyzedEmotions", new ArrayList<String>());
             }
             
             System.out.println("Returning success response with data: " + result);
@@ -186,6 +204,64 @@ public class DiaryController {
         }
     }
     // ===================== END DEBUG API ENDPOINT =====================
+
+    // ===================== EMOTION MAPPING API =====================
+    // 2025-01-XX: 감정 매핑 조회 기능 추가
+    
+    // 특정 코멘트의 감정 분석 결과 조회
+    @GetMapping("/api/daily-comments/{commentId}/emotions")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<List<String>>> getCommentEmotions(@PathVariable Long commentId) {
+        try {
+            List<com.example.backend.entity.CommentEmotionMapping> emotionMappings = 
+                diaryService.getCommentEmotionMappings(commentId);
+            
+            List<String> emotions = emotionMappings.stream()
+                .map(mapping -> mapping.getEmotionData().getName())
+                .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "감정 분석 결과 조회 성공", emotions));
+        } catch (Exception e) {
+            System.err.println("Error getting comment emotions: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "감정 분석 결과 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    
+    // 특정 사용자의 모든 감정 분석 결과 조회
+    @GetMapping("/api/users/{userId}/emotions")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserEmotions(@PathVariable Long userId) {
+        try {
+            List<com.example.backend.entity.CommentEmotionMapping> emotionMappings = 
+                diaryService.getUserEmotionMappings(userId);
+            
+            // 감정별 빈도 계산
+            Map<String, Long> emotionFrequency = emotionMappings.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    mapping -> mapping.getEmotionData().getName(),
+                    java.util.stream.Collectors.counting()
+                ));
+            
+            // 전체 감정 목록
+            List<String> allEmotions = emotionMappings.stream()
+                .map(mapping -> mapping.getEmotionData().getName())
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("emotionFrequency", emotionFrequency);
+            result.put("allEmotions", allEmotions);
+            result.put("totalEmotionCount", emotionMappings.size());
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "사용자 감정 분석 결과 조회 성공", result));
+        } catch (Exception e) {
+            System.err.println("Error getting user emotions: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "사용자 감정 분석 결과 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END EMOTION MAPPING API =====================
 
 
 
