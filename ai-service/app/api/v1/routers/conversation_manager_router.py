@@ -8,11 +8,11 @@ from app.models.agent import (
 from app.services.conversation_manager import ConversationManager
 from app.services.history import RedisHistory
 
-# ChatbotService import (상위 디렉토리의 chatbot 모듈 사용)
+# AgentService import (상위 디렉토리의 chatbot 모듈 사용)
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-from chatbot.chatbot_service import ChatbotService
+from chatbot.agent_service import AgentService
 
 conversation_router = APIRouter(
     prefix="/conversation-manager",                  # 👈 기능을 드러내는 prefix
@@ -136,40 +136,43 @@ def generate_simple_response(user_message: str) -> str:
     else:
         return "선생님은 제자님의 말씀을 잘 들었어요. 더 자세히 이야기해줄 수 있을까요?"
 
-# 전역 ChatbotService 인스턴스들을 관리하는 딕셔너리
-_chatbot_instances = {}
+# 전역 AgentService 인스턴스들을 관리하는 딕셔너리
+_agent_instances = {}
 
-def get_chatbot_service(user_id: str) -> ChatbotService:
-    """사용자별 ChatbotService 인스턴스를 관리"""
-    if user_id not in _chatbot_instances:
-        chatbot_service = ChatbotService(user_id=user_id)
-        chatbot_service.initialize()
-        _chatbot_instances[user_id] = chatbot_service
-    return _chatbot_instances[user_id]
+def get_agent_service(user_id: str) -> AgentService:
+    """사용자별 AgentService 인스턴스를 관리"""
+    if user_id not in _agent_instances:
+        agent_service = AgentService(user_id=user_id)
+        agent_service.initialize()
+        _agent_instances[user_id] = agent_service
+    return _agent_instances[user_id]
 
 @conversation_router.post(
     "/chat-advanced",
     response_model=AdvancedChatResponse,
-    summary="고급 채팅 응답 생성 (RAG 포함)",
-    description="ChatbotService를 사용하여 RAG, 의도 분류, 벡터 검색 등의 고급 기능으로 AI 응답을 생성합니다.",
+    summary="고급 채팅 응답 생성 (Agent 기반)",
+    description="AgentService를 사용하여 자율적 의사결정과 동적 전략 수립으로 AI 응답을 생성합니다.",
 )
 async def chat_advanced(req: AdvancedChatRequest):
-    """고급 ChatbotService를 사용한 채팅 응답 생성"""
+    """고급 AgentService를 사용한 채팅 응답 생성"""
     user_id = req.user_id or "web_user_01"
     
     try:
-        # ChatbotService 인스턴스 가져오기 (필요시 초기화)
-        chatbot_service = get_chatbot_service(user_id)
+        # AgentService 인스턴스 가져오기 (필요시 초기화)
+        agent_service = get_agent_service(user_id)
         
-        # ChatbotService로 응답 생성
-        result = chatbot_service.get_response(req.message)
+        # AgentService로 응답 생성
+        result = agent_service.get_response(req.message)
+        
+        # 에이전트 상태 정보 가져오기
+        agent_state = agent_service.get_agent_state()
         
         return AdvancedChatResponse(
             success=result["success"],
             response=result["response"],
             user_id=user_id,
-            intent=None,  # TODO: 의도 정보도 반환하도록 ChatbotService 수정 가능
-            rag_used=None  # TODO: RAG 사용 여부도 반환하도록 수정 가능
+            intent=agent_state.get("intent"),
+            rag_used=agent_state.get("complexity_score", 0) > 0.5  # 복잡도가 높으면 RAG 사용으로 간주
         )
         
     except Exception as e:
@@ -192,12 +195,12 @@ async def end_conversation(req: ConversationSummaryRequest):
     user_id = req.user_id or "web_user_01"
     
     try:
-        if user_id in _chatbot_instances:
-            chatbot_service = _chatbot_instances[user_id]
-            result = chatbot_service.end_conversation()
+        if user_id in _agent_instances:
+            agent_service = _agent_instances[user_id]
+            result = agent_service.end_conversation()
             
             # 인스턴스 제거 (새로운 대화를 위해)
-            del _chatbot_instances[user_id]
+            del _agent_instances[user_id]
             
             return ConversationSummaryResponse(
                 success=result["success"],
@@ -216,4 +219,30 @@ async def end_conversation(req: ConversationSummaryRequest):
             success=False,
             response=f"대화 요약 중 오류가 발생했습니다: {str(e)}",
             user_id=user_id
-        ) 
+        )
+
+@conversation_router.get(
+    "/agent-state/{user_id}",
+    summary="에이전트 상태 조회",
+    description="특정 사용자의 에이전트 상태 정보를 조회합니다.",
+)
+async def get_agent_state(user_id: str):
+    """에이전트 상태 조회"""
+    try:
+        if user_id in _agent_instances:
+            agent_service = _agent_instances[user_id]
+            state = agent_service.get_agent_state()
+            return {
+                "user_id": user_id,
+                "agent_state": state
+            }
+        else:
+            return {
+                "user_id": user_id,
+                "agent_state": {"error": "에이전트가 초기화되지 않았습니다."}
+            }
+    except Exception as e:
+        return {
+            "user_id": user_id,
+            "agent_state": {"error": f"상태 조회 중 오류 발생: {str(e)}"}
+        } 
