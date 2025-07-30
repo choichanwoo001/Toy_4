@@ -38,7 +38,7 @@ class DiaryAnalyzer:
         self.quote_col = self.client.get_or_create_collection(name="diary_quotes")
     
     def embed_text_diary(self, text: str) -> List[float]:
-        """일기 텍스트를 벡터로 변환하는 함수 (vector_db.py와 동일한 방식)"""
+        """일기 텍스트를 벡터로 변환하는 함수 (Mean Pooling 방식)"""
         try:
             # 1. 텍스트를 토큰으로 변환
             encoded_input = self.tokenizer_diary(text, padding=True, truncation=True, max_length=512, return_tensors='pt')
@@ -47,8 +47,13 @@ class DiaryAnalyzer:
             with torch.no_grad():
                 model_output = self.embedding_model_diary(**encoded_input)
             
-            # 3. CLS 토큰 사용으로 문장 전체의 벡터 생성
-            sentence_embeddings = model_output.last_hidden_state[:, 0, :]
+            # 3. Mean Pooling 사용 (모든 토큰의 평균)
+            attention_mask = encoded_input['attention_mask']
+            token_embeddings = model_output.last_hidden_state
+            
+            # 패딩 토큰 제외하고 평균 계산
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            sentence_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
             
             # 4. 벡터 정규화 (크기를 1로 만듦)
             sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
@@ -61,7 +66,7 @@ class DiaryAnalyzer:
             raise
     
     def embed_text_general(self, text: str) -> List[float]:
-        """일반 텍스트를 벡터로 변환하는 함수 (vector_db.py와 동일한 방식)"""
+        """일반 텍스트를 벡터로 변환하는 함수 (Mean Pooling 방식)"""
         try:
             # 1. 텍스트를 토큰으로 변환
             encoded_input = self.tokenizer_general(text, padding=True, truncation=True, max_length=256, return_tensors='pt')
@@ -70,8 +75,13 @@ class DiaryAnalyzer:
             with torch.no_grad():
                 model_output = self.embedding_model_general(**encoded_input)
             
-            # 3. CLS 토큰 사용으로 문장 전체의 벡터 생성
-            sentence_embeddings = model_output.last_hidden_state[:, 0, :]
+            # 3. Mean Pooling 사용 (모든 토큰의 평균)
+            attention_mask = encoded_input['attention_mask']
+            token_embeddings = model_output.last_hidden_state
+            
+            # 패딩 토큰 제외하고 평균 계산
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            sentence_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
             
             # 4. 벡터 정규화 (크기를 1로 만듦)
             sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)

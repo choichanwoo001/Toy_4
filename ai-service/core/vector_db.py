@@ -158,9 +158,13 @@ class VectorDatabase:
             with torch.no_grad():
                 model_output = self.embedding_model(**encoded_input)
             
-            # 3. CLS 토큰 사용으로 문장 전체의 벡터 생성
-            # [CLS] 토큰의 임베딩을 사용하여 더 나은 문장 표현 생성
-            sentence_embeddings = model_output.last_hidden_state[:, 0, :]
+            # 3. Mean Pooling 사용 (모든 토큰의 평균)
+            # 패딩 토큰 제외하고 평균 계산하여 더 정확한 문장 표현 생성
+            attention_mask = encoded_input['attention_mask']
+            token_embeddings = model_output.last_hidden_state
+            
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            sentence_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
             
             # 4. 벡터 정규화 (크기를 1로 만듦)
             # 벡터의 방향만 중요하고 크기는 중요하지 않으므로
@@ -202,8 +206,12 @@ class VectorDatabase:
             with torch.no_grad():
                 model_output = self.embedding_model_diary(**encoded_input)
             
-            # 3. CLS 토큰 사용으로 문장 전체의 벡터 생성
-            sentence_embeddings = model_output.last_hidden_state[:, 0, :]
+            # 3. Mean Pooling 사용 (모든 토큰의 평균)
+            attention_mask = encoded_input['attention_mask']
+            token_embeddings = model_output.last_hidden_state
+            
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+            sentence_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
             
             # 4. 벡터 정규화 (크기를 1로 만듦)
             sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
