@@ -50,4 +50,14 @@ public class Diary {
     public String getEmotion() { return emotion; }
     public void setEmotion(String emotion) { this.emotion = emotion; }
     // ===================== END NEW GETTER/SETTER =====================
+
+    // ===================== TEMPORARY FIELD FOR DATABASE COMPATIBILITY =====================
+    // 2025-01-XX: 데이터베이스 스키마 호환성을 위한 임시 필드
+    // 실제로는 사용하지 않지만, 데이터베이스 스키마와 맞추기 위해 유지
+    @Column(name = "applied_stamp", nullable = true)
+    private String appliedStamp = null;
+    
+    public String getAppliedStamp() { return appliedStamp; }
+    public void setAppliedStamp(String appliedStamp) { this.appliedStamp = appliedStamp; }
+    // ===================== END TEMPORARY FIELD =====================
 }

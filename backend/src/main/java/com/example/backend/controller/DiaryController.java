@@ -98,6 +98,88 @@ public class DiaryController {
     }
     // ===================== END NEW API ENDPOINT =====================
 
+    // ===================== NEW DAILY COMMENT API =====================
+    // 2025-01-XX: 일별 코멘트 저장 기능 추가
+    // 코멘트 저장 시 현재 적용중인 스탬프 정보도 함께 저장
+    @PostMapping("/api/daily-comments")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveDailyComment(@RequestParam Long userId,
+                                                                             @RequestParam String content,
+                                                                             @RequestParam String diaryDate) {
+        try {
+            // diaryDate 문자열을 LocalDateTime으로 변환
+            java.time.LocalDateTime parsedDate = java.time.LocalDateTime.parse(diaryDate);
+            
+            // 코멘트 저장 (스탬프 정보 포함)
+            com.example.backend.entity.DailyComment savedComment = diaryService.saveDailyComment(userId, content, parsedDate);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("commentId", savedComment.getId());
+            result.put("content", savedComment.getContent());
+            result.put("diaryDate", savedComment.getDiaryDate());
+            result.put("createdAt", savedComment.getCreatedAt());
+            
+            // 스탬프 정보 포함
+            if (savedComment.getUserStamp() != null) {
+                result.put("stampName", savedComment.getUserStamp().getStampId()); // 실제로는 Stamp 엔티티에서 이름을 가져와야 함
+            }
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "코멘트 저장 성공", result));
+        } catch (Exception e) {
+            System.err.println("Error saving daily comment: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "코멘트 저장 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW DAILY COMMENT API =====================
+
+    // ===================== NEW CALENDAR DATA API =====================
+    // 2025-01-XX: 달력 데이터 조회 기능 추가
+    // 일기와 코멘트(스탬프 포함) 정보를 함께 조회
+    @GetMapping("/api/calendar-data")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCalendarData(@RequestParam Long userId,
+                                                                           @RequestParam int year,
+                                                                           @RequestParam int month) {
+        try {
+            Map<String, Object> calendarData = diaryService.getCalendarData(userId, year, month);
+            return ResponseEntity.ok(new ApiResponse<>(true, "달력 데이터 조회 성공", calendarData));
+        } catch (Exception e) {
+            System.err.println("Error getting calendar data: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "달력 데이터 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW CALENDAR DATA API =====================
+
+    // ===================== DEBUG API ENDPOINT =====================
+    // 2025-01-XX: 디버깅을 위한 모든 코멘트 조회 API 추가
+    @GetMapping("/api/debug/comments")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllComments(@RequestParam Long userId) {
+        try {
+            List<Map<String, Object>> comments = diaryService.getAllCommentsForDebug(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "모든 코멘트 조회 성공", comments));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "모든 코멘트 조회 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END DEBUG API ENDPOINT =====================
+
+    // ===================== DUMMY DATA API =====================
+    // 2025-01-XX: 테스트를 위한 더미 데이터 생성 API 추가
+    @PostMapping("/api/dummy-data")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createDummyData(@RequestParam Long userId) {
+        try {
+            Map<String, Object> result = diaryService.createDummyData(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "더미 데이터 생성 성공", result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse<>(false, "더미 데이터 생성 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END DUMMY DATA API =====================
+
     // ===================== NEW API ENDPOINT =====================
     // 2025-01-XX: 현재 적용된 스탬프 조회 기능 추가
     // 사용자가 포인트샵에서 구매한 스탬프 중 현재 적용된 스탬프 정보 조회

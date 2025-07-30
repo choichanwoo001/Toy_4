@@ -233,11 +233,8 @@ function setupEmotionButtons() {
         btn.addEventListener('click', function() {
             // 과거 날짜 체크
             const today = new Date();
-            const isPast = selectedDate && (
-                selectedDate.getFullYear() < today.getFullYear() ||
-                (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-                (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-            );
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
             
             if (isPast) {
                 showErrorMessage('과거 날짜에는 감정을 선택할 수 없습니다.');
@@ -333,13 +330,10 @@ function updateAIComment(allTodayRecords) {
             ? emotions.map(emotion => `#${getEmotionKeyword(emotion)}`).join(' ')
             : '#기쁨 #평온 #대견함';
         
-        // 과거 날짜인지 확인
-        const today = new Date();
-        const isPast = selectedDate && (
-            selectedDate.getFullYear() < today.getFullYear() ||
-            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-        );
+                    // 과거 날짜인지 확인
+            const today = new Date();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
         
         if (isPast) {
             // 과거 날짜에 대한 따뜻한 코멘트
@@ -403,6 +397,19 @@ function updateSectionVisibility(hasSubmitted = false) {
         saveDiaryBtn.classList.remove('hidden');
         aiCommentSection.classList.add('hidden');
         aiChatButton.classList.add('hidden');
+        
+        // 입력 필드와 감정 버튼들 활성화
+        if (diaryContent) {
+            diaryContent.disabled = false;
+            diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+        }
+        
+        const emotionButtons = document.querySelectorAll('.emotion-btn');
+        emotionButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        });
     }
 }
 
@@ -432,11 +439,8 @@ function setupEventListeners() {
             
     // 과거 날짜 체크 - 추가 보안
     const today = new Date();
-    const isPast = selectedDate && (
-        selectedDate.getFullYear() < today.getFullYear() ||
-        (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-        (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-    );
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
     
     if (isPast) {
         showErrorMessage('과거 날짜에는 기록할 수 없습니다.');
@@ -868,9 +872,9 @@ async function initUserId() {
     console.log('=== initUserId 완료, 최종 userId:', userId, '===');
 }
 
-function renderCalendar(year, month, diaryData) {
+function renderCalendar(year, month, diaryData, comments = []) {
     console.log('=== renderCalendar 시작 ===');
-    console.log('year:', year, 'month:', month, 'diaryData:', diaryData);
+    console.log('year:', year, 'month:', month, 'diaryData:', diaryData, 'comments:', comments);
     
     const calendarGrid = document.getElementById('calendar-grid');
     console.log('calendarGrid element:', calendarGrid);
@@ -936,23 +940,33 @@ function renderCalendar(year, month, diaryData) {
         numSpan.className = 'date-number';
         numSpan.textContent = d;
         cell.appendChild(numSpan);
-        // 일기 데이터가 있으면 표시
+        // 일기 데이터가 있으면 표시 (스탬프 없이)
         const diary = diaryData.find(item => new Date(item.createdAt).getDate() === d);
         if (diary) {
             cell.classList.add('has-diary');
-            // 현재 적용된 스탬프 표시
+            // 일기는 스탬프 없이 텍스트만 표시
+        }
+        
+        // AI 코멘트가 있으면 스탬프 표시
+        const comment = comments.find(item => new Date(item.diaryDate).getDate() === d);
+        if (comment) {
+            cell.classList.add('has-comment');
+            // AI 코멘트에 저장된 스탬프 표시
             const img = document.createElement('img');
-            if (currentActiveStamp) {
-                img.src = '/' + currentActiveStamp.stampImage;
-                img.alt = currentActiveStamp.stampName + ' 스탬프';
+            if (comment.userStamp && comment.userStamp.stampImage) {
+                img.src = '/' + comment.userStamp.stampImage;
+                img.alt = comment.userStamp.stampName + ' 스탬프';
+            } else if (comment.userStamp && comment.userStamp.userStampId === -1) {
+                // 더미 스탬프 (기존 코멘트)
+                img.src = '/image/default_stamp.png';
+                img.alt = '참잘했어요 스탬프';
             } else {
+                // 기존 코멘트는 기본 스탬프 사용
                 img.src = '/image/default_stamp.png';
                 img.alt = '참잘했어요 스탬프';
             }
             img.className = 'stamp-image-calendar';
             cell.appendChild(img);
-            
-            // 스탬프 이미지는 즉시 로드
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
@@ -1026,9 +1040,11 @@ function renderRecordsList(records, year, month, day) {
     recordsList.innerHTML = '';
     
     const today = new Date();
-    const isPast = (year < today.getFullYear()) ||
-        (year === today.getFullYear() && month < today.getMonth()+1) ||
-        (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
+    const selectedDate = new Date(year, month - 1, day);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
+    
+
     
     if (records.length === 0) {
         if (!userId) {
@@ -1118,7 +1134,36 @@ function renderRecordsList(records, year, month, day) {
             if (aiCommentSection) aiCommentSection.classList.add('hidden');
         } else {
             // 로그인한 경우 제출 상태 확인 후 적절한 섹션 표시
-            checkTodaySubmissionStatus();
+            // 오늘 날짜인지 확인하여 적절한 처리
+            const isToday = year === today.getFullYear() && month === (today.getMonth() + 1) && day === today.getDate();
+            if (isToday) {
+                checkTodaySubmissionStatus();
+            } else {
+                // 미래 날짜인 경우 입력창 활성화
+                if (newRecordSection) {
+                    newRecordSection.classList.remove('hidden');
+                }
+                if (saveDiaryBtn) {
+                    saveDiaryBtn.classList.remove('hidden');
+                    saveDiaryBtn.disabled = false;
+                }
+                if (aiCommentSection) aiCommentSection.classList.add('hidden');
+                
+                // 입력 필드 활성화
+                const diaryContent = document.getElementById('diary-content');
+                if (diaryContent) {
+                    diaryContent.disabled = false;
+                    diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+                }
+                
+                // 감정 버튼들 활성화
+                const emotionButtons = document.querySelectorAll('.emotion-btn');
+                emotionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
         }
     }
 }
@@ -1164,7 +1209,7 @@ function fetchAndRender() {
         console.log('❌ 로그인하지 않은 상태 - 빈 달력 표시');
         currentDiaries = [];
         console.log('renderCalendar 호출 전');
-        renderCalendar(currentYear, currentMonth, currentDiaries);
+        renderCalendar(currentYear, currentMonth, currentDiaries, []);
         console.log('renderCalendar 호출 후');
         updateCalendarSummary(currentDiaries, currentYear, currentMonth);
         renderWeeklyReports(currentDiaries, currentYear, currentMonth);
@@ -1180,9 +1225,9 @@ function fetchAndRender() {
         return;
     }
     
-    console.log('✅ 로그인한 사용자 - API 호출:', `/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
+    console.log('✅ 로그인한 사용자 - API 호출:', `/api/calendar-data?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
     
-    fetch(`/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
+    fetch(`/api/calendar-data?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
         .then(res => {
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
@@ -1190,14 +1235,16 @@ function fetchAndRender() {
             return res.json();
         })
         .then(async data => {
-            currentDiaries = data.data || [];
+            const calendarData = data.data || {};
+            currentDiaries = calendarData.diaries || [];
+            const comments = calendarData.comments || [];
             
             // 스탬프 정보가 없으면 다시 로드
             if (!currentActiveStamp) {
                 await loadActiveStamp();
             }
             
-            renderCalendar(currentYear, currentMonth, currentDiaries);
+            renderCalendar(currentYear, currentMonth, currentDiaries, comments);
             updateCalendarSummary(currentDiaries, currentYear, currentMonth);
             renderWeeklyReports(currentDiaries, currentYear, currentMonth);
             
