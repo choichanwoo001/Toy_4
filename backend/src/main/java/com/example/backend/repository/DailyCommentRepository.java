@@ -16,14 +16,14 @@ public interface DailyCommentRepository extends JpaRepository<DailyComment, Long
     
     // ===================== UPDATED QUERY METHOD =====================
     // 2025-01-XX: 달력 조회를 위한 월별 코멘트 조회 메서드 수정
-    // 특정 월의 코멘트를 조회하여 UserStampPreference 정보와 함께 반환
+    // 특정 월의 코멘트를 조회하여 UserStamp 정보와 함께 반환
     @Query("SELECT dc FROM DailyComment dc " +
-           "LEFT JOIN FETCH dc.userStampPreference usp " +
+           "LEFT JOIN FETCH dc.userStamp us " +
            "WHERE dc.user.userId = :userId " +
            "AND YEAR(dc.diaryDate) = :year " +
            "AND MONTH(dc.diaryDate) = :month")
-    List<DailyComment> findByUserAndYearMonthWithStampPreference(@Param("userId") Long userId, 
-                                                               @Param("year") int year, 
-                                                               @Param("month") int month);
+    List<DailyComment> findByUserAndYearMonthWithStamp(@Param("userId") Long userId, 
+                                                      @Param("year") int year, 
+                                                      @Param("month") int month);
     // ===================== END UPDATED QUERY METHOD =====================
 }
