@@ -10,9 +10,10 @@ class Config:
     
     # 임베딩 모델 설정 (HuggingFace)
     EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # 한국어 성능이 좋은 모델
+    EMBEDDING_MODEL_DIARY = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     
     # ChromaDB 설정
-    CHROMA_PERSIST_DIRECTORY = "data/chroma_db"  # 데이터베이스 저장 경로
+    CHROMA_PERSIST_DIRECTORY = "ai-service/data/chroma_db"  # 데이터베이스 저장 경로
     COLLECTION_NAME = "diary_advice"  # 기본 조언 컬렉션
     QUOTES_COLLECTION_NAME = "diary_quotes"  # 명언 컬렉션
     PAST_DIARIES_COLLECTION_NAME = "diary_past_diaries"  # 과거 일기 컬렉션
