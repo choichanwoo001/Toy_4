@@ -15,6 +15,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 
 from app.models.diary import DiaryAnalysisResponse, DiaryChunk, EmotionSituationExtraction
+from app.prompts.loader import load_prompt
 
 # 환경설정
 load_dotenv()
@@ -95,19 +96,7 @@ class DiaryAnalyzer:
     
     def preprocess_diary(self, raw_diary: str, max_retries: int = 3) -> str:
         """일기 전처리 - 문법 및 문맥 정리"""
-        prompt = f"""
-다음은 사용자가 쓴 일기입니다.  
-이 일기를 문법적으로 자연스럽게 다듬고, 문맥 흐름도 매끄럽게 정리해주세요.  
-내용을 바꾸지 말고, 표현을 다듬기만 하세요.
-
-📜 원본 일기:
-{raw_diary}
-
-📦 출력 형식:
-```text
-(수정된 일기 전체 문장)
-```
-"""
+        prompt = load_prompt("diary_preprocess").format(raw_diary=raw_diary)
         for attempt in range(max_retries):
             try:
                 response = openai.chat.completions.create(
@@ -129,26 +118,7 @@ class DiaryAnalyzer:
     
     def chunk_diary_by_meaning(self, diary_text: str, max_retries: int = 3) -> List[str]:
         """의미 단위로 일기 청크 분할"""
-        prompt = f"""
-다음은 한 사용자가 쓴 일기입니다.  
-이 일기를 **의미 단위**로 나눠서 문장 단위로 청크(덩어리)로 만들어 주세요.  
-
-조건:
-- 각 청크는 명확한 의미 흐름을 가져야 합니다.
-- 문장은 자르지 말고, 자연스럽게 연결된 문장끼리 묶어 주세요.
-- 출력은 리스트(JSON 배열) 형태로 주세요.
-
-📜 일기:
-{diary_text}
-
-📦 출력 형식:
-```json
-[
-  "청크1",
-  "청크2"
-]
-```
-"""
+        prompt = load_prompt("diary_chunking").format(diary_text=diary_text)
         for attempt in range(max_retries):
             try:
                 response = openai.chat.completions.create(
@@ -170,26 +140,7 @@ class DiaryAnalyzer:
     
     def extract_emotion_situation(self, text: str, max_retries: int = 3) -> Tuple[Optional[str], Optional[str]]:
         """감정과 상황 추출"""
-        system_prompt = """당신은 심리 분석에 능숙한 AI입니다.
-
-다음은 사용자 일기에서 분리된 한 개의 청크(문장 묶음)입니다.  
-이 청크의 내용 전체를 이해하고, 다음 조건에 따라 **주된 감정 1개와 상황 1개를 추출**하세요.
-
-✅ 조건:
-1. 감정과 상황은 각각 **정확히 1개**만 추출합니다.
-2. 감정은 사용자의 심리 상태, 정서, 반응 (예: 외로움, 뿌듯함, 분노 등)
-3. 상황은 사용자의 행동, 환경, 맥락 (예: 발표, 친구와 대화 등)
-4. 추상적 단어나 복합 감정은 피하세요.
-5. 반드시 JSON 형식으로만 출력하세요. 그 외 설명은 절대 하지 마세요.
-
-📦 출력 형식 (형식을 반드시 지킬 것):
-
-```json
-{
-  "감정": "여기에 감정 1개",
-  "상황": "여기에 상황 1개"
-}
-```"""
+        system_prompt = load_prompt("emotion_situation_extraction")
         
         for attempt in range(max_retries):
             try:
@@ -216,28 +167,7 @@ class DiaryAnalyzer:
     
     def map_to_categories(self, emotion: str, situation: str, max_retries: int = 3) -> Tuple[Optional[str], Optional[str]]:
         """감정과 상황을 카테고리로 매핑"""
-        prompt = f"""
-다음은 LLM이 추출한 감정과 상황입니다:
-- 감정: "{emotion}"
-- 상황: "{situation}"
-
-이 감정과 상황을 아래 사전 정의된 카테고리 중 가장 유사한 항목으로 각각 매핑해주세요.  
-정확히 일치하지 않아도 의미상 가장 가까운 항목 하나를 선택하세요.  
-카테고리 외의 값을 출력하지 마세요.
-
-📌 감정 카테고리 목록:
-["긍정적 감정", "부정적 감정", "두려움과 공포", "불안과 긴장", "수치와 자책", "소외와 상실", "그리움과 아쉬움", "동기와 욕구", "사회적 관계 감정", "이완과 침체", "혼란과 의심", "경이와 압도"]
-
-📌 상황 카테고리 목록:
-["일상 및 여가", "인간관계", "업무 및 학습", "건강 및 의료", "디지털 및 온라인 활동", "내면 활동 및 감정", "경제 및 소비생활", "특별한 날과 사건", "창작과 성장"]
-
-📦 출력 형식:
-```json
-{{
-  "감정카테고리": "여기에 감정 카테고리",
-  "상황카테고리": "여기에 상황 카테고리"
-}}
-```"""
+        prompt = load_prompt("category_mapping").format(emotion=emotion, situation=situation)
         
         for attempt in range(max_retries):
             try:
@@ -355,29 +285,8 @@ class DiaryAnalyzer:
             return None
         
         print(f"       🔄 {len(advice_list)}개 조언 통합 시작")
-        advice_prompt = f"""
-다음은 사용자가 작성한 일기의 각 청크에서 추출된 조언들입니다.
-
-이 조언들은 상황에 따라 중복되거나 유사한 내용을 담고 있을 수 있습니다.
-이 조언들을 종합해서, 전체 흐름을 고려한 **핵심적인 하나의 조언 문장**으로 정리해주세요.
-
-조건:
-- 너무 길게 쓰지 말고, 한 문장 또는 두 문장 이내로 간결하게 작성해주세요.
-- 말투는 따뜻하고 부드럽게 해주세요.
-- 반복되거나 불필요한 내용은 정리해서 하나로 통합해 주세요.
-
----
-
-조언 리스트:
-{chr(10).join(f"- {a}" for a in advice_list)}
-
----
-
-# 출력 형식:
-```text
-하나의 통합 조언 문장
-```
-"""
+        advice_list_formatted = "\n".join(f"- {a}" for a in advice_list)
+        advice_prompt = load_prompt("advice_integration").format(advice_list_formatted=advice_list_formatted)
         try:
             response = openai.chat.completions.create(
                 model="gpt-4o",
@@ -457,39 +366,21 @@ class DiaryAnalyzer:
         system_prompt = "당신은 사용자의 감정을 진심으로 이해하고 위로해주는 따뜻한 선생님입니다."
         
         if quote:
-            human_prompt = f"""아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
-
-일기:
-{current_diary}
-
-조언:
-{advice}
-
-{f'\n과거 유사 일기 기록:\n{similar_past_diaries}' if similar_past_diaries else ''}
-{f'\n관련 인용문:\n{quote}'}
-
-요구사항:
-- 코멘트는 3~4문장으로 하나의 문단을 이루어야 합니다.
-- 반드시 조언 내용을 참고하되, 코멘트에 '조언에 따라', '조언을 참고하여' 등 조언을 직접적으로 언급하지 마세요.
-- 과거 일기 기록이 있는 경우 해당 내용을 구체적으로 언급해주세요.
-- 관련 인용문을 따옴표("")로 감싸고 저자와 함께 표시해주세요.
-- 따뜻하고 공감 어린 말투를 유지해주세요."""
+            similar_past_diaries_section = f'\n과거 유사 일기 기록:\n{similar_past_diaries}' if similar_past_diaries else ''
+            quote_section = f'\n관련 인용문:\n{quote}'
+            human_prompt = load_prompt("comment_generation").format(
+                current_diary=current_diary,
+                advice=advice,
+                similar_past_diaries_section=similar_past_diaries_section,
+                quote_section=quote_section
+            )
         else:
-            human_prompt = f"""아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
-
-일기:
-{current_diary}
-
-조언:
-{advice}
-
-{f'\n과거 유사 일기 기록:\n{similar_past_diaries}' if similar_past_diaries else ''}
-
-요구사항:
-- 코멘트는 3~4문장으로 하나의 문단을 이루어야 합니다.
-- 반드시 조언 내용을 참고하되, 코멘트에 '조언에 따라', '조언을 참고하여' 등 조언을 직접적으로 언급하지 마세요.
-- 과거 일기 기록이 있는 경우 해당 내용을 구체적으로 언급해주세요.
-- 따뜻하고 공감 어린 말투를 유지해주세요."""
+            similar_past_diaries_section = f'\n과거 유사 일기 기록:\n{similar_past_diaries}' if similar_past_diaries else ''
+            human_prompt = load_prompt("comment_generation_no_quote").format(
+                current_diary=current_diary,
+                advice=advice,
+                similar_past_diaries_section=similar_past_diaries_section
+            )
         
         messages = [
             SystemMessage(content=system_prompt),
@@ -509,15 +400,11 @@ class DiaryAnalyzer:
         selector = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, n=1)
         
         select_system = SystemMessage(content="당신은 공정하고 객관적인 평가자입니다.")
-        select_human = HumanMessage(content=f"""위에 생성된 세 개의 코멘트 중에서
-"일기의 감정과 상황, 제시된 조언, 과거 유사 일기, 그리고 인용문"을
-가장 잘 반영한 한 가지 코멘트를 골라서, 번호와 함께 해당 코멘트만 출력해주세요.
-
-1) {comments[0]}
-
-2) {comments[1]}
-
-3) {comments[2]}""")
+        select_human = HumanMessage(content=load_prompt("comment_selection").format(
+            comment1=comments[0],
+            comment2=comments[1],
+            comment3=comments[2]
+        ))
         
         selection = selector.invoke([select_system, select_human])
         final_comment = selection.content.strip()
@@ -539,15 +426,8 @@ class DiaryAnalyzer:
         if not chunks:
             return []
         
-        prompt = f"""
-다음은 사용자가 작성한 일기의 청크들입니다. 
-이 내용에서 나타나는 주요 감정 키워드들을 추출해주세요.
-
-일기 청크들:
-{chr(10).join(f"- {chunk}" for chunk in chunks)}
-
-감정 키워드들을 쉼표로 구분하여 출력해주세요. (예: 기쁨, 평온, 대견함, 일상)
-"""
+        chunks_formatted = "\n".join(f"- {chunk}" for chunk in chunks)
+        prompt = load_prompt("emotion_keywords").format(chunks_formatted=chunks_formatted)
         
         try:
             response = openai.chat.completions.create(

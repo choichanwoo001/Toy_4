@@ -16,7 +16,15 @@ PROMPT_FILES = {
     "response_simple_emotion": PROMPT_DIR / "response_simple_emotion_prompt.txt",  # 단순 감정 응답 프롬프트
     "conversation_summary": PROMPT_DIR / "conversation_summary_prompt.txt",  # 대화 요약 프롬프트
     "diary_correction": PROMPT_DIR / "diary_correction_prompt.txt",  # 일기 수정 프롬프트
-    "diary_chunking": PROMPT_DIR / "diary_chunking_prompt.txt"  # 일기 청킹 프롬프트
+    "diary_chunking": PROMPT_DIR / "diary_chunking_prompt.txt",  # 일기 청킹 프롬프트
+    "diary_preprocess": PROMPT_DIR / "diary_preprocess_prompt.txt",  # 일기 전처리 프롬프트
+    "emotion_situation_extraction": PROMPT_DIR / "emotion_situation_extraction_prompt.txt",  # 감정/상황 추출 프롬프트
+    "category_mapping": PROMPT_DIR / "category_mapping_prompt.txt",  # 카테고리 매핑 프롬프트
+    "advice_integration": PROMPT_DIR / "advice_integration_prompt.txt",  # 조언 통합 프롬프트
+    "comment_generation": PROMPT_DIR / "comment_generation_prompt.txt",  # 코멘트 생성 프롬프트
+    "comment_generation_no_quote": PROMPT_DIR / "comment_generation_no_quote_prompt.txt",  # 코멘트 생성 프롬프트 (명언 없음)
+    "comment_selection": PROMPT_DIR / "comment_selection_prompt.txt",  # 코멘트 선택 프롬프트
+    "emotion_keywords": PROMPT_DIR / "emotion_keywords_prompt.txt"  # 감정 키워드 추출 프롬프트
 }
 
 def load_prompt(name: str) -> str:

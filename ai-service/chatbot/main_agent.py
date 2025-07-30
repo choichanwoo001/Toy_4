@@ -226,7 +226,7 @@ class ConversationManagementTool:
             user_input=state.user_input,
             conversation_history=history_str
         )
-        
+    
         try:
             # LLM에 분석 요청
             response_str = self.llm_service.get_response(prompt)
