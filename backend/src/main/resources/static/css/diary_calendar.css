@@ -13,7 +13,10 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 0rem 0; /* 상단 패딩 줄임 */
+    padding: 2rem 0 0 0; /* 상단 패딩 추가 */
+    margin-top: 80px; /* 헤더 높이만큼 마진 추가 */
+    position: relative;
+    z-index: 1; /* 헤더보다 낮은 z-index */
 }
 
 .wrap_1280 {
@@ -76,6 +79,8 @@ body {
     border: 1px solid #B87B5C; /* BROWN SUGAR */
     width: 100%;
     max-width: 580px;
+    position: relative;
+    z-index: 1; /* 헤더보다 낮은 z-index */
 }
 
 .section-title {
@@ -401,7 +406,7 @@ body {
 
 .modal-bg {
     position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.3); z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.3); z-index: 2000; display: flex; align-items: center; justify-content: center;
 }
 
 .modal-box {
@@ -459,7 +464,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    z-index: 100; /* 컨테이너 내에서 높은 z-index */
     border-radius: 1rem;
 }
 

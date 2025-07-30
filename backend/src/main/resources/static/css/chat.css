@@ -5,7 +5,10 @@
     justify-content: center !important;
     align-items: flex-start !important;
     min-height: calc(100vh - 80px) !important;
-    padding: 2rem !important;
+    padding: 2rem 2rem 2rem 2rem !important;
+    margin-top: 80px !important; /* 헤더 높이만큼 마진 추가 */
+    position: relative !important;
+    z-index: 1 !important; /* 헤더보다 낮은 z-index */
 }
 
 .wrap_1280 {
@@ -33,6 +36,8 @@
     display: flex;
     flex-direction: column;
     height: 80vh; /* 채팅창이 화면의 대부분을 차지하도록 높이 고정 */
+    position: relative;
+    z-index: 1; /* 헤더보다 낮은 z-index */
 }
 
 .chat-header {
@@ -192,7 +197,7 @@
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 2000; /* 헤더보다 높은 z-index */
 }
 
 .popup-content {

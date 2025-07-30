@@ -66,7 +66,7 @@ const imageObserver = new IntersectionObserver((entries, observer) => {
 function showErrorMessage(message) {
     // Create error notification
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+    errorDiv.className = 'fixed top-20 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-2000 max-w-sm';
     errorDiv.innerHTML = `
         <div class="flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -94,7 +94,7 @@ function showErrorMessage(message) {
 function showSuccessMessage(message) {
     // Create success notification
     const successDiv = document.createElement('div');
-    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+    successDiv.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-2000 max-w-sm';
     successDiv.innerHTML = `
         <div class="flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
