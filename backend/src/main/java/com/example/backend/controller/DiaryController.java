@@ -2,10 +2,10 @@ package com.example.backend.controller;
 
 import com.example.backend.entity.Diary;
 import com.example.backend.service.DiaryService;
+import com.example.backend.service.PointshopService;
 import com.example.backend.dto.ApiResponse;
 import com.example.backend.entity.User;
 import com.example.backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +15,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
+import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,19 +23,15 @@ import java.util.HashMap;
 import jakarta.servlet.http.HttpSession;
 
 @Controller
+@RequiredArgsConstructor
 public class DiaryController {
-    @Autowired
-    private DiaryService diaryService;
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private com.example.backend.service.PointshopService pointshopService;
-
+    
+    private final DiaryService diaryService;
+    private final UserRepository userRepository;
+    private final PointshopService pointshopService;
     
     private final RestTemplate restTemplate = new RestTemplate();
     private final String AI_SERVICE_URL = "http://localhost:8000/api/v1/diary-analyzer/analyze";
-
 
     // ===================== REST API =====================
 
@@ -102,7 +99,6 @@ public class DiaryController {
         return ResponseEntity.ok(new ApiResponse<>(true, "감정 통계 조회 성공", emotionStats));
     }
     // ===================== END NEW API ENDPOINT =====================
-
 
     // 2025-01-XX: 현재 적용된 스탬프 조회 기능 추가
     // 사용자가 포인트샵에서 구매한 스탬프 중 현재 적용된 스탬프 정보 조회
@@ -289,7 +285,6 @@ public class DiaryController {
         }
     }
     // ===================== END NEW API ENDPOINT =====================
-
 
     // 일기 상세 조회 (REST)
     @GetMapping("/api/diaries/{id}")

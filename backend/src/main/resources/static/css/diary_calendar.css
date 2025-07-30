@@ -325,32 +325,6 @@ body {
     transition: opacity 0.3s ease-in-out;
 }
 
-/* 미리보기 스탬프는 작게 표시 */
-.stamp-image-calendar.preview {
-    width: 30px;
-    height: 30px;
-    transform: translate(-50%, -50%) rotate(5deg);
-    opacity: 0.7;
-    filter: drop-shadow(0 1px 3px rgba(60,40,120,0.15)) contrast(1.1) brightness(1.05);
-}
-
-/* 오버레이 스탬프 (일기가 있는 날짜에 선택된 스탬프 표시) */
-.stamp-image-calendar.overlay {
-    animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-3px);
-    }
-    60% {
-        transform: translateY(-2px);
-    }
-}
-
 .stamp-image-calendar.loading {
     opacity: 0;
 }
@@ -705,7 +679,7 @@ body {
     color: white;
 }
 
-/* ===================== END NEW EMOTION STATS STYLES ===================== */ 
+/* ===================== END NEW EMOTION STATS STYLES ===================== */
 
 /* 스탬프 선택 UI 스타일 */
 .stamp-option {
@@ -750,7 +724,7 @@ body {
 .stamp-option.selected .stamp-option-name {
     color: #DA983C;
     font-weight: 600;
-} 
+}
 
 /* 미리보기 스탬프 애니메이션 */
 .stamp-image-calendar.preview {

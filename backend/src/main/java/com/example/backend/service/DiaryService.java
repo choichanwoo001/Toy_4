@@ -5,6 +5,7 @@ import com.example.backend.entity.User;
 import com.example.backend.entity.UserStampPreference;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserStampPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
-    private final com.example.backend.repository.UserStampPreferenceRepository userStampPreferenceRepository;
+    private final UserStampPreferenceRepository userStampPreferenceRepository;
 
     // ===================== NEW METHOD ADDED =====================
     // 2025-01-XX: 감정 표현 기능 추가를 위한 새로운 일기 저장 메서드
