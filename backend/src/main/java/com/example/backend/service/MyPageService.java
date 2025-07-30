@@ -81,7 +81,7 @@ public class MyPageService {
         }
         java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
         int streak = 0;
-        for (com.example.backend.entity.Diary diary : diaries) {
+        for (Diary diary : diaries) {
             java.time.LocalDate diaryDate = diary.getCreatedAt().toLocalDate();
             if (diaryDate.equals(yesterday.minusDays(streak))) {
                 streak++;
