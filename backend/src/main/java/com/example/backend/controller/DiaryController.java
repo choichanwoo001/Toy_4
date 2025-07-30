@@ -6,6 +6,7 @@ import com.example.backend.service.PointshopService;
 import com.example.backend.dto.ApiResponse;
 import com.example.backend.entity.User;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.StampRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,6 +30,7 @@ public class DiaryController {
     private final DiaryService diaryService;
     private final UserRepository userRepository;
     private final PointshopService pointshopService;
+    private final StampRepository stampRepository;
     
     private final RestTemplate restTemplate = new RestTemplate();
     private final String AI_SERVICE_URL = "http://localhost:8000/api/v1/diary-analyzer/analyze";
@@ -106,12 +108,20 @@ public class DiaryController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> saveDailyComment(@RequestParam Long userId,
                                                                              @RequestParam String content,
                                                                              @RequestParam String diaryDate) {
+        System.out.println("=== Daily Comment Save API Called ===");
+        System.out.println("userId: " + userId);
+        System.out.println("content: " + content);
+        System.out.println("diaryDate: " + diaryDate);
+        
         try {
             // diaryDate 문자열을 LocalDateTime으로 변환
             java.time.LocalDateTime parsedDate = java.time.LocalDateTime.parse(diaryDate);
+            System.out.println("Parsed date: " + parsedDate);
             
             // 코멘트 저장 (스탬프 정보 포함)
+            System.out.println("Calling diaryService.saveDailyComment...");
             com.example.backend.entity.DailyComment savedComment = diaryService.saveDailyComment(userId, content, parsedDate);
+            System.out.println("Comment saved successfully with ID: " + savedComment.getId());
             
             Map<String, Object> result = new HashMap<>();
             result.put("commentId", savedComment.getId());
@@ -120,11 +130,21 @@ public class DiaryController {
             result.put("createdAt", savedComment.getCreatedAt());
             
             // 스탬프 정보 포함
-            if (savedComment.getUserStampPreference() != null) {
-                result.put("stampName", savedComment.getUserStampPreference().getSelectedStampName());
-                result.put("stampImage", savedComment.getUserStampPreference().getSelectedStampImage());
+            if (savedComment.getUserStamp() != null) {
+                // UserStamp의 stampId를 통해 Stamp 정보 조회
+                com.example.backend.entity.Stamp stamp = stampRepository.findById(savedComment.getUserStamp().getStampId()).orElse(null);
+                if (stamp != null) {
+                    System.out.println("Stamp found: " + stamp.getName());
+                    result.put("stampName", stamp.getName());
+                    result.put("stampImage", stamp.getImage());
+                } else {
+                    System.out.println("Stamp not found for stampId: " + savedComment.getUserStamp().getStampId());
+                }
+            } else {
+                System.out.println("No UserStamp found for saved comment");
             }
             
+            System.out.println("Returning success response with data: " + result);
             return ResponseEntity.ok(new ApiResponse<>(true, "코멘트 저장 성공", result));
         } catch (Exception e) {
             System.err.println("Error saving daily comment: " + e.getMessage());
@@ -298,9 +318,13 @@ public class DiaryController {
                 result.put("createdAt", dailyComment.getCreatedAt());
                 
                 // 스탬프 정보 포함
-                if (dailyComment.getUserStampPreference() != null) {
-                    result.put("stampName", dailyComment.getUserStampPreference().getSelectedStampName());
-                    result.put("stampImage", dailyComment.getUserStampPreference().getSelectedStampImage());
+                if (dailyComment.getUserStamp() != null) {
+                    // UserStamp의 stampId를 통해 Stamp 정보 조회
+                    com.example.backend.entity.Stamp stamp = stampRepository.findById(dailyComment.getUserStamp().getStampId()).orElse(null);
+                    if (stamp != null) {
+                        result.put("stampName", stamp.getName());
+                        result.put("stampImage", stamp.getImage());
+                    }
                 }
             } else {
                 result.put("success", false);
