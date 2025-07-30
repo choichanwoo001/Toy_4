@@ -39,6 +39,8 @@ class VectorDatabase:
         self.config = Config()  # 설정 파일에서 설정값 로드
         self.embedding_model = None  # 텍스트를 벡터로 변환하는 AI 모델
         self.tokenizer = None  # 텍스트를 토큰(단어 조각)으로 나누는 도구
+        self.embedding_model_diary = None  # 일기 임베딩 모델
+        self.tokenizer_diary = None  # 일기용 토크나이저
         self.client = None  # ChromaDB 클라이언트 (데이터베이스 연결 객체)
         self.collection = None  # 기본 조언 컬렉션
         self.quotes_collection = None  # 명언 컬렉션
@@ -54,12 +56,20 @@ class VectorDatabase:
         try:
             # 1. HuggingFace에서 AI 모델 다운로드 및 로딩
             logger.info("HuggingFace 임베딩 모델 로딩 중...")
+            
+            # 기본 모델 (조언, 명언용)
             # 토크나이저: 텍스트를 AI가 이해할 수 있는 토큰으로 변환
             # EMBEDDING_MODEL - sentence-transformers/all-MiniLM-L6-v2
             self.tokenizer = AutoTokenizer.from_pretrained(self.config.EMBEDDING_MODEL)
             # 임베딩 모델: 토큰을 벡터(숫자 배열)로 변환
             self.embedding_model = AutoModel.from_pretrained(self.config.EMBEDDING_MODEL)
-            logger.info(f"HuggingFace 임베딩 모델 로딩 완료: {self.config.EMBEDDING_MODEL}")
+            logger.info(f"기본 임베딩 모델 로딩 완료: {self.config.EMBEDDING_MODEL}")
+            
+            # 일기용 모델 (과거 일기용)
+            # EMBEDDING_MODEL_DIARY - sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+            self.tokenizer_diary = AutoTokenizer.from_pretrained(self.config.EMBEDDING_MODEL_DIARY)
+            self.embedding_model_diary = AutoModel.from_pretrained(self.config.EMBEDDING_MODEL_DIARY)
+            logger.info(f"일기용 임베딩 모델 로딩 완료: {self.config.EMBEDDING_MODEL_DIARY}")
             
             logger.info("ChromaDB 클라이언트 초기화 중...")
             
@@ -116,7 +126,7 @@ class VectorDatabase:
     
     def embed_text(self, text: str) -> List[float]:
         """
-        텍스트를 벡터로 변환하는 핵심 함수
+        텍스트를 벡터로 변환하는 핵심 함수 (기본 모델 사용)
         
         과정:
         1. 텍스트를 토큰으로 분할
@@ -161,6 +171,48 @@ class VectorDatabase:
             
         except Exception as e:
             logger.error(f"임베딩 생성 실패: {e}")
+            raise
+    
+    def embed_text_diary(self, text: str) -> List[float]:
+        """
+        일기 텍스트를 벡터로 변환하는 함수 (일기용 모델 사용)
+        
+        과정:
+        1. 텍스트를 토큰으로 분할 (일기용 토크나이저 사용)
+        2. 토큰을 일기용 AI 모델에 입력
+        3. AI 모델이 벡터 출력
+        4. 벡터를 정규화해서 반환
+        
+        Args:
+            text: 변환할 일기 텍스트 (예: "오늘 회사에서 힘든 일이 있었다")
+            
+        Returns:
+            List[float]: 벡터 (예: [0.1, -0.5, 0.3, ...])
+        """
+        try:
+            # 모델이 초기화되지 않았으면 초기화
+            if self.embedding_model_diary is None:
+                logger.info("일기용 임베딩 모델이 초기화되지 않아 초기화를 진행합니다...")
+                self.initialize()
+            
+            # 1. 텍스트를 토큰으로 변환 (일기용 토크나이저 사용)
+            encoded_input = self.tokenizer_diary(text, padding=True, truncation=True, max_length=512, return_tensors='pt')
+            
+            # 2. 일기용 AI 모델에 토큰 입력해서 벡터 생성
+            with torch.no_grad():
+                model_output = self.embedding_model_diary(**encoded_input)
+            
+            # 3. CLS 토큰 사용으로 문장 전체의 벡터 생성
+            sentence_embeddings = model_output.last_hidden_state[:, 0, :]
+            
+            # 4. 벡터 정규화 (크기를 1로 만듦)
+            sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
+            
+            # 5. PyTorch 텐서를 파이썬 리스트로 변환해서 반환
+            return sentence_embeddings.squeeze().cpu().numpy().tolist()
+            
+        except Exception as e:
+            logger.error(f"일기 임베딩 생성 실패: {e}")
             raise
     
     def _mean_pooling(self, model_output, attention_mask):
@@ -292,7 +344,7 @@ class VectorDatabase:
             return False
     
     def add_past_diary(self, diary_data: Dict[str, Any]) -> bool:
-        """과거 일기 데이터를 과거 일기 컬렉션에 추가"""
+        """과거 일기 데이터를 과거 일기 컬렉션에 추가 (일기용 임베딩 모델 사용)"""
         try:
             # 1. 텍스트 내용 추출
             text_content = diary_data.get("document")
@@ -300,8 +352,8 @@ class VectorDatabase:
                 logger.error("과거 일기 텍스트를 찾을 수 없습니다.")
                 return False
             
-            # 2. 과거 일기 내용을 벡터로 변환
-            embedding = self.embed_text(text_content)
+            # 2. 과거 일기 내용을 일기용 벡터로 변환
+            embedding = self.embed_text_diary(text_content)
             
             # 3. 메타데이터 처리
             processed_metadata = {}
@@ -446,18 +498,18 @@ class VectorDatabase:
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
     
     def search_similar_past_diaries(self, query: str, n_results: int = 3) -> dict:
-        """유사한 과거 일기 검색 (과거 일기 컬렉션에서)"""
+        """유사한 과거 일기 검색 (과거 일기 컬렉션에서, 일기용 임베딩 모델 사용)"""
         try:
             # 모델이 초기화되지 않았으면 초기화
-            if self.embedding_model is None:
-                logger.info("임베딩 모델이 초기화되지 않아 초기화를 진행합니다...")
+            if self.embedding_model_diary is None:
+                logger.info("일기용 임베딩 모델이 초기화되지 않아 초기화를 진행합니다...")
                 self.initialize()
             
             logger.info(f"과거 일기 검색 시작: 쿼리='{query[:50]}...', n_results={n_results}")
             
-            # 1. 쿼리 텍스트를 벡터로 변환
-            query_embedding = self.embed_text(query)
-            logger.info("쿼리 임베딩 생성 완료")
+            # 1. 쿼리 텍스트를 일기용 벡터로 변환
+            query_embedding = self.embed_text_diary(query)
+            logger.info("일기용 쿼리 임베딩 생성 완료")
             
             # 2. 과거 일기 컬렉션에서 검색
             results = self.past_diaries_collection.query(
