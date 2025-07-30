@@ -97,8 +97,14 @@ public class DiaryService {
         // 기존 코멘트들에 기본 스탬프 정보 추가
         for (DailyComment comment : comments) {
             if (comment.getUserStampPreference() == null) {
-                // 기본 스탬프 더미 데이터 생성
-                UserStampPreference defaultStamp = createDefaultStamp();
+                // 기본 스탬프 정보 설정
+                UserStampPreference defaultStamp = new UserStampPreference();
+                defaultStamp.setPreferenceId(-1L);
+                defaultStamp.setUser(userRepository.findById(1L).orElse(null));
+                defaultStamp.setSelectedStampName("참잘했어요");
+                defaultStamp.setSelectedStampImage("image/default_stamp.png");
+                defaultStamp.setCreatedAt(LocalDateTime.now());
+                defaultStamp.setUpdatedAt(LocalDateTime.now());
                 comment.setUserStampPreference(defaultStamp);
             }
         }
@@ -114,21 +120,7 @@ public class DiaryService {
     }
     // ===================== END UPDATED CALENDAR DATA METHOD =====================
 
-    // ===================== UPDATED DEFAULT STAMP METHOD =====================
-    // 2025-01-XX: 기본 스탬프 더미 데이터 생성 메서드 수정
-    // 기존 코멘트들에 기본 스탬프 정보를 제공하기 위한 메서드
-    private UserStampPreference createDefaultStamp() {
-        UserStampPreference defaultStamp = new UserStampPreference();
-        defaultStamp.setPreferenceId(-1L); // 더미 ID
-        defaultStamp.setUser(userRepository.findById(1L).orElse(null)); // 더미 사용자
-        defaultStamp.setSelectedStampName("참잘했어요");
-        defaultStamp.setSelectedStampImage("image/default_stamp.png"); // 경로 수정
-        defaultStamp.setCreatedAt(LocalDateTime.now());
-        defaultStamp.setUpdatedAt(LocalDateTime.now());
-        
-        return defaultStamp;
-    }
-    // ===================== END UPDATED DEFAULT STAMP METHOD =====================
+
 
     // ===================== DEBUG METHOD =====================
     // 2025-01-XX: 디버깅을 위한 모든 코멘트 조회 메서드 추가
@@ -156,45 +148,7 @@ public class DiaryService {
     }
     // ===================== END DEBUG METHOD =====================
 
-    // ===================== DUMMY DATA METHOD =====================
-    // 2025-01-XX: 테스트를 위한 더미 데이터 생성 메서드 추가
-    @Transactional
-    public Map<String, Object> createDummyData(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
-        // 2024년 12월 26, 27, 28, 29일에 AI 코멘트만 생성 (스탬프 포함)
-        List<DailyComment> createdComments = new ArrayList<>();
-        for (int day = 26; day <= 29; day++) {
-            // 임시 일기 생성 (DailyComment에 연결하기 위해)
-            Diary tempDiary = new Diary();
-            tempDiary.setUser(user);
-            tempDiary.setCreatedAt(LocalDateTime.of(2024, 12, day, 10, 0));
-            tempDiary.setContent("2024년 12월 " + day + "일의 임시 일기입니다.");
-            tempDiary.setEmotion("😊");
-            Diary savedDiary = diaryRepository.save(tempDiary);
-            
-            // AI 코멘트 생성
-            DailyComment comment = new DailyComment();
-            comment.setUser(user);
-            comment.setDiary(savedDiary); // 일기 연결
-            comment.setDiaryDate(LocalDateTime.of(2024, 12, day, 15, 0));
-            comment.setContent("2024년 12월 " + day + "일의 AI 코멘트입니다. 정말 잘하셨어요!");
-            comment.setCreatedAt(LocalDateTime.of(2024, 12, day, 15, 0));
-            
-            // 기본 스탬프 설정 (더미)
-            UserStampPreference dummyStamp = createDefaultStamp();
-            comment.setUserStampPreference(dummyStamp);
-            
-            createdComments.add(dailyCommentRepository.save(comment));
-        }
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("comments", createdComments.size());
-        result.put("message", "daily_comment 테이블에 더미 데이터가 성공적으로 생성되었습니다.");
-        
-        return result;
-    }
-    // ===================== END DUMMY DATA METHOD =====================
+
 
     // 유저별, 월별 일기 목록 조회
     @Transactional(readOnly = true)

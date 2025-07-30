@@ -167,19 +167,7 @@ public class DiaryController {
     }
     // ===================== END DEBUG API ENDPOINT =====================
 
-    // ===================== DUMMY DATA API =====================
-    // 2025-01-XX: 테스트를 위한 더미 데이터 생성 API 추가
-    @PostMapping("/api/dummy-data")
-    @ResponseBody
-    public ResponseEntity<ApiResponse<Map<String, Object>>> createDummyData(@RequestParam Long userId) {
-        try {
-            Map<String, Object> result = diaryService.createDummyData(userId);
-            return ResponseEntity.ok(new ApiResponse<>(true, "더미 데이터 생성 성공", result));
-        } catch (Exception e) {
-            return ResponseEntity.ok(new ApiResponse<>(false, "더미 데이터 생성 실패: " + e.getMessage(), null));
-        }
-    }
-    // ===================== END DUMMY DATA API =====================
+
 
     // ===================== NEW API ENDPOINT =====================
     // 2025-01-XX: 현재 적용된 스탬프 조회 기능 추가
