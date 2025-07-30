@@ -35,9 +35,6 @@ public class RecommendActivity {
     @Column(name = "activity_order")
     private Long order;
 
-    @Column(name = "based_on_which")
-    private String basedOn;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

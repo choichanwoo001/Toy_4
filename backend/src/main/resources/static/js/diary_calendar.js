@@ -66,7 +66,7 @@ const imageObserver = new IntersectionObserver((entries, observer) => {
 function showErrorMessage(message) {
     // Create error notification
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+    errorDiv.className = 'fixed top-20 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-2000 max-w-sm';
     errorDiv.innerHTML = `
         <div class="flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -94,7 +94,7 @@ function showErrorMessage(message) {
 function showSuccessMessage(message) {
     // Create success notification
     const successDiv = document.createElement('div');
-    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+    successDiv.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-2000 max-w-sm';
     successDiv.innerHTML = `
         <div class="flex items-center">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -121,8 +121,7 @@ function showSuccessMessage(message) {
 // Global variables
 let aiCommentSection, newRecordSection, recordsListScrollable, noRecordsPlaceholder;
 let saveDiaryBtn, submitDiaryBtn, diaryContent, aiChatButton, dailyQuoteBox;
-let selectedStamp = null; // 선택된 스탬프 추가
-let userStamps = []; // 사용자 보유 스탬프 목록
+let currentActiveStamp = null; // 현재 적용된 스탬프 정보
 
 // DOM 요소 초기화 함수
 function initializeDOMElements() {
@@ -171,6 +170,72 @@ function initializeDOMElements() {
     console.log('=== DOM 요소 초기화 완료 ===');
 }
 
+// ===================== ACTIVE STAMP FUNCTIONALITY =====================
+// 2025-01-XX: 현재 적용된 스탬프 조회 및 표시 기능 추가
+
+// 현재 적용된 스탬프 로드
+async function loadActiveStamp() {
+    if (!userId) {
+        console.log('사용자가 로그인하지 않음 - 스탬프 로드 건너뜀');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/active-stamp?userId=${userId}`);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            currentActiveStamp = data.data;
+            console.log('현재 적용된 스탬프:', currentActiveStamp);
+            updateAICommentWithStamp();
+        } else {
+            console.log('적용된 스탬프 없음, 기본 스탬프 사용');
+            currentActiveStamp = {
+                stampName: '참잘했어요',
+                stampImage: 'image/default_stamp.png',
+                stampDescription: '기본 격려 스탬프',
+                isActive: 'Y'
+            };
+            updateAICommentWithStamp();
+        }
+    } catch (error) {
+        console.error('스탬프 로드 실패:', error);
+        currentActiveStamp = {
+            stampName: '참잘했어요',
+            stampImage: 'image/default_stamp.png',
+            stampDescription: '기본 격려 스탬프',
+            isActive: 'Y'
+        };
+        updateAICommentWithStamp();
+    }
+}
+
+// AI 코멘트에 현재 스탬프 적용
+function updateAICommentWithStamp() {
+    const stampImageComment = document.querySelector('.stamp-image-comment');
+    if (stampImageComment && currentActiveStamp) {
+        // 이미지 경로 처리
+        let stampImagePath = currentActiveStamp.stampImage;
+        if (!stampImagePath.startsWith('/')) {
+            stampImagePath = '/' + stampImagePath;
+        }
+        
+        stampImageComment.src = stampImagePath;
+        stampImageComment.alt = currentActiveStamp.stampName + ' 스탬프';
+        
+        // 이미지 로드 실패 시 기본 스탬프로 대체
+        stampImageComment.onerror = function() {
+            console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
+            this.src = '/image/default_stamp.png';
+            this.alt = '참잘했어요 스탬프';
+        };
+        
+        console.log('AI 코멘트 스탬프 업데이트:', currentActiveStamp.stampName);
+    }
+}
+
+// ===================== END ACTIVE STAMP FUNCTIONALITY =====================
+
 // Emotion selection
 let selectedEmotion = null;
 let emotionButtons = [];
@@ -182,11 +247,8 @@ function setupEmotionButtons() {
         btn.addEventListener('click', function() {
             // 과거 날짜 체크
             const today = new Date();
-            const isPast = selectedDate && (
-                selectedDate.getFullYear() < today.getFullYear() ||
-                (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-                (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-            );
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
             
             if (isPast) {
                 showErrorMessage('과거 날짜에는 감정을 선택할 수 없습니다.');
@@ -202,127 +264,7 @@ function setupEmotionButtons() {
     });
 }
 
-// ===================== STAMP SELECTION FUNCTIONALITY =====================
-// 2025-01-XX: 스탬프 선택 기능 추가
 
-// 사용자 스탬프 로드 및 렌더링
-function loadUserStamps() {
-    if (!userId) {
-        console.log('사용자가 로그인하지 않음 - 스탬프 로드 건너뜀');
-        return;
-    }
-    
-    fetch('/pointshop/api/my-stamps')
-        .then(res => res.json())
-        .then(stamps => {
-            console.log('사용자 스탬프:', stamps);
-            userStamps = stamps || []; // 전역 변수 업데이트
-            renderStampSelection(stamps);
-        })
-        .catch(error => {
-            console.error('스탬프 로드 실패:', error);
-            userStamps = []; // 빈 배열로 초기화
-            // 기본 스탬프 표시
-            renderDefaultStamp();
-        });
-}
-
-// 스탬프 선택 영역 렌더링
-function renderStampSelection(stamps) {
-    const stampSelection = document.getElementById('stamp-selection');
-    if (!stampSelection) {
-        console.error('stamp-selection 요소를 찾을 수 없습니다');
-        return;
-    }
-    
-    stampSelection.innerHTML = '';
-    
-    if (stamps && stamps.length > 0) {
-        // 최대 5개까지만 표시
-        const stampsToShow = stamps.slice(0, 5);
-        
-        stampsToShow.forEach(stamp => {
-            const stampOption = document.createElement('div');
-            stampOption.className = 'stamp-option';
-            stampOption.dataset.stampId = stamp.userStampId;
-            stampOption.dataset.stampName = stamp.stampName;
-            stampOption.dataset.stampImage = stamp.stampImage;
-            
-            stampOption.innerHTML = `
-                <img src="/${stamp.stampImage}" alt="${stamp.stampName}" class="stamp-option-image">
-                <div class="stamp-option-name">${stamp.stampName}</div>
-            `;
-            
-            // 스탬프 선택 이벤트
-            stampOption.addEventListener('click', function() {
-                // 이전 선택 제거
-                document.querySelectorAll('.stamp-option').forEach(opt => opt.classList.remove('selected'));
-                // 현재 선택
-                this.classList.add('selected');
-                selectedStamp = {
-                    userStampId: this.dataset.stampId,
-                    stampName: this.dataset.stampName,
-                    stampImage: this.dataset.stampImage
-                };
-                console.log('선택된 스탬프:', selectedStamp);
-            });
-            
-            stampSelection.appendChild(stampOption);
-        });
-        
-        // 첫 번째 스탬프를 기본 선택
-        const firstStamp = stampSelection.querySelector('.stamp-option');
-        if (firstStamp) {
-            firstStamp.classList.add('selected');
-            selectedStamp = {
-                userStampId: firstStamp.dataset.stampId,
-                stampName: firstStamp.dataset.stampName,
-                stampImage: firstStamp.dataset.stampImage
-            };
-        }
-    } else {
-        // 보유 스탬프가 없는 경우 기본 스탬프 표시
-        renderDefaultStamp();
-    }
-}
-
-// 기본 스탬프 렌더링 (보유 스탬프가 없는 경우)
-function renderDefaultStamp() {
-    const stampSelection = document.getElementById('stamp-selection');
-    if (!stampSelection) return;
-    
-    stampSelection.innerHTML = `
-        <div class="stamp-option selected" data-stamp-name="참잘했어요" data-stamp-image="image/default_stamp.png">
-            <img src="/image/default_stamp.png" alt="참잘했어요" class="stamp-option-image">
-            <div class="stamp-option-name">참잘했어요</div>
-        </div>
-    `;
-    
-    selectedStamp = {
-        userStampId: null,
-        stampName: '참잘했어요',
-        stampImage: 'image/default_stamp.png'
-    };
-}
-
-// ===================== END STAMP SELECTION FUNCTIONALITY =====================
-
-// 스탬프 이름으로 이미지 경로 찾기
-function getStampImagePath(stampName) {
-    // 기본 스탬프
-    if (stampName === '참잘했어요') {
-        return '/image/default_stamp.png';
-    }
-    
-    // 보유한 스탬프에서 찾기
-    const userStamp = userStamps.find(stamp => stamp.stampName === stampName);
-    if (userStamp) {
-        return '/' + userStamp.stampImage;
-    }
-    
-    // 찾지 못하면 기본 스탬프 반환
-    return '/image/default_stamp.png';
-}
 
 // Search functionality
 let searchToggleBtn, searchBar, searchInput;
@@ -390,44 +332,122 @@ function updateAIComment(allTodayRecords) {
         return;
     }
     
+    // 과거 날짜인지 확인
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
+    
+    if (isPast) {
+        // 과거 날짜인 경우 DailyComment API 호출
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth() + 1;
+        const day = selectedDate.getDate();
+        
+        console.log(`과거 날짜 감지: ${year}-${month}-${day}, DailyComment API 호출`);
+        
+        fetch(`/api/daily-comments/date?userId=${userId}&year=${year}&month=${month}&day=${day}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('DailyComment API Response:', data);
+                
+                if (data.success && data.data && data.data.success) {
+                    // DailyComment에서 가져온 코멘트 표시
+                    aiCommentText.innerText = data.data.content;
+                    
+                    // 스탬프 정보가 있으면 업데이트 (UserStampPreference 사용)
+                    if (data.data.stampName && data.data.stampImage) {
+                        const stampImageComment = document.querySelector('.stamp-image-comment');
+                        if (stampImageComment) {
+                            // 이미지 경로 처리
+                            let stampImagePath = data.data.stampImage;
+                            if (!stampImagePath.startsWith('/')) {
+                                stampImagePath = '/' + stampImagePath;
+                            }
+                            
+                            stampImageComment.src = stampImagePath;
+                            stampImageComment.alt = data.data.stampName + ' 스탬프';
+                            
+                            // 이미지 로드 실패 시 기본 스탬프로 대체
+                            stampImageComment.onerror = function() {
+                                console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
+                                this.src = '/image/default_stamp.png';
+                                this.alt = '참잘했어요 스탬프';
+                            };
+                            
+                            console.log('AI 코멘트 스탬프 업데이트:', data.data.stampName);
+                        }
+                    }
+                    
+                    // 감정 키워드는 과거 날짜에서는 표시하지 않음
+                    if (emotionKeywords) {
+                        emotionKeywords.innerText = '';
+                    }
+                } else {
+                    // 해당 날짜의 코멘트가 없는 경우
+                    aiCommentText.innerText = '해당 날짜의 AI 코멘트가 없습니다.';
+                    if (emotionKeywords) {
+                        emotionKeywords.innerText = '';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching daily comment:', error);
+                aiCommentText.innerText = '과거 날짜의 코멘트를 불러오는데 실패했습니다.';
+                if (emotionKeywords) {
+                    emotionKeywords.innerText = '';
+                }
+            });
+        
+        return; // 과거 날짜 처리 완료
+    }
+    
+    // 오늘 날짜인 경우 기존 로직 유지
+    // 백엔드에서 실제 AI 코멘트 데이터가 있는지 확인
+    // allTodayRecords가 실제 백엔드 API에서 온 데이터인지 확인
+    const hasBackendData = allTodayRecords && allTodayRecords.length > 0 && 
+                          allTodayRecords.some(record => 
+                              record.id !== undefined && 
+                              record.createdAt !== undefined
+                          );
+    
+    if (!hasBackendData) {
+        aiCommentText.innerText = 'AI 코멘트가 백엔드와 연결되지 않았습니다.';
+        if (emotionKeywords) {
+            emotionKeywords.innerText = '';
+        }
+        return;
+    }
+    
     if (allTodayRecords.length > 0) {
-        // 기록에서 감정 추출
+        // 백엔드에서 받아온 실제 AI 코멘트 데이터가 있는지 확인
+        const aiCommentData = allTodayRecords.find(record => record.aiComment);
+        
+        if (aiCommentData && aiCommentData.aiComment) {
+            // 백엔드에서 받아온 실제 AI 코멘트 표시
+            aiCommentText.innerText = aiCommentData.aiComment;
+        } else {
+            // 백엔드에 AI 코멘트 데이터가 없는 경우
+            aiCommentText.innerText = 'AI 코멘트가 백엔드와 연결되지 않았습니다.';
+        }
+        
+        // 감정 키워드는 백엔드 데이터에서 추출
         const emotions = allTodayRecords
             .map(record => record.emotion)
             .filter(emotion => emotion && emotion.trim() !== '')
-            .slice(0, 3); // 최대 3개까지만 표시
+            .slice(0, 3);
         
-        // 감정 키워드 생성
         const emotionKeywordsList = emotions.length > 0 
             ? emotions.map(emotion => `#${getEmotionKeyword(emotion)}`).join(' ')
-            : '#기쁨 #평온 #대견함';
-        
-        // 과거 날짜인지 확인
-        const today = new Date();
-        const isPast = selectedDate && (
-            selectedDate.getFullYear() < today.getFullYear() ||
-            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-            (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-        );
-        
-        if (isPast) {
-            // 과거 날짜에 대한 따뜻한 코멘트
-            const dateStr = `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`;
-            aiCommentText.innerText = `사랑하는 제자님, ${dateStr}의 소중한 기록들을 다시 읽어보니 그때의 마음이 생생하게 느껴져요.
-            제자님이 그날 느끼신 감정들과 생각들이 지금도 선생님 마음에 따뜻하게 남아있어요.
-            그때의 기록들이 지금의 제자님을 더욱 풍요롭게 만들어주고 있네요.
-            꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
-        } else {
-            // 오늘 날짜에 대한 코멘트
-            aiCommentText.innerText = `사랑하는 제자님, 오늘 남겨주신 소중한 기록들을 읽었어요.
-            작은 순간들이 모여 제자님의 하루를 아름답게 채우고 있네요.
-            오늘의 기록을 통해 [감정 키워드 예시: 기쁨, 평온]이 느껴집니다.
-            꾸준히 자신을 돌아보는 모습이 참 대견해요.`;
-        }
+            : '';
         
         // emotionKeywords가 존재할 때만 설정
         if (emotionKeywords) {
-            emotionKeywords.innerText = `오늘의 감정 키워드: ${emotionKeywordsList}`;
+            emotionKeywords.innerText = emotionKeywordsList ? `오늘의 감정 키워드: ${emotionKeywordsList}` : '';
         }
     } else {
         aiCommentText.innerText = '아직 오늘의 기록이 없어서 선생님의 코멘트가 준비되지 않았어요. 첫 기록을 남겨보세요!';
@@ -472,6 +492,19 @@ function updateSectionVisibility(hasSubmitted = false) {
         saveDiaryBtn.classList.remove('hidden');
         aiCommentSection.classList.add('hidden');
         aiChatButton.classList.add('hidden');
+        
+        // 입력 필드와 감정 버튼들 활성화
+        if (diaryContent) {
+            diaryContent.disabled = false;
+            diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+        }
+        
+        const emotionButtons = document.querySelectorAll('.emotion-btn');
+        emotionButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        });
     }
 }
 
@@ -501,11 +534,8 @@ function setupEventListeners() {
             
     // 과거 날짜 체크 - 추가 보안
     const today = new Date();
-    const isPast = selectedDate && (
-        selectedDate.getFullYear() < today.getFullYear() ||
-        (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() < today.getMonth()) ||
-        (selectedDate.getFullYear() === today.getFullYear() && selectedDate.getMonth() === today.getMonth() && selectedDate.getDate() < today.getDate())
-    );
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = selectedDate && selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
     
     if (isPast) {
         showErrorMessage('과거 날짜에는 기록할 수 없습니다.');
@@ -525,9 +555,6 @@ function setupEventListeners() {
         const formData = new FormData();
         formData.append('userId', userId);
         formData.append('content', content);
-        // 선택된 스탬프가 있으면 그것을 사용하고, 없으면 기본 스탬프 사용
-        const stampToUse = selectedStamp ? selectedStamp.stampName : '참잘했어요';
-        formData.append('appliedStamp', stampToUse);
         if (selectedEmotion) {
             formData.append('emotion', selectedEmotion);
         }
@@ -590,12 +617,7 @@ function setupEventListeners() {
                 emotionButtons.forEach(b => b.classList.remove('selected'));
                 selectedEmotion = null;
                 
-                // Reset stamp selection
-                const stampOptions = document.querySelectorAll('.stamp-option');
-                stampOptions.forEach(option => {
-                    option.classList.remove('selected');
-                });
-                selectedStamp = null;
+
                 
                 if (noRecordsPlaceholder) {
                     noRecordsPlaceholder.classList.add('hidden'); // Hide placeholder if visible
@@ -824,7 +846,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 사용자 ID 설정 및 달력 데이터 로드
     await initUserId();
-    fetchAndRender(); // 달력 데이터 로드 및 렌더링
+    
+    // 현재 적용된 스탬프 먼저 로드
+    await loadActiveStamp();
+    
+    // 달력 데이터 로드 및 렌더링
+    fetchAndRender();
 
     // 오늘의 제출 상태 확인
     await checkTodaySubmissionStatus();
@@ -850,8 +877,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     updateAIComment(initialRecords); // 초기 AI 코멘트 내용 설정
 
-    // 스탬프 로드 및 렌더링
-    loadUserStamps();
 });
 
 // 오늘의 제출 상태 확인 함수
@@ -942,9 +967,9 @@ async function initUserId() {
     console.log('=== initUserId 완료, 최종 userId:', userId, '===');
 }
 
-function renderCalendar(year, month, diaryData) {
+function renderCalendar(year, month, diaryData, comments = []) {
     console.log('=== renderCalendar 시작 ===');
-    console.log('year:', year, 'month:', month, 'diaryData:', diaryData);
+    console.log('year:', year, 'month:', month, 'diaryData:', diaryData, 'comments:', comments);
     
     const calendarGrid = document.getElementById('calendar-grid');
     console.log('calendarGrid element:', calendarGrid);
@@ -1010,18 +1035,53 @@ function renderCalendar(year, month, diaryData) {
         numSpan.className = 'date-number';
         numSpan.textContent = d;
         cell.appendChild(numSpan);
-        // 일기 데이터가 있으면 표시
+        // 일기 데이터가 있으면 표시 (스탬프 없이)
         const diary = diaryData.find(item => new Date(item.createdAt).getDate() === d);
         if (diary) {
             cell.classList.add('has-diary');
-            // 실제 적용된 스탬프 표시
+            // 일기는 스탬프 없이 텍스트만 표시
+        }
+        
+        // AI 코멘트가 있으면 스탬프 표시
+        const comment = comments.find(item => new Date(item.diaryDate).getDate() === d);
+        if (comment) {
+            cell.classList.add('has-comment');
+            // AI 코멘트에 저장된 스탬프 표시 (UserStampPreference 사용)
             const img = document.createElement('img');
-            img.src = getStampImagePath(diary.appliedStamp);
-            img.alt = diary.appliedStamp + ' 스탬프';
-            img.className = 'stamp-image-calendar';
-            cell.appendChild(img);
             
-            // 스탬프 이미지는 즉시 로드
+            // 스탬프 이미지 경로 결정
+            let stampImagePath = 'image/default_stamp.png'; // 기본값
+            let stampAlt = '참잘했어요 스탬프'; // 기본값
+            
+            if (comment.userStampPreference) {
+                if (comment.userStampPreference.selectedStampImage) {
+                    // 선택된 스탬프 이미지가 있으면 사용
+                    stampImagePath = comment.userStampPreference.selectedStampImage;
+                    stampAlt = comment.userStampPreference.selectedStampName + ' 스탬프';
+                } else if (comment.userStampPreference.preferenceId === -1) {
+                    // 더미 스탬프 (기본 스탬프)
+                    stampImagePath = 'image/default_stamp.png';
+                    stampAlt = '참잘했어요 스탬프';
+                }
+            }
+            
+            // 이미지 경로에 '/'가 없으면 추가
+            if (!stampImagePath.startsWith('/')) {
+                stampImagePath = '/' + stampImagePath;
+            }
+            
+            img.src = stampImagePath;
+            img.alt = stampAlt;
+            img.className = 'stamp-image-calendar';
+            
+            // 이미지 로드 실패 시 기본 스탬프로 대체
+            img.onerror = function() {
+                console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
+                this.src = '/image/default_stamp.png';
+                this.alt = '참잘했어요 스탬프';
+            };
+            
+            cell.appendChild(img);
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
@@ -1095,9 +1155,11 @@ function renderRecordsList(records, year, month, day) {
     recordsList.innerHTML = '';
     
     const today = new Date();
-    const isPast = (year < today.getFullYear()) ||
-        (year === today.getFullYear() && month < today.getMonth()+1) ||
-        (year === today.getFullYear() && month === today.getMonth()+1 && day < today.getDate());
+    const selectedDate = new Date(year, month - 1, day);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isPast = selectedDate < todayStart && selectedDate.getTime() !== todayStart.getTime();
+    
+
     
     if (records.length === 0) {
         if (!userId) {
@@ -1166,10 +1228,13 @@ function renderRecordsList(records, year, month, day) {
                     aiChatButton.classList.remove('hidden');
                 }
             } else {
-                aiCommentSection.classList.add('hidden');
-                // AI와 채팅하기 버튼도 숨김
+                // 과거 날짜에서는 기록이 없어도 AI 코멘트를 표시할 수 있음
+                aiCommentSection.classList.remove('hidden');
+                // 빈 배열을 전달하여 updateAIComment에서 DailyComment API 호출
+                updateAIComment([]);
+                // AI와 채팅하기 버튼도 활성화
                 if (aiChatButton) {
-                    aiChatButton.classList.add('hidden');
+                    aiChatButton.classList.remove('hidden');
                 }
             }
         }
@@ -1187,7 +1252,36 @@ function renderRecordsList(records, year, month, day) {
             if (aiCommentSection) aiCommentSection.classList.add('hidden');
         } else {
             // 로그인한 경우 제출 상태 확인 후 적절한 섹션 표시
-            checkTodaySubmissionStatus();
+            // 오늘 날짜인지 확인하여 적절한 처리
+            const isToday = year === today.getFullYear() && month === (today.getMonth() + 1) && day === today.getDate();
+            if (isToday) {
+                checkTodaySubmissionStatus();
+            } else {
+                // 미래 날짜인 경우 입력창 활성화
+                if (newRecordSection) {
+                    newRecordSection.classList.remove('hidden');
+                }
+                if (saveDiaryBtn) {
+                    saveDiaryBtn.classList.remove('hidden');
+                    saveDiaryBtn.disabled = false;
+                }
+                if (aiCommentSection) aiCommentSection.classList.add('hidden');
+                
+                // 입력 필드 활성화
+                const diaryContent = document.getElementById('diary-content');
+                if (diaryContent) {
+                    diaryContent.disabled = false;
+                    diaryContent.placeholder = '오늘의 생각이나 감정을 자유롭게 기록해보세요...';
+                }
+                
+                // 감정 버튼들 활성화
+                const emotionButtons = document.querySelectorAll('.emotion-btn');
+                emotionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
         }
     }
 }
@@ -1233,7 +1327,7 @@ function fetchAndRender() {
         console.log('❌ 로그인하지 않은 상태 - 빈 달력 표시');
         currentDiaries = [];
         console.log('renderCalendar 호출 전');
-        renderCalendar(currentYear, currentMonth, currentDiaries);
+        renderCalendar(currentYear, currentMonth, currentDiaries, []);
         console.log('renderCalendar 호출 후');
         updateCalendarSummary(currentDiaries, currentYear, currentMonth);
         renderWeeklyReports(currentDiaries, currentYear, currentMonth);
@@ -1249,18 +1343,26 @@ function fetchAndRender() {
         return;
     }
     
-    console.log('✅ 로그인한 사용자 - API 호출:', `/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
+    console.log('✅ 로그인한 사용자 - API 호출:', `/api/calendar-data?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
     
-    fetch(`/api/diaries?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
+    fetch(`/api/calendar-data?userId=${userId}&year=${currentYear}&month=${currentMonth}`)
         .then(res => {
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
             return res.json();
         })
-        .then(data => {
-            currentDiaries = data.data || [];
-            renderCalendar(currentYear, currentMonth, currentDiaries);
+        .then(async data => {
+            const calendarData = data.data || {};
+            currentDiaries = calendarData.diaries || [];
+            const comments = calendarData.comments || [];
+            
+            // 스탬프 정보가 없으면 다시 로드
+            if (!currentActiveStamp) {
+                await loadActiveStamp();
+            }
+            
+            renderCalendar(currentYear, currentMonth, currentDiaries, comments);
             updateCalendarSummary(currentDiaries, currentYear, currentMonth);
             renderWeeklyReports(currentDiaries, currentYear, currentMonth);
             
@@ -1368,17 +1470,23 @@ function renderWeeklyReports(diaryData, year, month) {
                 btn.className = 'btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm';
                 btn.textContent = '리포트 보기';
                 btn.onclick = () => {
-                    // 주차 정보를 계산하여 리포트 페이지로 이동
-                    // 현재 날짜를 기준으로 한 주차 오프셋 계산
+                    // 해당 주차의 weekOffset 계산
                     const today = new Date();
-                    const currentWeekStart = getMonday(today);
-                    const targetWeekStart = new Date(weekStart);
                     
-                    // 두 날짜 간의 주차 차이 계산
-                    const timeDiff = currentWeekStart.getTime() - targetWeekStart.getTime();
-                    const weekDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24 * 7));
+                    // 현재 주차의 월요일을 기준으로 weekOffset 계산
+                    // 현재 날짜가 속한 주의 월요일 계산
+                    const todayDayOfWeek = today.getDay();
+                    const todayMonday = new Date(today);
+                    todayMonday.setDate(today.getDate() - todayDayOfWeek + (todayDayOfWeek === 0 ? -6 : 1));
                     
-                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekDiff}&year=${year}&month=${month}`;
+                    // 선택된 주차와 현재 주차의 차이 계산
+                    const diffTime = todayMonday.getTime() - weekStart.getTime();
+                    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+                    const weekOffset = Math.abs(diffWeeks);
+                    
+                    console.log(`주차 시작일: ${weekStart.toDateString()}, 현재 주 월요일: ${todayMonday.toDateString()}, weekOffset: ${weekOffset}`);
+                    
+                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekOffset}`;
                     window.location.href = reportUrl;
                 };
                 div.appendChild(btn);

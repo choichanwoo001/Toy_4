@@ -61,7 +61,7 @@ public class EntityIntegrationTest {
         diary.setUser(user);
         diary.setCreatedAt(LocalDateTime.now());
         diary.setContent("오늘의 일기");
-        diary.setAppliedStamp("기본 스탬프");
+        diary.setEmotion("😊");
         Diary saved = diaryRepository.save(diary);
         Diary found = diaryRepository.findById(saved.getDiaryId()).orElse(null);
         assertThat(found).isNotNull();

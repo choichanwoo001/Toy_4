@@ -18,6 +18,28 @@ COMMENT ON COLUMN diary.emotion IS '감정 이모지 저장 (예: 😊, 😢, �
 -- 이제 Diary 엔티티에서 emotion 필드를 사용할 수 있습니다.
 -- ===================== END UPDATE =====================
 
+-- Diary 테이블에서 applied_stamp 컬럼 제거 (2025-01-XX)
+-- 일기와 스탬프의 관심사 분리를 위한 스키마 업데이트
+
+ALTER TABLE diary DROP COLUMN applied_stamp;
+
+-- 기존 데이터 확인 (선택사항)
+-- SELECT diary_id, content, emotion FROM diary LIMIT 10;
+
+-- ===================== DAILY COMMENT STAMP FK ADDITION =====================
+-- 2025-01-XX: 일별 코멘트에 적용된 스탬프 정보 추가
+-- 코멘트 제출 시 현재 적용중인 스탬프 정보를 저장하기 위한 FK 추가
+
+-- daily_comment 테이블에 user_stamp_id FK 추가
+ALTER TABLE daily_comment ADD COLUMN user_stamp_id BIGINT;
+ALTER TABLE daily_comment ADD CONSTRAINT fk_daily_comment_user_stamp 
+    FOREIGN KEY (user_stamp_id) REFERENCES user_stamp(user_stamp_id);
+
+-- 컬럼 설명 추가
+COMMENT ON COLUMN daily_comment.user_stamp_id IS '코멘트 작성 시 적용된 스탬프의 user_stamp_id';
+
+-- ===================== END DAILY COMMENT STAMP FK ADDITION =====================
+
 -- ===================== WEEKLY REPORT TABLES =====================
 -- 2025-01-XX: 주간 리포트 기능을 위한 테이블들 생성
 
