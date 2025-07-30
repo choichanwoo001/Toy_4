@@ -46,7 +46,7 @@
                 <div class="info-item flex-col items-start">
                     <span class="info-label mb-2">최근 AI 코멘트</span>
                     <div class="flex items-center text-sm text-[#495235] bg-[#F4DDB8] p-3 rounded-lg border border-[#B87B5C] w-full">
-                        <img th:src="@{/image/{img}(img=${summary.recentStampImage})}" alt="참 잘했어요 스탬프" class="stamp-image-preview mr-3">
+                        <img th:src="@{/{img}(img=${summary.recentStampImage})}" alt="참 잘했어요 스탬프" class="stamp-image-preview mr-3">
                         <span th:text="${summary.recentAiComment}">제자님, 오늘도 하루를 잘 기록했네요! 작은 노력이 큰 변화를 만든답니다.</span>
                     </div>
                 </div>
