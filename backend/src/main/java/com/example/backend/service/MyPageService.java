@@ -25,7 +25,7 @@ public class MyPageService {
     // 마이페이지 요약 정보 조회
     @Transactional
     public MyPageSummaryDto getMyPageSummary(User user) {
-        int totalDiaryCount = diaryRepository.countByUser(user);
+        int totalDiaryCount = diaryRepository.countDistinctDatesByUser(user);
         int consecutiveDiaryDays = calculateConsecutiveDiaryDays(user);
         DailyComment recentComment = dailyCommentRepository.findTopByUserOrderByCreatedAtDesc(user);
         List<String> mainEmotions = List.of();
