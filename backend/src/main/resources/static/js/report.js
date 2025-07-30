@@ -62,7 +62,7 @@ async function updateReportContent(weekOffset) {
     console.log('Report data:', report); // 디버깅용 로그
     
     const isEmptyReport = !report
-        || (!report.emotionSummary && report.evidenceSentences.length === 0 && report.recommendations.length === 0);
+        || (report.emotionSummary === "이번 주 감정 분석이 준비되지 않았습니다." && report.evidenceSentences.length === 0 && report.recommendations.length === 0);
 
     if (isEmptyReport) {
         currentWeekDisplay.innerText = `${report?.week ?? getWeekFromOffset(weekOffset)} (리포트 없음)`;
@@ -199,6 +199,10 @@ async function updateReportContent(weekOffset) {
 
 // 📌 주차 목록 로딩
 async function initReportPage() {
+    // URL 파라미터에서 weekOffset 가져오기
+    const urlParams = new URLSearchParams(window.location.search);
+    const weekOffset = urlParams.get('weekOffset');
+
     // userId가 없으면 로그인 페이지로 리다이렉트
     if (!reportUserId) {
         console.error('사용자 ID가 없습니다. 로그인이 필요합니다.');
