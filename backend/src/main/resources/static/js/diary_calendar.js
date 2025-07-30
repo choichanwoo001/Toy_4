@@ -1354,11 +1354,17 @@ function renderWeeklyReports(diaryData, year, month) {
                     const today = new Date();
                     
                     // 현재 주차의 월요일을 기준으로 weekOffset 계산
-                    const diffTime = today.getTime() - weekStart.getTime();
-                    const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
-                    const weekOffset = Math.max(0, diffWeeks);
+                    // 현재 날짜가 속한 주의 월요일 계산
+                    const todayDayOfWeek = today.getDay();
+                    const todayMonday = new Date(today);
+                    todayMonday.setDate(today.getDate() - todayDayOfWeek + (todayDayOfWeek === 0 ? -6 : 1));
                     
-                    console.log(`주차 시작일: ${weekStart.toDateString()}, weekOffset: ${weekOffset}`);
+                    // 선택된 주차와 현재 주차의 차이 계산
+                    const diffTime = todayMonday.getTime() - weekStart.getTime();
+                    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+                    const weekOffset = Math.abs(diffWeeks);
+                    
+                    console.log(`주차 시작일: ${weekStart.toDateString()}, 현재 주 월요일: ${todayMonday.toDateString()}, weekOffset: ${weekOffset}`);
                     
                     const reportUrl = `/report?userId=${userId}&weekOffset=${weekOffset}`;
                     window.location.href = reportUrl;
