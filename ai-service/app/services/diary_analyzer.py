@@ -124,7 +124,7 @@ class DiaryAnalyzer:
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "너는 텍스트를 의미 단위로 나누는 전문 청크 분석기야."},
+                        {"role": "system", "content": "너는 텍스트를 의미 단위로 나누는 전문 청크 분석기야. 줄바꿈이나 불필요한 공백 없이 깔끔한 JSON만 출력해."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.3
@@ -132,7 +132,33 @@ class DiaryAnalyzer:
                 content = response.choices[0].message.content.strip()
                 if "```json" in content:
                     content = content.split("```json")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
+                
+                # 모든 줄바꿈과 공백 정리
+                content = content.replace('\n', '').replace('\r', '').replace('  ', ' ').strip()
+                
+                # JSON 파싱 전에 추가 검증
+                if not content.startswith('[') or not content.endswith(']'):
+                    print(f"⚠️ 유효하지 않은 JSON 배열 형식: {content}")
+                    time.sleep(1)
+                    continue
+                
                 return json.loads(content)
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON 파싱 실패 {attempt+1}회: {e}")
+                print(f"📝 문제가 된 내용: {content}")
+                # JSON 파싱 실패 시 더 강력한 정리 시도
+                try:
+                    # 대괄호 안의 내용만 추출
+                    start = content.find('[')
+                    end = content.rfind(']')
+                    if start != -1 and end != -1:
+                        content = content[start:end+1]
+                        return json.loads(content)
+                except:
+                    pass
+                time.sleep(1)
             except Exception as e:
                 print(f"⚠️ 청크 분할 실패 {attempt+1}회: {e}")
                 time.sleep(1)
@@ -147,7 +173,7 @@ class DiaryAnalyzer:
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": system_prompt + " 줄바꿈이나 불필요한 공백 없이 깔끔한 JSON만 출력해."},
                         {"role": "user", "content": text}
                     ],
                     temperature=0.3
@@ -156,9 +182,35 @@ class DiaryAnalyzer:
                 
                 if "```json" in content:
                     content = content.split("```json")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
+                
+                # 모든 줄바꿈과 공백 정리
+                content = content.replace('\n', '').replace('\r', '').replace('  ', ' ').strip()
+                
+                # JSON 파싱 전에 추가 검증
+                if not content.startswith('{') or not content.endswith('}'):
+                    print(f"⚠️ 유효하지 않은 JSON 형식: {content}")
+                    time.sleep(1)
+                    continue
                 
                 result = json.loads(content)
                 return result.get("감정"), result.get("상황")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON 파싱 실패 {attempt+1}회: {e}")
+                print(f"📝 문제가 된 내용: {content}")
+                # JSON 파싱 실패 시 더 강력한 정리 시도
+                try:
+                    # 중괄호 안의 내용만 추출
+                    start = content.find('{')
+                    end = content.rfind('}')
+                    if start != -1 and end != -1:
+                        content = content[start:end+1]
+                        result = json.loads(content)
+                        return result.get("감정"), result.get("상황")
+                except:
+                    pass
+                time.sleep(1)
             except Exception as e:
                 print(f"⚠️ 감정/상황 추출 실패 {attempt+1}회: {e}")
                 time.sleep(1)
@@ -174,22 +226,61 @@ class DiaryAnalyzer:
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "너는 감정과 상황을 정확히 사전 카테고리에 매핑하는 AI야. 반드시 JSON 형식으로 출력해. 감정카테고리와 상황카테고리라는 정확한 key를 사용해."},
+                        {"role": "system", "content": "너는 감정과 상황을 정확히 사전 카테고리에 매핑하는 AI야. 반드시 JSON 형식으로 출력해. 감정카테고리와 상황카테고리라는 정확한 key를 사용해. 줄바꿈이나 불필요한 공백 없이 깔끔한 JSON만 출력해."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.0
                 )
                 content = response.choices[0].message.content.strip()
                 
+                # JSON 코드 블록 제거
                 if "```json" in content:
                     content = content.split("```json")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
+                
+                # 모든 줄바꿈과 공백 정리
+                content = content.replace('\n', '').replace('\r', '').replace('  ', ' ').strip()
+                
+                # 디버깅을 위한 로그 추가
+                print(f"       🔍 GPT 응답 원본: {content}")
+                
+                # JSON 파싱 전에 추가 검증
+                if not content.startswith('{') or not content.endswith('}'):
+                    print(f"       ❌ 유효하지 않은 JSON 형식: {content}")
+                    time.sleep(1)
+                    continue
                 
                 result = json.loads(content)
-                return result.get("감정카테고리"), result.get("상황카테고리")
+                emotion_category = result.get("감정카테고리")
+                situation_category = result.get("상황카테고리")
+                
+                print(f"       ✅ 파싱 성공 - 감정: {emotion_category}, 상황: {situation_category}")
+                return emotion_category, situation_category
+                
+            except json.JSONDecodeError as e:
+                print(f"       ❌ JSON 파싱 실패 {attempt+1}회: {e}")
+                print(f"       📝 문제가 된 내용: {content}")
+                # JSON 파싱 실패 시 더 강력한 정리 시도
+                try:
+                    # 중괄호 안의 내용만 추출
+                    start = content.find('{')
+                    end = content.rfind('}')
+                    if start != -1 and end != -1:
+                        content = content[start:end+1]
+                        result = json.loads(content)
+                        emotion_category = result.get("감정카테고리")
+                        situation_category = result.get("상황카테고리")
+                        print(f"       ✅ 재시도 파싱 성공 - 감정: {emotion_category}, 상황: {situation_category}")
+                        return emotion_category, situation_category
+                except:
+                    pass
+                time.sleep(1)
             except Exception as e:
-                print(f"⚠️ 카테고리 매핑 실패 {attempt+1}회: {e}")
+                print(f"       ⚠️ 카테고리 매핑 실패 {attempt+1}회: {e}")
                 time.sleep(1)
         
+        print(f"       ❌ 최대 재시도 횟수 초과")
         return None, None
     
     def calculate_cosine_similarity_torch(self, embedding1, embedding2) -> float:
