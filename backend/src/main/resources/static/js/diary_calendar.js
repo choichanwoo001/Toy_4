@@ -359,7 +359,7 @@ function updateAIComment(allTodayRecords) {
                     // DailyComment에서 가져온 코멘트 표시
                     aiCommentText.innerText = data.data.content;
                     
-                    // 스탬프 정보가 있으면 업데이트 (UserStampPreference 사용)
+                    // 스탬프 정보가 있으면 업데이트 (UserStamp 사용)
                     if (data.data.stampName && data.data.stampImage) {
                         const stampImageComment = document.querySelector('.stamp-image-comment');
                         if (stampImageComment) {
@@ -793,6 +793,68 @@ async function analyzeDiaryWithAI(content) {
                 aiCommentSection.classList.remove('hidden');
                 
                 console.log('AI Comment updated successfully');
+                
+                // ===================== NEW DAILY COMMENT SAVE =====================
+                // 2025-01-XX: AI 분석 결과를 DailyComment로 저장
+                try {
+                    console.log('=== Saving Daily Comment ===');
+                    console.log('AI Result:', aiResult);
+                    console.log('User ID:', userId);
+                    
+                    // 오늘 날짜를 Java LocalDateTime과 호환되는 형식으로 변환
+                    const today = new Date();
+                    // ISO 문자열에서 'Z' 제거하여 Java LocalDateTime과 호환되도록 함
+                    const diaryDate = today.toISOString().replace('Z', '');
+                    console.log('Diary Date:', diaryDate);
+                    
+                    // DailyComment 저장 API 호출
+                    const commentFormData = new FormData();
+                    commentFormData.append('userId', userId);
+                    commentFormData.append('content', aiResult.comment || 'AI가 생성한 코멘트입니다.');
+                    commentFormData.append('diaryDate', diaryDate);
+                    
+                    console.log('FormData contents:');
+                    for (let [key, value] of commentFormData.entries()) {
+                        console.log(key + ': ' + value);
+                    }
+                    
+                    console.log('Sending request to /api/daily-comments...');
+                    const commentResponse = await fetch('/api/daily-comments', {
+                        method: 'POST',
+                        body: commentFormData
+                    });
+                    
+                    console.log('Response status:', commentResponse.status);
+                    console.log('Response headers:', commentResponse.headers);
+                    
+                    if (!commentResponse.ok) {
+                        const errorText = await commentResponse.text();
+                        console.error('Response error text:', errorText);
+                        throw new Error(`HTTP error! status: ${commentResponse.status}, body: ${errorText}`);
+                    }
+                    
+                    const commentData = await commentResponse.json();
+                    console.log('Daily Comment Save Response:', commentData);
+                    
+                    if (commentData.success) {
+                        console.log('✅ DailyComment 저장 성공');
+                        console.log('Saved comment ID:', commentData.data?.commentId);
+                        
+                        // 달력 데이터 새로고침하여 도장 표시 업데이트
+                        console.log('Calling fetchAndRender() to refresh calendar...');
+                        await fetchAndRender();
+                        
+                        showSuccessMessage('AI 코멘트가 성공적으로 저장되었습니다!');
+                    } else {
+                        console.error('❌ DailyComment 저장 실패:', commentData.message);
+                        showErrorMessage('AI 코멘트 저장에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('Error saving daily comment:', error);
+                    console.error('Error stack:', error.stack);
+                    showErrorMessage('AI 코멘트 저장 중 오류가 발생했습니다.');
+                }
+                // ===================== END NEW DAILY COMMENT SAVE =====================
             }
             
             // 조언이 있는 경우 표시
@@ -1046,23 +1108,32 @@ function renderCalendar(year, month, diaryData, comments = []) {
         const comment = comments.find(item => new Date(item.diaryDate).getDate() === d);
         if (comment) {
             cell.classList.add('has-comment');
-            // AI 코멘트에 저장된 스탬프 표시 (UserStampPreference 사용)
+            console.log(`=== 코멘트 발견: ${year}년 ${month}월 ${d}일 ===`);
+            console.log('Comment data:', comment);
+            console.log('UserStamp:', comment.userStamp);
+            
+            // AI 코멘트에 저장된 스탬프 표시 (UserStamp 사용)
             const img = document.createElement('img');
             
             // 스탬프 이미지 경로 결정
             let stampImagePath = 'image/default_stamp.png'; // 기본값
             let stampAlt = '참잘했어요 스탬프'; // 기본값
             
-            if (comment.userStampPreference) {
-                if (comment.userStampPreference.selectedStampImage) {
+            if (comment.userStamp) {
+                console.log('UserStamp found:', comment.userStamp);
+                if (comment.userStamp.stampImage) {
                     // 선택된 스탬프 이미지가 있으면 사용
-                    stampImagePath = comment.userStampPreference.selectedStampImage;
-                    stampAlt = comment.userStampPreference.selectedStampName + ' 스탬프';
-                } else if (comment.userStampPreference.preferenceId === -1) {
-                    // 더미 스탬프 (기본 스탬프)
+                    stampImagePath = comment.userStamp.stampImage;
+                    stampAlt = comment.userStamp.stampName + ' 스탬프';
+                    console.log('Selected stamp:', stampImagePath, stampAlt);
+                } else {
+                    // 기본 스탬프
                     stampImagePath = 'image/default_stamp.png';
                     stampAlt = '참잘했어요 스탬프';
+                    console.log('Default stamp:', stampImagePath, stampAlt);
                 }
+            } else {
+                console.log('No UserStamp found, using default stamp');
             }
             
             // 이미지 경로에 '/'가 없으면 추가
@@ -1070,6 +1141,7 @@ function renderCalendar(year, month, diaryData, comments = []) {
                 stampImagePath = '/' + stampImagePath;
             }
             
+            console.log('Final stamp image path:', stampImagePath);
             img.src = stampImagePath;
             img.alt = stampAlt;
             img.className = 'stamp-image-calendar';
