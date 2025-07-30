@@ -14,8 +14,11 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.example.backend.entity.FeedbackProof;
+import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -27,70 +30,100 @@ public class WeeklyReportService {
     // 주차별 감정 리포트 weekOffset: 현재로부터 몇 주 전인지(0=이번주)
     @Transactional(readOnly = true)
     public ReportResponseDto getWeeklyReport(Long userId, int weekOffset) {
-        System.out.println("🔍 getWeeklyReport 호출 - userId: " + userId + ", weekOffset: " + weekOffset);
-        
-        // 해당 주차의 시작일과 종료일 계산
-        LocalDate targetDate = LocalDate.now().plusWeeks(-weekOffset);
-        LocalDate monday = targetDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate sunday = monday.plusDays(6);
-        
-        System.out.println("📅 주차 계산 - monday: " + monday + ", sunday: " + sunday);
+        try {
+            System.out.println("🔍 getWeeklyReport 호출 - userId: " + userId + ", weekOffset: " + weekOffset);
 
-        // 해당 주차의 일기 데이터 조회
-        List<Diary> diaries = diaryRepository.findByUser_UserIdAndCreatedAtBetween(
-            userId, 
-            monday.atStartOfDay(), 
-            sunday.atTime(23, 59, 59)
-        );
-        
-        System.out.println("📝 조회된 일기 개수: " + diaries.size());
-        for (Diary diary : diaries) {
-            System.out.println("  - 일기: " + diary.getContent() + " (감정: " + diary.getEmotion() + ")");
+        /* 단계 1: 주간 피드백 먼저 조회해서 날짜 범위를 확정 */
+        Optional<WeeklyFeedback> optionalFeedback = feedbackRepository.findByUser_UserIdAndWeekOffsetWithDetails(userId, weekOffset);
+
+        LocalDate monday;
+        LocalDate sunday;
+
+        if (optionalFeedback.isPresent()) {
+            // 주간 피드백의 시작/종료일(yyyy-MM-dd 형태)을 기준으로 범위를 계산
+            WeeklyFeedback feedback = optionalFeedback.get();
+            monday = LocalDate.parse(feedback.getFeedbackStart());
+            sunday = LocalDate.parse(feedback.getFeedbackEnd());
+            System.out.println("📅 주간 피드백 기준 날짜 사용 - monday: " + monday + ", sunday: " + sunday);
+        } else {
+            // 피드백이 없는 경우 기존 로직 유지 (현재 날짜 기준)
+            LocalDate targetDate = LocalDate.now().plusWeeks(-weekOffset);
+            monday = targetDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            sunday = monday.plusDays(6);
+            System.out.println("📅 피드백 없음, 기본 날짜 계산 - monday: " + monday + ", sunday: " + sunday);
         }
 
-        // 주간 피드백 데이터 조회 (있는 경우)
-        Optional<WeeklyFeedback> optional = feedbackRepository.findByUser_UserIdAndWeekOffset(userId, weekOffset);
+        /* 단계 2: 기간에 해당하는 일기 조회 */
+        List<Diary> diaries = diaryRepository.findByUser_UserIdAndCreatedAtBetween(
+                userId,
+                monday.atStartOfDay(),
+                sunday.atTime(23, 59, 59)
+        );
+        System.out.println("📝 조회된 일기 개수: " + diaries.size());
 
-        // 감정 차트 데이터 생성
+        /* 단계 3: 감정 차트 생성 */
         List<EmotionChartDto> emotionCharts = getEmotionChartsFromDiaries(diaries);
 
-        // 기본 리포트 데이터 생성
+        /* 단계 4: 응답 빌드 */
         var builder = ReportResponseDto.builder()
                 .week(formatWeekString(monday))
                 .dayLabels(List.of("월", "화", "수", "목", "금", "토", "일"))
                 .emotionCharts(emotionCharts);
 
-        // 주간 피드백이 있는 경우 추가 데이터 설정
-        if (optional.isPresent()) {
-            WeeklyFeedback feedback = optional.get();
-            builder.emotionSummary(feedback.getEmotionSummary())
-                    .evidenceSentences(feedback.getFeedbackProofs().stream()
-                            .map(fp -> fp.getDetail())
-                            .toList())
-                    .recommendations(feedback.getRecommendActivities().stream()
-                            .map(a -> ReportResponseDto.RecommendationDto.builder()
-                                    .title(a.getTitle())
-                                    .description(a.getDetail())
-                                    .build())
-                            .toList());
-        } else {
-            // 피드백이 없는 경우 기본값 설정
-            builder.emotionSummary("이번 주 감정 분석이 준비되지 않았습니다.")
-                    .evidenceSentences(List.of())
-                    .recommendations(List.of());
-        }
+            if (optionalFeedback.isPresent()) {
+                WeeklyFeedback feedback = optionalFeedback.get();
+                
+                // MultipleBagFetchException 해결을 위해 별도로 초기화
+                org.hibernate.Hibernate.initialize(feedback.getFeedbackProofs());
+                org.hibernate.Hibernate.initialize(feedback.getRecommendActivities());
+                
+                System.out.println("🔍 FeedbackProof 개수: " + feedback.getFeedbackProofs().size());
+                System.out.println("🔍 RecommendActivity 개수: " + feedback.getRecommendActivities().size());
+                
+                builder.emotionSummary(feedback.getEmotionSummary())
+                        .evidenceSentences(feedback.getFeedbackProofs().stream()
+                                .map(FeedbackProof::getDetail)
+                                .toList())
+                        .recommendations(feedback.getRecommendActivities().stream()
+                                .map(a -> ReportResponseDto.RecommendationDto.builder()
+                                        .title(a.getTitle())
+                                        .description(a.getDetail())
+                                        .build())
+                                .toList());
+            } else {
+                builder.emotionSummary("이번 주 감정 분석이 준비되지 않았습니다.")
+                        .evidenceSentences(List.of())
+                        .recommendations(List.of());
+            }
 
-        return builder.build();
+            return builder.build();
+        } catch (Exception e) {
+            System.err.println("❌ getWeeklyReport 에러: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     // 주차 문자열 생성 유틸
-    public String formatWeekString(LocalDate monday) {
+    private String formatWeekString(LocalDate monday) {
+        // 주차 기준: "해당 기간이 끝나는 일요일이 속한 달"에서 1주차부터 계산
         LocalDate sunday = monday.plusDays(6);
-        return String.format(
-                "%d년 %d월 %d일 ~ %d월 %d일",
-                monday.getYear(), monday.getMonthValue(), monday.getDayOfMonth(),
-                sunday.getMonthValue(), sunday.getDayOfMonth()
-        );
+
+        // 그 달의 첫 번째 월요일(같은 달에 포함되도록 previousOrSame) 계산
+        LocalDate firstMondayOfMonth = sunday.withDayOfMonth(1)
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        long weeksBetween = ChronoUnit.WEEKS.between(firstMondayOfMonth, monday);
+        int weekIndex = (int) weeksBetween + 1; // 0-based → 1-based
+
+        return String.format("%d년 %d월 %d주차 (%d월 %d일 ~ %d월 %d일)",
+                sunday.getYear(),
+                sunday.getMonthValue(),
+                weekIndex,
+                monday.getMonthValue(),
+                monday.getDayOfMonth(),
+                sunday.getMonthValue(),
+                sunday.getDayOfMonth());
     }
 
     // 일기 데이터에서 감정 차트 데이터 생성

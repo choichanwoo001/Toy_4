@@ -1470,17 +1470,23 @@ function renderWeeklyReports(diaryData, year, month) {
                 btn.className = 'btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm';
                 btn.textContent = '리포트 보기';
                 btn.onclick = () => {
-                    // 주차 정보를 계산하여 리포트 페이지로 이동
-                    // 현재 날짜를 기준으로 한 주차 오프셋 계산
+                    // 해당 주차의 weekOffset 계산
                     const today = new Date();
-                    const currentWeekStart = getMonday(today);
-                    const targetWeekStart = new Date(weekStart);
                     
-                    // 두 날짜 간의 주차 차이 계산
-                    const timeDiff = currentWeekStart.getTime() - targetWeekStart.getTime();
-                    const weekDiff = Math.round(timeDiff / (1000 * 60 * 60 * 24 * 7));
+                    // 현재 주차의 월요일을 기준으로 weekOffset 계산
+                    // 현재 날짜가 속한 주의 월요일 계산
+                    const todayDayOfWeek = today.getDay();
+                    const todayMonday = new Date(today);
+                    todayMonday.setDate(today.getDate() - todayDayOfWeek + (todayDayOfWeek === 0 ? -6 : 1));
                     
-                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekDiff}&year=${year}&month=${month}`;
+                    // 선택된 주차와 현재 주차의 차이 계산
+                    const diffTime = todayMonday.getTime() - weekStart.getTime();
+                    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+                    const weekOffset = Math.abs(diffWeeks);
+                    
+                    console.log(`주차 시작일: ${weekStart.toDateString()}, 현재 주 월요일: ${todayMonday.toDateString()}, weekOffset: ${weekOffset}`);
+                    
+                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekOffset}`;
                     window.location.href = reportUrl;
                 };
                 div.appendChild(btn);
