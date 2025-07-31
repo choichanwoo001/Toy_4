@@ -476,22 +476,41 @@ function getEmotionKeyword(emotion) {
 
 // 섹션 가시성 관리 - 제출 여부에 따라 바뀌도록 수정
 function updateSectionVisibility(hasSubmitted = false) {
+    console.log('=== updateSectionVisibility 호출됨 ===');
+    console.log('hasSubmitted:', hasSubmitted);
+    console.log('recordsListScrollable:', recordsListScrollable);
+    console.log('dailyQuoteBox:', dailyQuoteBox);
+    console.log('aiCommentSection:', aiCommentSection);
+    console.log('newRecordSection:', newRecordSection);
+    console.log('saveDiaryBtn:', saveDiaryBtn);
+    console.log('aiChatButton:', aiChatButton);
+    
     // 기록 목록과 명언은 항상 보이도록 유지
-    recordsListScrollable.classList.remove('hidden');
-    dailyQuoteBox.classList.remove('hidden');
+    if (recordsListScrollable) recordsListScrollable.classList.remove('hidden');
+    if (dailyQuoteBox) dailyQuoteBox.classList.remove('hidden');
     
     if (hasSubmitted) {
+        console.log('✅ 제출 상태: AI 코멘트 섹션 표시, 새로운 기록 섹션 숨김');
+        console.log('aiCommentSection:', aiCommentSection);
+        console.log('aiChatButton:', aiChatButton);
+        console.log('newRecordSection:', newRecordSection);
+        console.log('saveDiaryBtn:', saveDiaryBtn);
         // 제출했을 때: AI 코멘트 섹션 표시, 새로운 기록 섹션 숨김
-        aiCommentSection.classList.remove('hidden');
-        aiChatButton.classList.remove('hidden');
-        newRecordSection.classList.add('hidden');
-        saveDiaryBtn.classList.add('hidden');
+        if (aiCommentSection) aiCommentSection.classList.remove('hidden');
+        if (aiChatButton) aiChatButton.classList.remove('hidden');
+        if (newRecordSection) newRecordSection.classList.add('hidden');
+        if (saveDiaryBtn) saveDiaryBtn.classList.add('hidden');
     } else {
+        console.log('✅ 미제출 상태: 새로운 기록 섹션 표시, AI 코멘트 섹션 숨김');
+        console.log('aiCommentSection:', aiCommentSection);
+        console.log('aiChatButton:', aiChatButton);
+        console.log('newRecordSection:', newRecordSection);
+        console.log('saveDiaryBtn:', saveDiaryBtn);
         // 제출하지 않았을 때: 새로운 기록 섹션 표시, AI 코멘트 섹션 숨김
-        newRecordSection.classList.remove('hidden');
-        saveDiaryBtn.classList.remove('hidden');
-        aiCommentSection.classList.add('hidden');
-        aiChatButton.classList.add('hidden');
+        if (newRecordSection) newRecordSection.classList.remove('hidden');
+        if (saveDiaryBtn) saveDiaryBtn.classList.remove('hidden');
+        if (aiCommentSection) aiCommentSection.classList.add('hidden');
+        if (aiChatButton) aiChatButton.classList.add('hidden');
         
         // 입력 필드와 감정 버튼들 활성화
         if (diaryContent) {
@@ -506,6 +525,8 @@ function updateSectionVisibility(hasSubmitted = false) {
             btn.style.cursor = 'pointer';
         });
     }
+    
+    console.log('=== updateSectionVisibility 완료 ===');
 }
 
 // 시간 포맷: 오전/오후 00:00
@@ -707,13 +728,37 @@ function setupEventListeners() {
             
             console.log('Combined content for AI:', combinedContent);
             
-            // AI 일기 분석 호출 (합쳐진 내용으로)
-            await analyzeDiaryWithAI(combinedContent);
-            
-            // 제출 후 섹션 변경
-            updateSectionVisibility(true);
-            
-            showSuccessMessage('오늘의 모든 기록을 AI에게 제출했습니다! AI 코멘트가 생성되었습니다.');
+            // AI 일기 분석 및 저장
+            const aiResult = await analyzeDiaryWithAIAndSave(combinedContent);
+
+            if (aiResult) {
+                // AI 분석 및 저장이 성공하면 UI 업데이트
+                const aiCommentText = document.getElementById('ai-comment-text');
+                const emotionKeywords = document.getElementById('emotion-keywords');
+                if (aiCommentText && emotionKeywords) {
+                    aiCommentText.textContent = aiResult.comment || '';
+                    if (aiResult.emotion_keywords && aiResult.emotion_keywords.length > 0) {
+                        const keywords = aiResult.emotion_keywords.map(keyword => `#${keyword}`).join(' ');
+                        emotionKeywords.textContent = `오늘의 감정 키워드: ${keywords}`;
+                    } else {
+                        emotionKeywords.textContent = '';
+                    }
+                    if (aiResult.quote) {
+                        const quoteElement = document.createElement('p');
+                        quoteElement.className = 'text-[#8F9562] text-sm italic mt-2';
+                        quoteElement.textContent = `"${aiResult.quote}"`;
+                        aiCommentText.appendChild(quoteElement);
+                    }
+                }
+
+                updateSectionVisibility(true);
+                await fetchAndRenderCalendarOnly();
+                showSuccessMessage('오늘의 모든 기록을 AI에게 제출했습니다! AI 코멘트가 생성되었습니다.');
+            } else {
+                // 분석/저장 실패 시, 버튼 상태만 원래대로 복구
+                console.log('AI 분석 또는 저장 실패. UI 변경 없음');
+            }
+
         } else {
             throw new Error(data.message || '오늘의 기록을 가져오는데 실패했습니다.');
         }
@@ -875,6 +920,84 @@ async function analyzeDiaryWithAI(content) {
 }
 // ===================== END AI DIARY ANALYSIS =====================
 
+// ===================== NEW AI DIARY ANALYSIS WITH SAVE =====================
+// 2025-01-XX: AI 일기 분석 및 DB 저장 기능 추가
+async function analyzeDiaryWithAIAndSave(content) {
+    try {
+        console.log('=== AI Diary Analysis and Save Started ===');
+        console.log('Content:', content);
+
+        const formData = new FormData();
+        formData.append('userId', userId);
+        formData.append('content', content);
+
+        const response = await fetch('/api/diaries/analyze-and-save', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('AI Analysis and Save Response:', data);
+
+        const isSuccess = data.success === true || data.isSuccess === true;
+
+        if (isSuccess && data.data) {
+            const aiResult = data.data;
+
+            // ===================== NEW DAILY COMMENT SAVE =====================
+            try {
+                console.log('=== Saving Daily Comment ===');
+                const today = new Date();
+                const diaryDate = today.toISOString().replace('Z', '');
+                
+                const commentFormData = new FormData();
+                commentFormData.append('userId', userId);
+                commentFormData.append('content', aiResult.comment || 'AI가 생성한 코멘트입니다.');
+                commentFormData.append('diaryDate', diaryDate);
+
+                const commentResponse = await fetch('/api/daily-comments', {
+                    method: 'POST',
+                    body: commentFormData
+                });
+                
+                if (!commentResponse.ok) {
+                    const errorText = await commentResponse.text();
+                    throw new Error(`HTTP error! status: ${commentResponse.status}, body: ${errorText}`);
+                }
+
+                const commentData = await commentResponse.json();
+                console.log('Daily Comment Save Response:', commentData);
+
+                if (commentData.success) {
+                    console.log('✅ DailyComment 저장 성공');
+                    return aiResult; 
+                } else {
+                    console.error('❌ DailyComment 저장 실패:', commentData.message);
+                    showErrorMessage('AI 코멘트 저장에 실패했습니다.');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error saving daily comment:', error);
+                showErrorMessage('AI 코멘트 저장 중 오류가 발생했습니다.');
+                return null;
+            }
+            // ===================== END NEW DAILY COMMENT SAVE =====================
+        } else {
+            console.warn('AI analysis completed but no data returned');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error in AI diary analysis and save:', error);
+        showErrorMessage('AI 일기 분석 및 저장에 실패했습니다.');
+        return null;
+    }
+}
+// ===================== END NEW AI DIARY ANALYSIS WITH SAVE =====================
+
 // 코멘트/기록 전환 버튼 관련 코드 제거됨
 // 이제 항상 기록 모드만 유지됨
 
@@ -943,30 +1066,85 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // 오늘의 제출 상태 확인 함수
 async function checkTodaySubmissionStatus() {
+    console.log('=== checkTodaySubmissionStatus 시작 ===');
+    console.log('userId:', userId);
+    
     if (!userId) {
+        console.log('❌ 로그인하지 않은 상태');
         updateSectionVisibility(false); // 로그인하지 않은 경우 기본 상태
         return;
     }
     
     try {
+        console.log('API 호출: /api/diaries/today?userId=' + userId);
         const response = await fetch(`/api/diaries/today?userId=${userId}`);
+        console.log('API 응답 상태:', response.status);
+        
         if (response.ok) {
             const data = await response.json();
+            console.log('API 응답 데이터:', data);
+            
             if (data.success && data.data) {
                 const todayDiaries = data.data;
+                console.log('오늘 일기 데이터:', todayDiaries);
                 // 오늘 기록이 있고 제출된 상태인지 확인 (백엔드에서 제출 상태 필드 확인 필요)
                 const hasSubmitted = todayDiaries.some(diary => diary.submitted === true);
+                console.log('hasSubmitted:', hasSubmitted);
                 updateSectionVisibility(hasSubmitted);
             } else {
+                console.log('❌ API 응답에 데이터 없음');
                 updateSectionVisibility(false);
             }
         } else {
+            console.log('❌ API 응답 실패:', response.status);
             updateSectionVisibility(false);
         }
     } catch (error) {
         console.error('Error checking submission status:', error);
         updateSectionVisibility(false);
     }
+    
+    console.log('=== checkTodaySubmissionStatus 완료 ===');
+}
+
+// 선택된 날짜의 제출 상태 확인 및 UI 업데이트
+async function checkSelectedDateSubmissionStatus(year, month, day, records) {
+    console.log('=== checkSelectedDateSubmissionStatus 호출됨 ===');
+    console.log('year:', year, 'month:', month, 'day:', day, 'records:', records);
+    
+    if (!userId) {
+        console.log('❌ 로그인하지 않은 상태');
+        updateSectionVisibility(false);
+        return;
+    }
+    
+    const today = new Date();
+    const selectedDate = new Date(year, month - 1, day);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isToday = selectedDate.getTime() === todayStart.getTime();
+    const isPast = selectedDate < todayStart;
+    
+    console.log('isToday:', isToday, 'isPast:', isPast);
+    
+    // 오늘 날짜인 경우 기존 로직 사용
+    if (isToday) {
+        console.log('✅ 오늘 날짜 - checkTodaySubmissionStatus 호출');
+        console.log('=== checkTodaySubmissionStatus 호출 전 ===');
+        await checkTodaySubmissionStatus();
+        console.log('=== checkTodaySubmissionStatus 호출 후 ===');
+        return;
+    }
+    
+    // 과거 날짜인 경우 기록이 있으면 제출된 것으로 간주
+    if (isPast && records.length > 0) {
+        console.log('✅ 과거 날짜에 기록 있음 - 제출된 것으로 간주');
+        updateSectionVisibility(true);
+        return;
+    }
+    
+    // 미래 날짜이거나 과거 날짜에 기록이 없는 경우
+    console.log('✅ 미래 날짜 또는 과거 날짜에 기록 없음 - 미제출 상태');
+    updateSectionVisibility(false);
 }
 
 // ===================== CALENDAR FUNCTIONALITY =====================
@@ -1146,6 +1324,11 @@ function renderCalendar(year, month, diaryData, comments = []) {
             img.alt = stampAlt;
             img.className = 'stamp-image-calendar';
             
+            // 이미지 로드 성공 시 로그
+            img.onload = function() {
+                console.log('✅ 스탬프 이미지 로드 성공:', stampImagePath);
+            };
+            
             // 이미지 로드 실패 시 기본 스탬프로 대체
             img.onerror = function() {
                 console.warn('스탬프 이미지 로드 실패:', stampImagePath, '기본 스탬프로 대체');
@@ -1154,18 +1337,35 @@ function renderCalendar(year, month, diaryData, comments = []) {
             };
             
             cell.appendChild(img);
+            
+            // 도장이 표시되었음을 사용자에게 알림
+            console.log(`✅ ${year}년 ${month}월 ${d}일에 도장이 표시되었습니다.`);
         }
         if (year === today.getFullYear() && month === today.getMonth()+1 && d === today.getDate()) {
             cell.classList.add('today');
         }
-        const isFuture = (year > today.getFullYear()) ||
-            (year === today.getFullYear() && month > today.getMonth()+1) ||
-            (year === today.getFullYear() && month === today.getMonth()+1 && d > today.getDate());
+        
+        // 과거/미래 날짜 처리
+        const currentDate = new Date(year, month-1, d);
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const isPast = currentDate < todayStart;
+        const isFuture = currentDate > todayStart;
+        
         if (isFuture) {
+            // 미래 날짜: 비활성화
             cell.style.pointerEvents = 'none';
             cell.style.opacity = '0.5';
             cell.style.background = '#f3f3f3';
+            cell.style.cursor = 'default';
+        } else if (isPast) {
+            // 과거 날짜: 클릭 가능하지만 시각적으로 구분 (노란 갈색 배경)
+            cell.style.background = '#F5E6D3';
+            cell.style.opacity = '0.9';
+            cell.onclick = function() {
+                selectDiaryDate(year, month, d, diaryData);
+            };
         } else {
+            // 오늘 날짜: 정상 활성화
             cell.onclick = function() {
                 selectDiaryDate(year, month, d, diaryData);
             };
@@ -1220,6 +1420,13 @@ function selectDiaryDate(year, month, day, diaryData) {
         return d.getFullYear() === year && d.getMonth()+1 === month && d.getDate() === day;
     });
     renderRecordsList(records, year, month, day);
+    
+    // 선택된 날짜의 제출 상태 확인 및 UI 업데이트
+    console.log('=== selectDiaryDate에서 checkSelectedDateSubmissionStatus 호출 ===');
+    // 비동기 함수를 Promise로 처리
+    checkSelectedDateSubmissionStatus(year, month, day, records).catch(error => {
+        console.error('Error in checkSelectedDateSubmissionStatus:', error);
+    });
 }
 
 function renderRecordsList(records, year, month, day) {
@@ -1327,7 +1534,9 @@ function renderRecordsList(records, year, month, day) {
             // 오늘 날짜인지 확인하여 적절한 처리
             const isToday = year === today.getFullYear() && month === (today.getMonth() + 1) && day === today.getDate();
             if (isToday) {
-                checkTodaySubmissionStatus();
+                // 오늘 날짜는 selectDiaryDate에서 처리하므로 여기서는 UI 상태를 직접 조작하지 않음
+                // checkTodaySubmissionStatus()는 selectDiaryDate에서 호출됨
+                console.log('✅ 오늘 날짜 - renderRecordsList에서 UI 상태 조작하지 않음');
             } else {
                 // 미래 날짜인 경우 입력창 활성화
                 if (newRecordSection) {
@@ -1377,6 +1586,42 @@ function setupCalendarNavigation() {
         };
     }
 }
+
+// ===================== CALENDAR ONLY RENDER =====================
+async function fetchAndRenderCalendarOnly() {
+    if (!userId) {
+        console.log('캘린더 새로고침 건너뜀: 로그인하지 않은 사용자');
+        return;
+    }
+    console.log('✅ 캘린더만 새로고침 - API 호출:', `/api/calendar-data?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
+
+    try {
+        const res = await fetch(`/api/calendar-data?userId=${userId}&year=${currentYear}&month=${currentMonth}`);
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        if (data.success && data.data) {
+            const calendarData = data.data || {};
+            const diaries = calendarData.diaries || [];
+            const comments = calendarData.comments || [];
+
+            // 왼쪽 패널 관련 UI만 업데이트
+            renderCalendar(currentYear, currentMonth, diaries, comments);
+            updateCalendarSummary(diaries, currentYear, currentMonth);
+            renderWeeklyReports(diaries, currentYear, currentMonth);
+            updateEmotionStats(currentYear, currentMonth);
+            console.log('✅ 캘린더 UI 새로고침 완료');
+        } else {
+            throw new Error(data.message || '캘린더 데이터를 가져오는데 실패했습니다.');
+        }
+
+    } catch (error) {
+        console.error('Error fetching calendar data for refresh:', error);
+        showErrorMessage('달력 데이터를 새로고치는 중 오류가 발생했습니다.');
+    }
+}
+// ===================== END CALENDAR ONLY RENDER =====================
 
 function fetchAndRender() {
     // Show loading state
@@ -1449,6 +1694,8 @@ function fetchAndRender() {
                 selectDiaryDate(currentYear, currentMonth, today.getDate(), currentDiaries);
             } else {
                 renderRecordsList([], currentYear, currentMonth, 1);
+                // 오늘 날짜가 아닌 경우에도 제출 상태 확인
+                await checkTodaySubmissionStatus();
             }
             isLoading = false;
         })
