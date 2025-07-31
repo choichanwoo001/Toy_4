@@ -261,9 +261,14 @@ function initializeMainPage() {
             showMessage('회원가입이 완료되었습니다!', 'success');
         }
         
-        // URL에서 파라미터 제거
+        // URL에서 파라미터 제거하고 페이지 새로고침하여 헤더 업데이트
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
+        
+        // 헤더 업데이트를 위해 페이지 새로고침
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
     }
     else {
         // 일반적인 경우 서버에서 로그인 상태 확인
@@ -274,6 +279,44 @@ function initializeMainPage() {
     renderAuthButtons();
     displayNextQuote();
     setInterval(displayNextQuote, 5000);
+}
+
+/**
+ * 로그인 폼 제출을 처리하는 함수
+ * @param {Event} event - 폼 제출 이벤트
+ */
+async function handleLoginSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(formData),
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            // 로그인 성공 시 즉시 상태 업데이트
+            isLoggedIn = true;
+            renderAuthButtons();
+            hideForm('login');
+            showMessage('로그인되었습니다!', 'success');
+            
+            // 헤더 업데이트를 위해 즉시 페이지 새로고침
+            window.location.reload();
+        } else {
+            showMessage('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.', 'error');
+        }
+    } catch (error) {
+        console.error('로그인 중 오류:', error);
+        showMessage('로그인 중 오류가 발생했습니다.', 'error');
+    }
 }
 
 /**

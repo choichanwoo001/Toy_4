@@ -3,7 +3,6 @@ package com.example.backend.service;
 import com.example.backend.entity.Diary;
 import com.example.backend.entity.User;
 import com.example.backend.entity.DailyComment;
-import com.example.backend.entity.UserStampHistory;
 import com.example.backend.entity.UserStamp;
 import com.example.backend.entity.Stamp;
 import com.example.backend.entity.CommentEmotionMapping;
@@ -13,7 +12,6 @@ import com.example.backend.dto.UserStampDto;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.DailyCommentRepository;
-import com.example.backend.repository.UserStampHistoryRepository;
 import com.example.backend.repository.UserStampRepository;
 import com.example.backend.repository.StampRepository;
 import com.example.backend.repository.CommentEmotionMappingRepository;
@@ -39,7 +37,6 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
     private final DailyCommentRepository dailyCommentRepository;
-    private final UserStampHistoryRepository userStampHistoryRepository;
     private final UserStampRepository userStampRepository;
     private final StampRepository stampRepository;
     private final CommentEmotionMappingRepository commentEmotionMappingRepository;
@@ -255,7 +252,6 @@ public class DiaryService {
     // 일기와 코멘트(UserStamp 포함) 정보를 함께 조회
     @Transactional(readOnly = true)
     public Map<String, Object> getCalendarData(Long userId, int year, int month) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         
         // 월별 일기 조회
         List<Diary> diaries = getDiariesByUserAndMonth(userId, year, month);
@@ -333,7 +329,6 @@ public class DiaryService {
     // 2025-01-XX: 디버깅을 위한 모든 코멘트 조회 메서드 추가
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllCommentsForDebug(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         List<DailyComment> comments = dailyCommentRepository.findByUser_UserIdAndDiaryDateBetween(
             userId, 
             LocalDateTime.of(2020, 1, 1, 0, 0), 
@@ -440,7 +435,6 @@ public class DiaryService {
     // 과거 날짜의 AI 코멘트를 조회하기 위한 메서드
     @Transactional(readOnly = true)
     public Optional<DailyComment> getDailyCommentByDate(Long userId, int year, int month, int day) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         
         // 해당 날짜의 시작과 끝 시간 설정
         LocalDateTime startOfDay = LocalDateTime.of(year, month, day, 0, 0, 0);
