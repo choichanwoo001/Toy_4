@@ -349,6 +349,66 @@ public class DiaryController {
     }
     // ===================== END AI DIARY ANALYSIS API =====================
 
+    // ===================== NEW AI ANALYSIS SAVE API =====================
+    // 2025-01-XX: AI 분석 결과를 DB에 저장하는 API 추가
+    @PostMapping("/api/diaries/analyze-and-save")
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Map<String, Object>>> analyzeAndSaveDiaryWithAI(@RequestParam Long userId,
+                                                                                     @RequestParam String content) {
+        System.out.println("=== AI Diary Analysis and Save API Called ===");
+        System.out.println("userId: " + userId);
+        System.out.println("content: " + content);
+        
+        try {
+            // AI 서비스에 요청할 데이터 준비
+            Map<String, Object> requestData = new HashMap<>();
+            requestData.put("user_id", String.valueOf(userId));
+            requestData.put("raw_diary", content);
+            
+            // HTTP 헤더 설정
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // HTTP 엔티티 생성
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestData, headers);
+            
+            // AI 서비스 호출
+            ResponseEntity<Map> aiResponse = restTemplate.postForEntity(AI_SERVICE_URL, requestEntity, Map.class);
+            
+            if (aiResponse.getStatusCode().is2xxSuccessful() && aiResponse.getBody() != null) {
+                Map<String, Object> aiResult = aiResponse.getBody();
+                
+                // AI 분석 결과를 DB에 저장
+                Map<String, Object> savedData = diaryService.saveAIAnalysisResult(userId, aiResult);
+                
+                // 응답 데이터 구성
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("processed_diary", aiResult.get("processed_diary"));
+                responseData.put("chunks", aiResult.get("chunks"));
+                responseData.put("advice", aiResult.get("advice"));
+                responseData.put("comment", aiResult.get("comment"));
+                responseData.put("quote", aiResult.get("quote"));
+                responseData.put("emotion_keywords", aiResult.get("emotion_keywords"));
+                responseData.put("similar_past_diaries", aiResult.get("similar_past_diaries"));
+                responseData.put("saved_feedback_id", savedData.get("feedback_id"));
+                responseData.put("saved_proofs", savedData.get("proofs"));
+                responseData.put("saved_activities", savedData.get("activities"));
+                
+                System.out.println("AI Analysis and Save completed successfully");
+                return ResponseEntity.ok(new ApiResponse<>(true, "AI 일기 분석 및 저장 완료", responseData));
+            } else {
+                System.err.println("AI service returned error: " + aiResponse.getStatusCode());
+                return ResponseEntity.ok(new ApiResponse<>(false, "AI 서비스 오류", null));
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error in AI diary analysis and save: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.ok(new ApiResponse<>(false, "AI 일기 분석 및 저장 실패: " + e.getMessage(), null));
+        }
+    }
+    // ===================== END NEW AI ANALYSIS SAVE API =====================
+
     // ===================== NEW API ENDPOINT =====================
     // 2025-01-XX: 오늘의 모든 기록을 가져오는 API 추가
     // 오늘의 모든 기록 조회 (REST)
