@@ -369,7 +369,7 @@ class DiaryAnalyzer:
 ---
 
 조언 리스트:
-{chr(10).join(f"- {a}" for a in advice_list)}
+{chr(10).join("- " + a for a in advice_list)}
 
 ---
 
@@ -465,14 +465,14 @@ class DiaryAnalyzer:
 조언:
 {advice}
 
-{f'\n과거 유사 일기 기록:\n{similar_past_diaries}' if similar_past_diaries else ''}
-{f'\n관련 인용문:\n{quote}'}
+{(chr(10) + '과거 유사 일기 기록:' + chr(10) + str(similar_past_diaries)) if similar_past_diaries else ''}
+{chr(10) + '관련 인용문:' + chr(10) + str(quote)}
 
 요구사항:
 - 코멘트는 3~4문장으로 하나의 문단을 이루어야 합니다.
 - 반드시 조언 내용을 참고하되, 코멘트에 '조언에 따라', '조언을 참고하여' 등 조언을 직접적으로 언급하지 마세요.
 - 과거 일기 기록이 있는 경우 해당 내용을 구체적으로 언급해주세요.
-- 관련 인용문을 따옴표("")로 감싸고 저자와 함께 표시해주세요.
+- 관련 인용문을 따옴표(" ")로 감싸고 저자와 함께 표시해주세요.
 - 따뜻하고 공감 어린 말투를 유지해주세요."""
         else:
             human_prompt = f"""아래 내용을 바탕으로 진심 어린 공감과 격려의 코멘트를 작성해주세요.
@@ -483,7 +483,7 @@ class DiaryAnalyzer:
 조언:
 {advice}
 
-{f'\n과거 유사 일기 기록:\n{similar_past_diaries}' if similar_past_diaries else ''}
+{(chr(10) + '과거 유사 일기 기록:' + chr(10) + str(similar_past_diaries)) if similar_past_diaries else ''}
 
 요구사항:
 - 코멘트는 3~4문장으로 하나의 문단을 이루어야 합니다.
@@ -544,7 +544,7 @@ class DiaryAnalyzer:
 이 내용에서 나타나는 주요 감정 키워드들을 추출해주세요.
 
 일기 청크들:
-{chr(10).join(f"- {chunk}" for chunk in chunks)}
+{chr(10).join("- " + chunk for chunk in chunks)}
 
 감정 키워드들을 쉼표로 구분하여 출력해주세요. (예: 기쁨, 평온, 대견함, 일상)
 """

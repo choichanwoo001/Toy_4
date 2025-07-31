@@ -79,9 +79,17 @@ public class WeeklyReportService {
             if (optionalFeedback.isPresent()) {
                 WeeklyFeedback feedback = optionalFeedback.get();
                 
-                // MultipleBagFetchException 해결을 위해 별도로 초기화
-                org.hibernate.Hibernate.initialize(feedback.getFeedbackProofs());
-                org.hibernate.Hibernate.initialize(feedback.getRecommendActivities());
+                // MultipleBagFetchException 해결을 위해 별도 쿼리로 컬렉션 로드
+                Optional<WeeklyFeedback> feedbackWithProofs = feedbackRepository.findWithFeedbackProofs(userId, weekOffset);
+                Optional<WeeklyFeedback> feedbackWithActivities = feedbackRepository.findWithRecommendActivities(userId, weekOffset);
+                
+                // 컬렉션 데이터를 기본 feedback 객체에 설정
+                if (feedbackWithProofs.isPresent()) {
+                    feedback.getFeedbackProofs().addAll(feedbackWithProofs.get().getFeedbackProofs());
+                }
+                if (feedbackWithActivities.isPresent()) {
+                    feedback.getRecommendActivities().addAll(feedbackWithActivities.get().getRecommendActivities());
+                }
                 
                 System.out.println("🔍 FeedbackProof 개수: " + feedback.getFeedbackProofs().size());
                 System.out.println("🔍 RecommendActivity 개수: " + feedback.getRecommendActivities().size());
