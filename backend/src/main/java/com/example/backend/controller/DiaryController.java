@@ -109,21 +109,45 @@ public class DiaryController {
     @ResponseBody
     public ResponseEntity<ApiResponse<Map<String, Object>>> saveDailyComment(@RequestParam Long userId,
                                                                              @RequestParam String content,
-                                                                             @RequestParam String diaryDate) {
+                                                                             @RequestParam String diaryDate,
+                                                                             @RequestParam(required = false) String emotionKeywords) {
         System.out.println("=== Daily Comment Save API Called ===");
         System.out.println("userId: " + userId);
         System.out.println("content: " + content);
         System.out.println("diaryDate: " + diaryDate);
+        System.out.println("emotionKeywords: " + emotionKeywords);
         
         try {
             // diaryDate 문자열을 LocalDateTime으로 변환
             java.time.LocalDateTime parsedDate = java.time.LocalDateTime.parse(diaryDate);
             System.out.println("Parsed date: " + parsedDate);
             
-            // 코멘트 저장 (스탬프 정보 포함, 감정 분석 자동 수행)
+            // 감정 키워드 파싱
+            List<String> emotions = new ArrayList<>();
+            if (emotionKeywords != null && !emotionKeywords.trim().isEmpty()) {
+                try {
+                    // JSON 문자열을 List<String>으로 파싱
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    emotions = mapper.readValue(emotionKeywords, mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+                    System.out.println("Parsed emotion keywords: " + emotions);
+                } catch (Exception e) {
+                    System.err.println("Error parsing emotion keywords: " + e.getMessage());
+                    // 파싱 실패 시 빈 리스트 사용
+                    emotions = new ArrayList<>();
+                }
+            }
+            
+            // 코멘트 저장 (스탬프 정보 포함)
             System.out.println("Calling diaryService.saveDailyComment...");
             com.example.backend.entity.DailyComment savedComment = diaryService.saveDailyComment(userId, content, parsedDate);
             System.out.println("Comment saved successfully with ID: " + savedComment.getId());
+            
+            // 감정 키워드가 있으면 CommentEmotionMapping에 저장
+            if (!emotions.isEmpty()) {
+                System.out.println("Saving emotion mappings for comment ID: " + savedComment.getId());
+                diaryService.saveEmotionMappings(savedComment, emotions);
+                System.out.println("Emotion mappings saved successfully");
+            }
             
             Map<String, Object> result = new HashMap<>();
             result.put("commentId", savedComment.getId());
@@ -146,21 +170,9 @@ public class DiaryController {
                 System.out.println("No UserStamp found for saved comment");
             }
             
-            // 감정 분석 결과 포함 (CommentEmotionMapping에서 조회)
-            try {
-                List<com.example.backend.entity.CommentEmotionMapping> emotionMappings = 
-                    diaryService.getCommentEmotionMappings(savedComment.getId());
-                
-                List<String> emotions = emotionMappings.stream()
-                    .map(mapping -> mapping.getEmotionData().getName())
-                    .collect(java.util.stream.Collectors.toList());
-                
-                result.put("analyzedEmotions", emotions);
-                System.out.println("Analyzed emotions: " + emotions);
-            } catch (Exception e) {
-                System.err.println("Error getting emotion mappings: " + e.getMessage());
-                result.put("analyzedEmotions", new ArrayList<String>());
-            }
+            // 저장된 감정 키워드 포함
+            result.put("analyzedEmotions", emotions);
+            System.out.println("Analyzed emotions: " + emotions);
             
             System.out.println("Returning success response with data: " + result);
             return ResponseEntity.ok(new ApiResponse<>(true, "코멘트 저장 성공", result));
