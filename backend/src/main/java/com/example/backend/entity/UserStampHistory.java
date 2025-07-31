@@ -13,7 +13,7 @@ public class UserStampHistory {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Long prevStampId;
 
     @Column(nullable = false)

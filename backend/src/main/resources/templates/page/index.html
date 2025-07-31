@@ -68,7 +68,7 @@
             <div class="form-card">
                 <button class="close-btn" onclick="hideForm('login')">&times;</button>
                 <h2 class="text-3xl font-bold text-[#90533B] text-center mb-8">로그인</h2>
-                <form action="/login" method="POST">
+                <form id="login-form" onsubmit="handleLoginSubmit(event)">
                     <div class="form-group">
                         <label for="login-email" class="form-label">이메일</label>
                         <input type="email" id="login-email" class="form-input" name="email" placeholder="이메일을 입력해주세요" required>

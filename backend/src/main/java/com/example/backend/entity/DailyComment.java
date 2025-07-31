@@ -36,11 +36,11 @@ public class DailyComment {
     private LocalDateTime createdAt;
 
     // ===================== UPDATED ENTITY FIELD =====================
-    // 2025-01-XX: 코멘트 작성 시 적용된 스탬프 정보를 UserStampPreference로 변경
-    // 각 코멘트별로 다른 스탬프가 적용될 수 있도록 user_stamp_preference의 preference_id를 FK로 사용
+    // 2025-01-XX: 코멘트 작성 시 적용된 스탬프 정보를 UserStamp로 변경
+    // 각 코멘트별로 다른 스탬프가 적용될 수 있도록 user_stamp의 user_stamp_id를 FK로 사용
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_stamp_preference_id")
-    private UserStampPreference userStampPreference;
+    @JoinColumn(name = "user_stamp_id")
+    private UserStamp userStamp;
     // ===================== END UPDATED ENTITY FIELD =====================
 
     // getter/setter
@@ -58,8 +58,8 @@ public class DailyComment {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     // ===================== UPDATED GETTER/SETTER =====================
-    // 2025-01-XX: userStampPreference 필드에 대한 getter/setter 추가
-    public UserStampPreference getUserStampPreference() { return userStampPreference; }
-    public void setUserStampPreference(UserStampPreference userStampPreference) { this.userStampPreference = userStampPreference; }
+    // 2025-01-XX: userStamp 필드에 대한 getter/setter 추가
+    public UserStamp getUserStamp() { return userStamp; }
+    public void setUserStamp(UserStamp userStamp) { this.userStamp = userStamp; }
     // ===================== END UPDATED GETTER/SETTER =====================
 }
