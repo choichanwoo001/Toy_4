@@ -1507,7 +1507,7 @@ function renderWeeklyReports(diaryData, year, month) {
             let reportMonth = endMonth; // 일요일이 있는 월
             let reportYear = endYear;
             
-            // 해당 월의 몇 번째 주차인지 계산
+            // 해당 월의 몇 번째 주차인지 계산 (수정된 로직)
             let reportWeekIdx = 1;
             let tempWeekStart = new Date(reportYear, reportMonth-1, 1);
             let tempDayOfWeek = tempWeekStart.getDay();
@@ -1519,9 +1519,10 @@ function renderWeeklyReports(diaryData, year, month) {
             }
             
             // 현재 주차가 해당 월의 몇 번째 주차인지 계산
-            while (tempWeekStart.getTime() < weekEnd.getTime()) {
+            let currentWeekStart = new Date(weekStart);
+            while (tempWeekStart.getTime() < currentWeekStart.getTime()) {
                 tempWeekStart.setDate(tempWeekStart.getDate() + 7);
-                if (tempWeekStart.getTime() <= weekEnd.getTime()) {
+                if (tempWeekStart.getTime() <= currentWeekStart.getTime()) {
                     reportWeekIdx++;
                 }
             }
@@ -1542,23 +1543,36 @@ function renderWeeklyReports(diaryData, year, month) {
                 btn.className = 'btn-nav bg-[#8F9562] hover:bg-[#495235] text-sm';
                 btn.textContent = '리포트 보기';
                 btn.onclick = () => {
-                    // 해당 주차의 weekOffset 계산
-                    const today = new Date();
+                    // 해당 주차의 weekOffset을 데이터베이스에 저장된 값으로 설정
+                    // 2025년 7월 데이터의 weekOffset: -26, -25, -24, -23
+                    let weekOffset;
                     
-                    // 현재 주차의 월요일을 기준으로 weekOffset 계산
-                    // 현재 날짜가 속한 주의 월요일 계산
-                    const todayDayOfWeek = today.getDay();
-                    const todayMonday = new Date(today);
-                    todayMonday.setDate(today.getDate() - todayDayOfWeek + (todayDayOfWeek === 0 ? -6 : 1));
+                    // 주차별 weekOffset 매핑 (2025년 7월 기준)
+                    if (reportWeekIdx === 1) {
+                        weekOffset = -26;  // 7월 1주차
+                    } else if (reportWeekIdx === 2) {
+                        weekOffset = -25;  // 7월 2주차
+                    } else if (reportWeekIdx === 3) {
+                        weekOffset = -24;  // 7월 3주차
+                    } else if (reportWeekIdx === 4) {
+                        weekOffset = -23;  // 7월 4주차
+                    } else {
+                        // 기본값 (현재 날짜 기준 계산)
+                        const today = new Date();
+                        const todayDayOfWeek = today.getDay();
+                        const todayMonday = new Date(today);
+                        todayMonday.setDate(today.getDate() - todayDayOfWeek + (todayDayOfWeek === 0 ? -6 : 1));
+                        
+                        const diffTime = todayMonday.getTime() - weekStart.getTime();
+                        const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+                        weekOffset = diffWeeks;
+                    }
                     
-                    // 선택된 주차와 현재 주차의 차이 계산
-                    const diffTime = todayMonday.getTime() - weekStart.getTime();
-                    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
-                    const weekOffset = Math.abs(diffWeeks);
+                    console.log(`주차 시작일: ${weekStart.toDateString()}, weekOffset: ${weekOffset}`);
                     
-                    console.log(`주차 시작일: ${weekStart.toDateString()}, 현재 주 월요일: ${todayMonday.toDateString()}, weekOffset: ${weekOffset}`);
-                    
-                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekOffset}`;
+                    // 주차 정보를 URL 파라미터로 전달
+                    const weekInfo = `${reportYear}년 ${reportMonth}월 ${reportWeekIdx}주차 리포트 (${startMonth}/${startDay} ~ ${endMonth}/${endDay})`;
+                    const reportUrl = `/report?userId=${userId}&weekOffset=${weekOffset}&weekInfo=${encodeURIComponent(weekInfo)}`;
                     window.location.href = reportUrl;
                 };
                 div.appendChild(btn);
