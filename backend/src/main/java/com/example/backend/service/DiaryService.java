@@ -8,6 +8,9 @@ import com.example.backend.entity.Stamp;
 import com.example.backend.entity.CommentEmotionMapping;
 import com.example.backend.entity.CommentEmotionId;
 import com.example.backend.entity.EmotionData;
+import com.example.backend.entity.WeeklyFeedback;
+import com.example.backend.entity.FeedbackProof;
+import com.example.backend.entity.RecommendActivity;
 import com.example.backend.dto.UserStampDto;
 import com.example.backend.repository.DiaryRepository;
 import com.example.backend.repository.UserRepository;
@@ -16,6 +19,9 @@ import com.example.backend.repository.UserStampRepository;
 import com.example.backend.repository.StampRepository;
 import com.example.backend.repository.CommentEmotionMappingRepository;
 import com.example.backend.repository.EmotionDataRepository;
+import com.example.backend.repository.WeeklyFeedbackRepository;
+import com.example.backend.repository.FeedbackProofRepository;
+import com.example.backend.repository.RecommendActivityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +47,9 @@ public class DiaryService {
     private final StampRepository stampRepository;
     private final CommentEmotionMappingRepository commentEmotionMappingRepository;
     private final EmotionDataRepository emotionDataRepository;
+    private final WeeklyFeedbackRepository weeklyFeedbackRepository;
+    private final FeedbackProofRepository feedbackProofRepository;
+    private final RecommendActivityRepository recommendActivityRepository;
     private final PointshopService pointshopService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final String AI_SERVICE_URL = "http://localhost:8000/api/v1/diary-analyzer/analyze";
@@ -450,4 +459,94 @@ public class DiaryService {
                 .max(Comparator.comparing(DailyComment::getCreatedAt));
     }
     // ===================== END NEW DAILY COMMENT BY DATE METHOD =====================
+
+    // ===================== NEW AI ANALYSIS SAVE METHOD =====================
+    // 2025-01-XX: AI 분석 결과를 DB에 저장하는 메서드 추가
+    // AI 분석 결과를 WeeklyFeedback, FeedbackProof, RecommendActivity에 저장
+    @Transactional
+    public Map<String, Object> saveAIAnalysisResult(Long userId, Map<String, Object> aiResult) {
+        System.out.println("=== DiaryService.saveAIAnalysisResult called ===");
+        System.out.println("userId: " + userId);
+        System.out.println("aiResult keys: " + aiResult.keySet());
+        
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        // WeeklyFeedback 생성
+        WeeklyFeedback feedback = new WeeklyFeedback();
+        feedback.setUser(user);
+        feedback.setCreatedAt(LocalDateTime.now());
+        
+        // AI 분석 결과에서 데이터 추출
+        String comment = (String) aiResult.get("comment");
+        String quote = (String) aiResult.get("quote");
+        List<String> emotionKeywords = (List<String>) aiResult.get("emotion_keywords");
+        List<Map<String, Object>> similarPastDiaries = (List<Map<String, Object>>) aiResult.get("similar_past_diaries");
+        List<Map<String, Object>> recommendActivities = (List<Map<String, Object>>) aiResult.get("recommend_activities");
+        
+        // WeeklyFeedback 설정
+        feedback.setEmotionSummary(String.join(", ", emotionKeywords != null ? emotionKeywords : new ArrayList<>()));
+        feedback.setIsQualified("Y"); // 기본값으로 자격 부여
+        feedback.setWeekOffset(0); // 현재 주차
+        
+        // WeeklyFeedback 저장
+        WeeklyFeedback savedFeedback = weeklyFeedbackRepository.save(feedback);
+        System.out.println("WeeklyFeedback saved with ID: " + savedFeedback.getId());
+        
+        // FeedbackProof 저장 (유사한 과거 일기들)
+        List<Map<String, Object>> savedProofs = new ArrayList<>();
+        if (similarPastDiaries != null) {
+            for (Map<String, Object> similarDiary : similarPastDiaries) {
+                FeedbackProof proof = new FeedbackProof();
+                proof.setFeedback(savedFeedback);
+                proof.setType("similar_diary");
+                proof.setDetail(similarDiary.toString());
+                proof.setCreatedAt(LocalDateTime.now());
+                
+                FeedbackProof savedProof = feedbackProofRepository.save(proof);
+                Map<String, Object> proofData = new HashMap<>();
+                proofData.put("proof_id", savedProof.getId());
+                proofData.put("type", savedProof.getType());
+                proofData.put("detail", savedProof.getDetail());
+                savedProofs.add(proofData);
+            }
+        }
+        
+        // RecommendActivity 저장
+        List<Map<String, Object>> savedActivities = new ArrayList<>();
+        if (recommendActivities != null) {
+            for (int i = 0; i < recommendActivities.size(); i++) {
+                Map<String, Object> activity = recommendActivities.get(i);
+                RecommendActivity recommendActivity = new RecommendActivity();
+                recommendActivity.setFeedback(savedFeedback);
+                recommendActivity.setTitle((String) activity.get("title"));
+                recommendActivity.setCategory((String) activity.get("category"));
+                recommendActivity.setDetail((String) activity.get("detail"));
+                recommendActivity.setOrder((long) (i + 1));
+                recommendActivity.setCreatedAt(LocalDateTime.now());
+                
+                RecommendActivity savedActivity = recommendActivityRepository.save(recommendActivity);
+                Map<String, Object> activityData = new HashMap<>();
+                activityData.put("activity_id", savedActivity.getId());
+                activityData.put("title", savedActivity.getTitle());
+                activityData.put("category", savedActivity.getCategory());
+                activityData.put("detail", savedActivity.getDetail());
+                activityData.put("order", savedActivity.getOrder());
+                savedActivities.add(activityData);
+            }
+        }
+        
+        // 결과 맵 생성
+        Map<String, Object> result = new HashMap<>();
+        result.put("feedback_id", savedFeedback.getId());
+        result.put("proofs", savedProofs);
+        result.put("activities", savedActivities);
+        
+        System.out.println("AI Analysis Result saved successfully");
+        System.out.println("Feedback ID: " + savedFeedback.getId());
+        System.out.println("Proofs count: " + savedProofs.size());
+        System.out.println("Activities count: " + savedActivities.size());
+        
+        return result;
+    }
+    // ===================== END NEW AI ANALYSIS SAVE METHOD =====================
 } 
