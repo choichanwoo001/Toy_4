@@ -99,3 +99,9 @@ body {
     margin: 0 auto;
     padding: 0 2rem;
 } 
+
+.disabled-link {
+    pointer-events: none;   /* 클릭 비활성화 */
+    opacity: 0.5;           /* 흐리게 표시 */
+    cursor: not-allowed;    /* 마우스 커서 변경 */
+}
