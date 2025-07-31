@@ -3,11 +3,13 @@ package com.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 
 @Entity
 @Table(name = "comment_emotion_mapping")
 @Getter
+@Setter
 @NoArgsConstructor
 public class CommentEmotionMapping {
 

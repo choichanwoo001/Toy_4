@@ -1,13 +1,15 @@
 package com.example.backend.repository;
 
 import com.example.backend.entity.CommentEmotionMapping;
+import com.example.backend.entity.CommentEmotionId;
 import com.example.backend.entity.DailyComment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-// 주어진 일일 코멘트 목록에 해당하는 감정 매핑 정보를 조회
-public interface CommentEmotionMappingRepository extends JpaRepository<CommentEmotionMapping, CommentEmotionMapping> {
+@Repository
+public interface CommentEmotionMappingRepository extends JpaRepository<CommentEmotionMapping, CommentEmotionId> {
     List<CommentEmotionMapping> findByDailyCommentIn(List<DailyComment> comments);
-
+    List<CommentEmotionMapping> findByDailyComment(DailyComment dailyComment);
 }

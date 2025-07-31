@@ -47,7 +47,14 @@ public class WeeklyReportService {
             System.out.println("📅 주간 피드백 기준 날짜 사용 - monday: " + monday + ", sunday: " + sunday);
         } else {
             // 피드백이 없는 경우 기존 로직 유지 (현재 날짜 기준)
-            LocalDate targetDate = LocalDate.now().plusWeeks(-weekOffset);
+            LocalDate targetDate;
+            if (weekOffset >= 0) {
+                // 과거 날짜 (현재로부터 몇 주 전)
+                targetDate = LocalDate.now().plusWeeks(-weekOffset);
+            } else {
+                // 미래 날짜 (현재로부터 몇 주 후)
+                targetDate = LocalDate.now().plusWeeks(Math.abs(weekOffset));
+            }
             monday = targetDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
             sunday = monday.plusDays(6);
             System.out.println("📅 피드백 없음, 기본 날짜 계산 - monday: " + monday + ", sunday: " + sunday);
@@ -66,7 +73,6 @@ public class WeeklyReportService {
 
         /* 단계 4: 응답 빌드 */
         var builder = ReportResponseDto.builder()
-                .week(formatWeekString(monday))
                 .dayLabels(List.of("월", "화", "수", "목", "금", "토", "일"))
                 .emotionCharts(emotionCharts);
 
@@ -80,7 +86,10 @@ public class WeeklyReportService {
                 System.out.println("🔍 FeedbackProof 개수: " + feedback.getFeedbackProofs().size());
                 System.out.println("🔍 RecommendActivity 개수: " + feedback.getRecommendActivities().size());
                 
-                builder.emotionSummary(feedback.getEmotionSummary())
+                // 피드백이 있을 때는 피드백의 실제 날짜를 사용하여 주차 문자열 생성
+                LocalDate feedbackMonday = LocalDate.parse(feedback.getFeedbackStart());
+                builder.week(formatWeekString(feedbackMonday))
+                        .emotionSummary(feedback.getEmotionSummary())
                         .evidenceSentences(feedback.getFeedbackProofs().stream()
                                 .map(FeedbackProof::getDetail)
                                 .toList())
@@ -91,7 +100,9 @@ public class WeeklyReportService {
                                         .build())
                                 .toList());
             } else {
-                builder.emotionSummary("이번 주 감정 분석이 준비되지 않았습니다.")
+                // 피드백이 없을 때만 계산된 날짜 사용
+                builder.week(formatWeekString(monday))
+                        .emotionSummary("이번 주 감정 분석이 준비되지 않았습니다.")
                         .evidenceSentences(List.of())
                         .recommendations(List.of());
             }
@@ -106,20 +117,21 @@ public class WeeklyReportService {
 
     // 주차 문자열 생성 유틸
     private String formatWeekString(LocalDate monday) {
-        // 주차 기준: "해당 기간이 끝나는 일요일이 속한 달"에서 1주차부터 계산
         LocalDate sunday = monday.plusDays(6);
-
-        // 그 달의 첫 번째 월요일(같은 달에 포함되도록 previousOrSame) 계산
-        LocalDate firstMondayOfMonth = sunday.withDayOfMonth(1)
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-
-        long weeksBetween = ChronoUnit.WEEKS.between(firstMondayOfMonth, monday);
-        int weekIndex = (int) weeksBetween + 1; // 0-based → 1-based
-
+        
+        // 목요일 기준으로 주차가 속한 월 결정 (ISO 8601)
+        LocalDate thursday = monday.plusDays(3);
+        
+        // 한국 기준 주차 계산 (월요일 시작)
+        WeekFields weekFields = WeekFields.of(DayOfWeek.MONDAY, 4);
+        int weekOfMonth = thursday.get(weekFields.weekOfMonth());
+        int year = thursday.getYear();
+        int month = thursday.getMonthValue();
+        
         return String.format("%d년 %d월 %d주차 (%d월 %d일 ~ %d월 %d일)",
-                sunday.getYear(),
-                sunday.getMonthValue(),
-                weekIndex,
+                year,
+                month,
+                weekOfMonth,
                 monday.getMonthValue(),
                 monday.getDayOfMonth(),
                 sunday.getMonthValue(),
