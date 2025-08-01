@@ -18,6 +18,7 @@ import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.example.backend.entity.FeedbackProof;
+import com.example.backend.entity.RecommendActivity;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -83,12 +84,20 @@ public class WeeklyReportService {
                 Optional<WeeklyFeedback> feedbackWithProofs = feedbackRepository.findWithFeedbackProofs(userId, weekOffset);
                 Optional<WeeklyFeedback> feedbackWithActivities = feedbackRepository.findWithRecommendActivities(userId, weekOffset);
                 
-                // 컬렉션 데이터를 기본 feedback 객체에 설정
+                // 컬렉션 데이터를 기본 feedback 객체에 설정 (중복 제거)
                 if (feedbackWithProofs.isPresent()) {
-                    feedback.getFeedbackProofs().addAll(feedbackWithProofs.get().getFeedbackProofs());
+                    // 기존 데이터와 새 데이터를 합치고 중복 제거
+                    Set<FeedbackProof> uniqueProofs = new LinkedHashSet<>(feedback.getFeedbackProofs());
+                    uniqueProofs.addAll(feedbackWithProofs.get().getFeedbackProofs());
+                    feedback.getFeedbackProofs().clear();
+                    feedback.getFeedbackProofs().addAll(uniqueProofs);
                 }
                 if (feedbackWithActivities.isPresent()) {
-                    feedback.getRecommendActivities().addAll(feedbackWithActivities.get().getRecommendActivities());
+                    // 기존 데이터와 새 데이터를 합치고 중복 제거
+                    Set<RecommendActivity> uniqueActivities = new LinkedHashSet<>(feedback.getRecommendActivities());
+                    uniqueActivities.addAll(feedbackWithActivities.get().getRecommendActivities());
+                    feedback.getRecommendActivities().clear();
+                    feedback.getRecommendActivities().addAll(uniqueActivities);
                 }
                 
                 System.out.println("🔍 FeedbackProof 개수: " + feedback.getFeedbackProofs().size());
