@@ -1,0 +1,35 @@
+# Git 관련
+.git
+.gitignore
+
+# IDE 관련
+.idea
+.vscode
+*.iml
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+
+# 환경 변수 파일
+.env
+.env.local
+
+# 빌드 결과물
+target/
+*.jar
+*.war
+*.ear
+
+# Docker 관련
+Dockerfile*
+docker-compose*
+.dockerignore 

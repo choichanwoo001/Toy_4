@@ -1,36 +1,30 @@
-/* General Body Styles */
 body {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: #F4DDB8;
     color: #495235;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2.5rem 1rem;
 }
 
 @media (min-width: 640px) {
     body {
-        padding: 2.5rem 1.5rem;
+        padding: 0; /* 기본 패딩 제거 */
     }
 }
 
 @media (min-width: 1024px) {
     body {
-        padding: 2.5rem 2rem;
+        padding: 0; /* 기본 패딩 제거 */
     }
 }
 
-/* Main Page Container */
 .main-page-container {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: #F4DDB8;
     color: #495235;
-    min-height: 100vh;
+    min-height: calc(100vh - 80px); /* 헤더 높이 고려 */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: 2.5rem 1rem;
     width: 100%;
 }
@@ -43,25 +37,28 @@ body {
 
 @media (min-width: 1024px) {
     .main-page-container {
-        padding: 2.5rem 2rem;
+        padding: 0rem 2rem;
     }
 }
 
-/* Main Page Section */
 #main-page-section {
     width: 100%;
     max-width: 56rem;
     text-align: center;
-    margin-bottom: 4rem;
-    margin-top: 2.5rem;
+    margin: 2.5rem auto 4rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .main-page-section {
     width: 100%;
     max-width: 56rem;
     text-align: center;
-    margin-bottom: 4rem;
-    margin-top: 2.5rem;
+    margin: 2.5rem auto 1rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 #main-page-section h1 {
@@ -93,9 +90,9 @@ body {
 #main-quote-display {
     font-size: 1.875rem;
     color: #495235;
-    margin-bottom: 4rem;
+    margin-bottom: 0rem;
     line-height: 1.75;
-    opacity: 0;
+    opacity: 1; /* opacity를 1로 변경하여 보이도록 함 */
     transition: opacity 2s ease-in-out;
 }
 
@@ -130,27 +127,40 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     gap: 1.5rem;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .auth-buttons {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     gap: 1.5rem;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 @media (min-width: 640px) {
     #main-auth-buttons {
         flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
     }
     
     .auth-buttons {
         flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
     }
 }
 
-/* Service Features Section */
 #main-service-features-section {
     width: 100%;
     max-width: 80rem;
@@ -188,7 +198,7 @@ body {
     font-weight: 700;
     color: #90533B;
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 1rem;
 }
 
 .section-title {
@@ -250,7 +260,6 @@ body {
     line-height: 1.75;
 }
 
-/* Button Styles */
 .btn-main {
     background-color: #DA983C;
     color: white;
@@ -263,11 +272,16 @@ body {
     border: none;
     cursor: pointer;
     width: 100%;
+    min-width: 250px;
+    max-width: 350px;
+    text-align: center;
 }
 
 @media (min-width: 640px) {
     .btn-main {
         width: auto;
+        min-width: 250px;
+        max-width: 350px;
     }
 }
 
@@ -276,6 +290,18 @@ body {
     transform: translateY(-2px);
 }
 
+.btn-main:disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.5;
+}
+
+.btn-main:disabled:hover {
+    background-color: #cccccc;
+    transform: none;
+}
 .btn-secondary {
     background-color: transparent;
     border: 2px solid #B87B5C;
@@ -287,11 +313,16 @@ body {
     transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out, transform 0.2s ease-in-out;
     cursor: pointer;
     width: 100%;
+    min-width: 250px;
+    max-width: 350px;
+    text-align: center;
 }
 
 @media (min-width: 640px) {
     .btn-secondary {
         width: auto;
+        min-width: 250px;
+        max-width: 350px;
     }
 }
 
@@ -301,22 +332,56 @@ body {
     transform: translateY(-2px);
 }
 
-.btn-kakao {
+.btn-register {
     background-color: #FEE500;
     color: #3C1E1E;
     padding: 1rem 2.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
     font-size: 1.25rem;
+    transition: background-color 0.3s ease-in-out, transform 0.2s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    min-width: 250px;
+    max-width: 350px;
+    text-align: center;
+}
+
+@media (min-width: 640px) {
+    .btn-register {
+        width: auto;
+        min-width: 250px;
+        max-width: 350px;
+    }
+}
+
+.btn-register:hover {
+    background-color: #FDD800;
+    transform: translateY(-2px);
+}
+
+.btn-kakao {
+    background-color: #FEE500;
+    color: #3C1E1E;
+    padding: 1rem 2.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
     transition: background-color 0.3s ease-in-out;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border: none;
     cursor: pointer;
     width: 100%;
+    min-width: 250px;
+    max-width: 350px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    text-align: center;
+
 }
 
 .btn-kakao:hover {
@@ -328,7 +393,6 @@ body {
     height: 1.5rem;
 }
 
-/* Form Sections */
 #login-form-section,
 #registration-form-section {
     width: 100%;
@@ -479,6 +543,28 @@ body {
     color: #495235;
 }
 
+/* Error and Success Message Styles */
+.error-message {
+    color: #dc2626; /* 빨간색 에러 메시지 */
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: none; /* 기본적으로 숨김 */
+}
+
+.error-message.show {
+    display: block; /* JavaScript로 show 클래스 추가 시 표시 */
+}
+
+.success-message {
+    color: #059669; /* 초록색 성공 메시지 */
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: none; /* 기본적으로 숨김 */
+}
+
+.success-message.show {
+    display: block; /* JavaScript로 show 클래스 추가 시 표시 */
+}
 /* Utility Classes */
 .hidden {
     display: none !important;

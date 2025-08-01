@@ -39,6 +39,7 @@ application-local.yml
 application-local.properties
 application-prod.yml
 application-prod.properties
+application.properties
 
 # Database
 *.db
@@ -137,3 +138,12 @@ dmypy.json
 
 # 기타
 .history/
+
+# AI Service - Vector Database
+ai-service/data/chroma_db/
+ai-service/**/data/chroma_db/
+**/chroma_db/
+*.bin
+*.pickle
+*.pkl
+

@@ -5,7 +5,10 @@
     justify-content: center !important;
     align-items: flex-start !important;
     min-height: calc(100vh - 80px) !important;
-    padding: 2rem !important;
+    padding: 2rem 2rem 2rem 2rem !important;
+    margin-top: 80px !important; /* 헤더 높이만큼 마진 추가 */
+    position: relative !important;
+    z-index: 1 !important; /* 헤더보다 낮은 z-index */
 }
 
 .wrap_1280 {
@@ -33,6 +36,8 @@
     display: flex;
     flex-direction: column;
     height: 80vh; /* 채팅창이 화면의 대부분을 차지하도록 높이 고정 */
+    position: relative;
+    z-index: 1; /* 헤더보다 낮은 z-index */
 }
 
 .chat-header {
@@ -74,6 +79,18 @@
 .chat-header p {
     font-size: 1.2rem;
     color: #495235; /* DARK FERN */
+}
+
+/* 일기 정보 표시 스타일 */
+.diary-info {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #F4DDB8; /* WHEAT */
+    border-radius: 0.5rem;
+    display: inline-block;
+    font-size: 0.9rem;
+    color: #90533B; /* CHESTNUT */
+    font-weight: 500;
 }
 
 .chat-container {
@@ -180,7 +197,7 @@
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 2000; /* 헤더보다 높은 z-index */
 }
 
 .popup-content {
@@ -237,4 +254,82 @@
 
 .popup-button.confirm:hover {
     background-color: #90533B; /* CHESTNUT */
+} 
+
+/* RAG 정보 표시 스타일 */
+.rag-info {
+    margin-top: 10px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    font-size: 0.9em;
+    color: #495057;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.rag-info > div {
+    margin-bottom: 6px;
+}
+
+.rag-info > div:last-child {
+    margin-bottom: 0;
+}
+
+.rag-info strong {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.rag-info .rag-header {
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 8px;
+    font-size: 1em;
+}
+
+.rag-info .rag-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rag-info .rag-stat {
+    background-color: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+.rag-info .similarity-scores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.rag-info .similarity-score {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.rag-info .similarity-score.high {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.rag-info .similarity-score.medium {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.rag-info .similarity-score.low {
+    background-color: #f8d7da;
+    color: #721c24;
 } 

@@ -1,85 +1,71 @@
-# Backend Project
+# Backend - 일기 기록 및 달력 서비스
 
-Spring Boot 3.2.0, Java 21, MySQL, Thymeleaf를 사용한 백엔드 프로젝트입니다.
+## 구현 완료된 기능
 
-## 환경 설정
+### 1. 데이터베이스 스키마
+- **User 엔티티**: 사용자 정보 관리
+- **Diary 엔티티**: 일기 기록 (감정 필드 포함)
 
-### 1. 환경변수 설정
+### 2. API 엔드포인트
+- `POST /api/diaries`: 일기 저장 (감정 포함)
+- `GET /api/diaries`: 유저별, 월별 일기 목록 조회
+- `GET /api/diaries/{id}`: 일기 상세 조회
+- `GET /diary-calendar`: 달력/일기 페이지 렌더링
 
-프로젝트 루트에 `.env` 파일을 생성하고 다음 내용을 입력하세요:
+### 3. 주요 기능
+- ✅ 일기 작성 및 저장 (감정 선택 포함)
+- ✅ 달력에서 일기 작성일 표시
+- ✅ 월별 일기 목록 조회
+- ✅ 감정별 일기 필터링
+- ✅ 실시간 UI 업데이트
 
-```bash
-# Database Configuration
-DB_NAME=rebuild_db
-DB_USERNAME=root
-DB_PASSWORD=your_actual_mysql_password
+## 설정 및 실행
 
-# Server Configuration
-SERVER_PORT=8080
-
-# Application Configuration
-SPRING_PROFILES_ACTIVE=dev
-```
-
-### 2. 데이터베이스 설정
-
-MySQL에서 다음 명령을 실행하여 데이터베이스를 생성하세요:
-
+### 1. 데이터베이스 설정
 ```sql
-CREATE DATABASE rebuild_db;
+-- 데이터베이스 스키마 업데이트
+source database_update.sql
+
+-- 테스트 데이터 생성
+source test_data.sql
 ```
 
-### 3. 애플리케이션 실행
-
+### 2. 애플리케이션 실행
 ```bash
-# Maven으로 실행
-mvn spring-boot:run
-
-# 또는 JAR 파일로 실행
-mvn clean package
-java -jar target/backend-0.0.1-SNAPSHOT.jar
+# Spring Boot 애플리케이션 실행
+./mvnw spring-boot:run
 ```
 
-## 프로젝트 구조
+### 3. 테스트
+- 브라우저에서 `http://localhost:8080/diary-calendar?userId=1` 접속
+- 일기 작성 및 달력 확인
 
-```
-backend/
-├── src/
-│   ├── main/
-│   │   ├── java/com/example/backend/
-│   │   │   ├── BackendApplication.java
-│   │   │   ├── controller/
-│   │   │   │   └── HomeController.java
-│   │   │   ├── service/
-│   │   │   │   └── TestService.java
-│   │   │   ├── repository/
-│   │   │   │   └── TestRepository.java
-│   │   │   └── entity/
-│   │   │       └── TestEntity.java
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── templates/
-│   │           └── home.html
-│   └── test/
-├── .env.example
-├── .gitignore
-└── pom.xml
+## API 사용법
+
+### 일기 저장
+```javascript
+const formData = new FormData();
+formData.append('userId', 1);
+formData.append('content', '오늘의 기록');
+formData.append('appliedStamp', '참잘했어요');
+formData.append('emotion', '😊'); // 선택사항
+
+fetch('/api/diaries', {
+    method: 'POST',
+    body: formData
+});
 ```
 
-## 주요 기능
+### 일기 목록 조회
+```javascript
+fetch('/api/diaries?userId=1&year=2025&month=1')
+    .then(response => response.json())
+    .then(data => console.log(data));
+```
 
-- Hello World 테스트
-- 데이터베이스 연결 테스트
-- 메시지 저장 및 조회 기능
-- Thymeleaf 템플릿 렌더링
-
-## 접속 URL
-
-- 메인 페이지: http://localhost:8080
-- 테스트 페이지: http://localhost:8080 (테스트 섹션 포함)
-
-## 주의사항
-
-- `.env` 파일은 절대 Git에 커밋하지 마세요
-- 실제 MySQL 비밀번호를 사용하세요
-- 환경변수는 `application.yml`에서 관리됩니다 
+## 다음 단계 구현 예정
+- [ ] AI 코멘트 생성 기능
+- [ ] 주차별 감정 리포트 상세 페이지
+- [ ] 사용자 인증 및 세션 관리
+- [ ] 일기 수정/삭제 기능
+- [ ] 이미지 업로드 기능 
