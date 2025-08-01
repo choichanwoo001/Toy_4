@@ -12,14 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.WeekFields;
 import java.util.*;
-import java.util.stream.Collectors;
 import com.example.backend.entity.FeedbackProof;
 import com.example.backend.entity.RecommendActivity;
-import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor

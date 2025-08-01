@@ -3,34 +3,24 @@ package com.example.backend.service;
 import com.example.backend.dto.StampDto;
 import com.example.backend.dto.UserStampDto;
 import com.example.backend.entity.Stamp;
-import com.example.backend.entity.User;
 import com.example.backend.entity.UserStamp;
 import com.example.backend.entity.UserPointHistory;
-import com.example.backend.entity.UserStampHistory;
 import com.example.backend.repository.StampRepository;
 import com.example.backend.repository.UserPointHistoryRepository;
 import com.example.backend.repository.UserStampRepository;
-import com.example.backend.repository.UserStampHistoryRepository;
-import com.example.backend.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 @Service
 public class PointshopService {
-    @Autowired
-    private UserPointHistoryRepository userPointHistoryRepository;
-    @Autowired
-    private StampRepository stampRepository;
-    @Autowired
-    private UserStampRepository userStampRepository;
-    @Autowired
-    private UserStampHistoryRepository userStampHistoryRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private final UserPointHistoryRepository userPointHistoryRepository;
+    private final StampRepository stampRepository;
+    private final UserStampRepository userStampRepository;
 
     // 1. 사용자 포인트 조회
     public int getUserPoint(Long userId) {
@@ -255,7 +245,23 @@ public class PointshopService {
                 }
             }
         }
-        return null; // 적용된 스탬프가 없음
+        
+        // 활성 스탬프가 없을 경우 기본 스탬프 반환
+        UserStampDto defaultDto = new UserStampDto();
+        defaultDto.setUserStampId(null);
+        defaultDto.setUserId(userId);
+        defaultDto.setStampId(null);
+        defaultDto.setIsActive("N");
+        defaultDto.setCreatedAt(LocalDateTime.now());
+        defaultDto.setUpdatedAt(LocalDateTime.now());
+        
+        // 기본 스탬프 정보 설정
+        defaultDto.setStampName("기본 스탬프");
+        defaultDto.setStampImage("default_stamp.png");
+        defaultDto.setStampDescription("기본 스탬프입니다.");
+        defaultDto.setStampPrice(0);
+        
+        return defaultDto;
     }
 
     // 8. 내가 보유한 도장 목록 조회

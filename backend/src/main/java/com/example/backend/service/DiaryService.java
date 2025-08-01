@@ -169,7 +169,7 @@ public class DiaryService {
     }
     
     // 감정들을 CommentEmotionMapping에 저장
-    void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
+    public void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
         System.out.println("Saving emotion mappings for comment ID: " + dailyComment.getId());
         System.out.println("Emotions to save: " + emotions);
         
@@ -314,7 +314,7 @@ public class DiaryService {
     public UserStamp getCurrentActiveUserStamp(Long userId) {
         // PointshopService를 통해 현재 활성화된 스탬프 조회
         UserStampDto activeStampDto = pointshopService.getActiveStamp(userId);
-        if (activeStampDto != null) {
+        if (activeStampDto != null && activeStampDto.getUserStampId() != null) {
             // UserStamp 엔티티 조회
             return userStampRepository.findById(activeStampDto.getUserStampId()).orElse(null);
         }
