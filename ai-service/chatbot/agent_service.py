@@ -56,6 +56,7 @@ class AgentService:
             Dict[str, Any]: 응답 결과
                 - success (bool): 성공 여부
                 - response (str): 생성된 응답
+                - rag_info (Dict): RAG 검색 정보 (있는 경우)
         """
         if not self.is_initialized:
             logger.warning("초기화 전에 응답을 요청했습니다.")
@@ -66,6 +67,10 @@ class AgentService:
             
             # MainAgent를 통해 응답 생성
             result = self.agent.get_response(user_input)
+            
+            # RAG 정보가 있으면 추가
+            if hasattr(self.agent, 'last_rag_info') and self.agent.last_rag_info:
+                result['rag_info'] = self.agent.last_rag_info
             
             logger.info(f"응답 생성 완료: 성공={result['success']}")
             return result

@@ -120,6 +120,12 @@ class AdvancedChatResponse(BaseModel):
     user_id: Optional[str] = None
     intent: Optional[str] = None
     rag_used: Optional[bool] = None
+    rag_details: Optional[Dict[str, Any]] = None  # RAG 검색 상세 정보
+    search_query: Optional[str] = None  # 검색 쿼리
+    search_filters: Optional[Dict[str, str]] = None  # 검색 필터 (감정, 상황 등)
+    similarity_scores: Optional[List[float]] = None  # 유사도 점수들
+    total_searched: Optional[int] = None  # 총 검색된 문서 수
+    total_filtered: Optional[int] = None  # 필터링 후 선택된 문서 수
 
 class ConversationSummaryRequest(BaseModel):
     user_id: Optional[str] = None
