@@ -1,0 +1,18 @@
+-- 데이터베이스 초기화 스크립트
+-- 이 파일은 JPA 테이블 생성 후 자동으로 실행됩니다
+
+-- 샘플 데이터 삽입 (테이블이 이미 존재한다고 가정)
+INSERT INTO users (username, email, password_hash) VALUES
+('admin', 'admin@example.com', '$2a$10$rAMyR7bJ8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P0Q1R2S3T4U5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z'),
+('user1', 'user1@example.com', '$2a$10$rAMyR7bJ8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P0Q1R2S3T4U5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z'),
+('user2', 'user2@example.com', '$2a$10$rAMyR7bJ8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4A5B6C7D8E9F0G1H2I3J4K5L6M7N8O9P0Q1R2S3T4U5V6W7X8Y9Z0A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z');
+
+INSERT INTO posts (title, content, user_id) VALUES
+('첫 번째 게시물', '안녕하세요! 이것은 첫 번째 게시물입니다.', 1),
+('두 번째 게시물', '두 번째 게시물의 내용입니다.', 2),
+('세 번째 게시물', '세 번째 게시물입니다.', 1);
+
+INSERT INTO comments (content, user_id, post_id) VALUES
+('좋은 게시물이네요!', 2, 1),
+('감사합니다!', 1, 1),
+('재미있는 내용입니다.', 3, 2); 
