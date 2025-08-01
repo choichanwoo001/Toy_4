@@ -255,3 +255,81 @@
 .popup-button.confirm:hover {
     background-color: #90533B; /* CHESTNUT */
 } 
+
+/* RAG 정보 표시 스타일 */
+.rag-info {
+    margin-top: 10px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    font-size: 0.9em;
+    color: #495057;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.rag-info > div {
+    margin-bottom: 6px;
+}
+
+.rag-info > div:last-child {
+    margin-bottom: 0;
+}
+
+.rag-info strong {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.rag-info .rag-header {
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 8px;
+    font-size: 1em;
+}
+
+.rag-info .rag-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rag-info .rag-stat {
+    background-color: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+.rag-info .similarity-scores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.rag-info .similarity-score {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.rag-info .similarity-score.high {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.rag-info .similarity-score.medium {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.rag-info .similarity-score.low {
+    background-color: #f8d7da;
+    color: #721c24;
+} 
