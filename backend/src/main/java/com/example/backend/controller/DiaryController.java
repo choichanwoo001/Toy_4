@@ -34,7 +34,7 @@ public class DiaryController {
     private final StampRepository stampRepository;
     
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String AI_SERVICE_URL = "http://localhost:8000/api/v1/diary-analyzer/analyze";
+    private final String AI_SERVICE_URL = (System.getenv("AI_SERVICE_URL") != null ? System.getenv("AI_SERVICE_URL") : "http://localhost:8000") + "/api/v1/diary-analyzer/analyze";
 
     // ===================== REST API =====================
 
@@ -376,6 +376,13 @@ public class DiaryController {
             Map<String, Object> requestData = new HashMap<>();
             requestData.put("user_id", String.valueOf(userId));
             requestData.put("raw_diary", content);
+            
+            // 디버깅: 요청 데이터 출력
+            System.out.println("=== AI Service Request Data ===");
+            System.out.println("URL: " + AI_SERVICE_URL);
+            System.out.println("user_id: " + requestData.get("user_id"));
+            System.out.println("raw_diary: " + requestData.get("raw_diary"));
+            System.out.println("Request Data: " + requestData);
             
             // HTTP 헤더 설정
             HttpHeaders headers = new HttpHeaders();

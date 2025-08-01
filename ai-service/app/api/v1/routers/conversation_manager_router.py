@@ -167,12 +167,31 @@ async def chat_advanced(req: AdvancedChatRequest):
         # 에이전트 상태 정보 가져오기
         agent_state = agent_service.get_agent_state()
         
+        # RAG 정보 추출
+        rag_info = result.get('rag_info', {})
+        rag_used = bool(rag_info.get('results', {}).get('documents', [[]])[0])
+        
+        # 유사도 점수 추출
+        similarity_scores = []
+        if rag_info.get('results', {}).get('distances'):
+            distances = rag_info['results']['distances'][0]
+            similarity_scores = [1 - dist for dist in distances]
+        
+        # 검색 필터 정보
+        search_filters = rag_info.get('filters', {})
+        
         return AdvancedChatResponse(
             success=result["success"],
             response=result["response"],
             user_id=user_id,
             intent=agent_state.get("intent"),
-            rag_used=agent_state.get("complexity_score", 0) > 0.5  # 복잡도가 높으면 RAG 사용으로 간주
+            rag_used=rag_used,
+            rag_details=rag_info,
+            search_query=rag_info.get('query'),
+            search_filters=search_filters,
+            similarity_scores=similarity_scores,
+            total_searched=len(rag_info.get('results', {}).get('documents', [[]])[0]) if rag_info.get('results') else None,
+            total_filtered=len([s for s in similarity_scores if s >= 0.5]) if similarity_scores else None
         )
         
     except Exception as e:

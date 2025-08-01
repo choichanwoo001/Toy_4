@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: diary_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: diary_db
+      MYSQL_USER: diary_user
+      MYSQL_PASSWORD: diary_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - diary_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis (AI 서비스용)
+  redis:
+    image: redis:7-alpine
+    container_name: diary_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - diary_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
+
+  # AI 서비스
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: diary_ai_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    volumes:
+      - ai_service_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - diary_network
+
+  # Spring Boot 백엔드
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: diary_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/diary_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=diary_user
+      - SPRING_DATASOURCE_PASSWORD=diary_password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - AI_SERVICE_URL=http://ai-service:8000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    networks:
+      - diary_network
+
+volumes:
+  mysql_data:
+    driver: local
+  ai_service_data:
+    driver: local
+
+networks:
+  diary_network:
+    driver: bridge 
