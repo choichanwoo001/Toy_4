@@ -275,6 +275,7 @@ class RAGTool:
             vector_db (VectorDatabase): 벡터 데이터베이스 서비스 객체.
         """
         self.vector_db = vector_db
+        self.last_search_info = {}  # 마지막 검색 정보를 저장
     
     def execute(self, state: AgentState) -> Optional[str]:
         """
@@ -296,6 +297,10 @@ class RAGTool:
             # 필터 없이 일반 검색 (가장 넓은 범위)
             return self.search_general(state.user_input)
     
+    def get_last_search_info(self) -> Dict[str, Any]:
+        """마지막 검색 정보를 반환합니다."""
+        return self.last_search_info.copy()
+    
     def search_with_filters(self, query: str, emotion: str, situation: str) -> Optional[str]:
         """
         주어진 쿼리, 감정 필터, 상황 필터를 사용하여 벡터 DB에서 유사한 조언을 검색합니다.
@@ -313,6 +318,15 @@ class RAGTool:
             emotion_filter=[emotion], # 감정으로 필터링
             situation_filter=situation # 상황으로 필터링
         )
+        
+        # 검색 정보 저장
+        self.last_search_info = {
+            "query": query,
+            "filters": {"emotion": emotion, "situation": situation},
+            "search_type": "filtered",
+            "results": results
+        }
+        
         return self.format_results(results)
     
     def search_with_emotion_filter(self, query: str, emotion: str) -> Optional[str]:
@@ -330,6 +344,15 @@ class RAGTool:
             n_results=5,
             emotion_filter=[emotion] # 감정으로만 필터링
         )
+        
+        # 검색 정보 저장
+        self.last_search_info = {
+            "query": query,
+            "filters": {"emotion": emotion},
+            "search_type": "emotion_filtered",
+            "results": results
+        }
+        
         return self.format_results(results)
     
     def search_general(self, query: str) -> Optional[str]:
@@ -342,6 +365,15 @@ class RAGTool:
         """
         logger.info("일반 검색 실행")
         results = self.vector_db.search_similar_advice(query, n_results=5)
+        
+        # 검색 정보 저장
+        self.last_search_info = {
+            "query": query,
+            "filters": {},
+            "search_type": "general",
+            "results": results
+        }
+        
         return self.format_results(results)
     
     def format_results(self, results: Dict[str, Any]) -> Optional[str]:
@@ -358,24 +390,36 @@ class RAGTool:
         
         filtered_advice = [] # 필터링된 조언 목록
         similarity_scores = [] # 해당 조언들의 유사도 점수 목록
+        search_details = [] # 검색 상세 정보
         
         # 검색된 문서와 거리(distance)를 순회하며 유사도 임계값 적용
-        for doc, dist in zip(results["documents"][0], results["distances"][0]):
+        for i, (doc, dist) in enumerate(zip(results["documents"][0], results["distances"][0])):
             similarity = 1 - dist # 거리를 유사도로 변환 (0~1 사이 값)
             if similarity >= 0.5:  # 유사도 임계값 0.5 이상인 경우만 포함
                 filtered_advice.append(doc)
                 similarity_scores.append(f"{similarity:.3f}") # 소수점 3자리까지 포맷팅
+                search_details.append(f"검색 결과 #{i+1}: 유사도 {similarity:.3f}")
         
         if not filtered_advice: # 필터링 후 남은 조언이 없으면 None 반환
             return None
             
+        # 검색 과정 요약 정보 추가
+        total_searched = len(results["documents"][0])
+        total_filtered = len(filtered_advice)
+        search_summary = f"🔍 RAG 검색 결과: 총 {total_searched}개 중 {total_filtered}개 선택 (유사도 0.5 이상)\n"
+        
         # 각 조언과 해당 유사도 점수를 함께 포맷팅하여 리스트 생성
         rag_data_with_scores = []
-        for advice, score in zip(filtered_advice, similarity_scores):
+        for i, (advice, score) in enumerate(zip(filtered_advice, similarity_scores)):
             rag_data_with_scores.append(f"[유사도: {score}] {advice}")
         
         # 포맷팅된 조언들을 개행 문자와 하이픈으로 연결하여 하나의 문자열로 반환
-        return "\n- ".join(rag_data_with_scores)
+        formatted_advice = "\n- ".join(rag_data_with_scores)
+        
+        # 최종 결과에 검색 요약과 상세 정보 포함
+        final_result = f"{search_summary}{formatted_advice}"
+        
+        return final_result
 
 
 class ResponseGenerationTool:
@@ -447,22 +491,30 @@ class ClarifyTool:
 
 class MainAgent:
     """
-    자율적 의사결정과 동적 전략 수립을 담당하는 메인 에이전트 클래스입니다.
-    Perceive-Decide-Act (P-D-A) 사이클을 통해 챗봇의 전체적인 동작을 조율합니다.
+    자율적 의사결정과 동적 전략 수립을 담당하는 메인 에이전트입니다.
+    
+    Perceive-Decide-Act 사이클을 통해 사용자 입력에 대한 적절한 응답을 생성합니다.
+    - Perceive (인지): 사용자 입력과 대화 이력을 기반으로 현재 상태를 파악합니다.
+    - Decide (결정): 인지된 상태를 바탕으로 어떤 전략(도구 사용)을 실행할지 결정합니다.
+    - Act (실행): 결정된 전략에 따라 실제 도구들을 호출하여 응답을 생성합니다.
     """
+    
     def __init__(self, user_id: str):
         """
-        MainAgent를 초기화합니다. 필요한 서비스와 도구들을 설정합니다.
+        MainAgent 인스턴스를 초기화합니다.
         Args:
-            user_id (str): 현재 대화하는 사용자의 고유 ID.
+            user_id (str): 사용자 식별자.
         """
         self.user_id = user_id
-        # 필요한 서비스 인스턴스 생성
-        self.llm_service = LLMService()
-        self.vector_db = VectorDatabase()
-        self.conversation_manager = ConversationManager()
+        self.state = AgentState() # 에이전트의 현재 상태를 관리하는 객체
+        self.is_initialized = False # 초기화 완료 여부
         
-        # 에이전트가 사용할 도구들 초기화 및 딕셔너리로 관리
+        # 도구들 초기화
+        self.llm_service = LLMService() # LLM과의 통신을 담당하는 서비스
+        self.vector_db = VectorDatabase() # RAG를 위한 벡터 데이터베이스 서비스
+        self.conversation_manager = ConversationManager() # 사용자 대화 이력을 관리하는 서비스
+        
+        # 도구들을 딕셔너리로 관리
         self.tools = {
             'conversation_management': ConversationManagementTool(self.llm_service),
             'rag': RAGTool(self.vector_db),
@@ -470,8 +522,8 @@ class MainAgent:
             'clarify': ClarifyTool()
         }
         
-        self.state = AgentState() # 에이전트의 현재 상태 객체
-        self.is_initialized = False # 에이전트 초기화 여부 플래그
+        # RAG 검색 정보 저장
+        self.last_rag_info = {}
     
     def initialize(self):
         """
@@ -554,6 +606,12 @@ class MainAgent:
                 if tool_name == 'rag':
                     rag_data = self.tools[tool_name].execute(self.state) # RAG 도구 실행
                     results['rag_data'] = rag_data # 결과 저장
+                    
+                    # RAG 검색 정보 수집
+                    rag_tool = self.tools[tool_name]
+                    self.last_rag_info = rag_tool.get_last_search_info()
+                    results['rag_info'] = self.last_rag_info
+                    
                 elif tool_name == 'response_generation':
                     # 응답 생성 도구는 RAG 데이터를 인자로 받음
                     response = self.tools[tool_name].execute(self.state, rag_data) 

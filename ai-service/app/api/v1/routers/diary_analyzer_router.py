@@ -33,6 +33,13 @@ async def analyze_diary(
     - AI 코멘트 생성
     - 감정 키워드 추출
     """
+    # 디버깅: 요청 데이터 출력
+    print("=== AI Service Received Request ===")
+    print(f"user_id: {request.user_id}")
+    print(f"raw_diary: {request.raw_diary}")
+    print(f"Request type: {type(request)}")
+    print(f"Request data: {request}")
+    
     try:
         result = await analyzer.analyze_diary(
             user_id=request.user_id,
@@ -40,6 +47,9 @@ async def analyze_diary(
         )
         return result
     except Exception as e:
+        print(f"=== AI Service Error ===")
+        print(f"Error: {str(e)}")
+        print(f"Error type: {type(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"일기 분석 중 오류가 발생했습니다: {str(e)}"

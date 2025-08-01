@@ -153,7 +153,16 @@ public class ApiController {
                 result.put("intent", responseBody.get("intent")); // 의도 분류 결과
                 result.put("rag_used", responseBody.get("rag_used")); // RAG 사용 여부
                 
+                // RAG 검색 정보 추가
+                result.put("search_query", responseBody.get("search_query"));
+                result.put("search_filters", responseBody.get("search_filters"));
+                result.put("similarity_scores", responseBody.get("similarity_scores"));
+                result.put("total_searched", responseBody.get("total_searched"));
+                result.put("total_filtered", responseBody.get("total_filtered"));
+                result.put("rag_details", responseBody.get("rag_details"));
+                
                 log.info("고급 AI 응답 생성 완료: {}", responseBody.get("response"));
+                log.info("RAG 사용 여부: {}, 검색 쿼리: {}", responseBody.get("rag_used"), responseBody.get("search_query"));
                 return ResponseEntity.ok(result);
             } else {
                 throw new RuntimeException("FastAPI 고급 채팅 서비스 응답 오류");

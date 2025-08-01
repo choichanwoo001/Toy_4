@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 채팅에 메시지 추가하는 함수
-    function addMessage(text, sender) {
+    function addMessage(text, sender, ragInfo = null) {
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message-bubble');
         if (sender === 'user') {
@@ -105,11 +105,61 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             messageDiv.classList.add('ai-bubble');
         }
+        
+        let messageContent = text;
+        
+        // RAG 정보가 있으면 추가
+        if (ragInfo && sender === 'ai') {
+            messageContent += createRAGInfoHTML(ragInfo);
+        }
+        
         // 줄바꿈 문자를 <br> 태그로 변환
-        const formattedText = text.replace(/\n/g, '<br>');
+        const formattedText = messageContent.replace(/\n/g, '<br>');
         messageDiv.innerHTML = `<p>${formattedText}</p>`;
         chatContainer.appendChild(messageDiv);
         chatContainer.scrollTop = chatContainer.scrollHeight; // 맨 아래로 스크롤
+    }
+    
+    // RAG 정보를 HTML로 생성하는 함수
+    function createRAGInfoHTML(ragInfo) {
+        if (!ragInfo || !ragInfo.rag_used) {
+            return '';
+        }
+        
+        let html = '\n\n<div class="rag-info">';
+        html += '<div class="rag-header">🔍 RAG 검색 정보</div>';
+        
+        // 검색 쿼리
+        if (ragInfo.search_query) {
+            html += `<div><strong>검색 쿼리:</strong> ${ragInfo.search_query}</div>`;
+        }
+        
+        // 검색 필터
+        if (ragInfo.search_filters && Object.keys(ragInfo.search_filters).length > 0) {
+            const filters = Object.entries(ragInfo.search_filters)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', ');
+            html += `<div><strong>검색 필터:</strong> ${filters}</div>`;
+        }
+        
+        // 검색 통계
+        if (ragInfo.total_searched !== null && ragInfo.total_filtered !== null) {
+            html += `<div><strong>검색 결과:</strong> 총 ${ragInfo.total_searched}개 중 ${ragInfo.total_filtered}개 선택 (유사도 0.5 이상)</div>`;
+        }
+        
+        // 유사도 점수
+        if (ragInfo.similarity_scores && ragInfo.similarity_scores.length > 0) {
+            html += '<div><strong>유사도 점수:</strong></div>';
+            html += '<div class="similarity-scores">';
+            ragInfo.similarity_scores.forEach((score, index) => {
+                const scoreClass = score >= 0.8 ? 'high' : score >= 0.6 ? 'medium' : 'low';
+                html += `<span class="similarity-score ${scoreClass}">${score.toFixed(3)}</span>`;
+            });
+            html += '</div>';
+        }
+        
+        html += '</div>';
+        return html;
     }
 
     // AI 응답 시뮬레이션 (실제 앱에서는 Gemini API 호출)
@@ -142,7 +192,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (data.success) {
-                addMessage(data.response, 'ai');
+                // RAG 정보 추출
+                const ragInfo = {
+                    rag_used: data.rag_used || false,
+                    search_query: data.search_query,
+                    search_filters: data.search_filters,
+                    similarity_scores: data.similarity_scores,
+                    total_searched: data.total_searched,
+                    total_filtered: data.total_filtered
+                };
+                
+                addMessage(data.response, 'ai', ragInfo);
             } else {
                 addMessage(data.error || '죄송합니다. 응답을 생성하는 중 오류가 발생했습니다.', 'ai');
             }
