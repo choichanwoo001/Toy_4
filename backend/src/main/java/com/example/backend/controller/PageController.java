@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class PageController {
-
     // 일기 달력 페이지 매핑 (헤더 링크용)
     @GetMapping("/diary")
     public String diary() {

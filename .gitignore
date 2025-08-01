@@ -146,3 +146,4 @@ ai-service/**/data/chroma_db/
 *.bin
 *.pickle
 *.pkl
+

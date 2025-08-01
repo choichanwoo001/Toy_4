@@ -22,6 +22,4 @@ public class HomeController {
         model.addAttribute("contentPath", "index");
         return "layout/base";
     }
-
-    
 }

@@ -302,7 +302,6 @@ body {
     background-color: #cccccc;
     transform: none;
 }
-
 .btn-secondary {
     background-color: transparent;
     border: 2px solid #B87B5C;
@@ -382,6 +381,7 @@ body {
     justify-content: center;
     gap: 0.5rem;
     text-align: center;
+
 }
 
 .btn-kakao:hover {
@@ -565,7 +565,6 @@ body {
 .success-message.show {
     display: block; /* JavaScript로 show 클래스 추가 시 표시 */
 }
-
 /* Utility Classes */
 .hidden {
     display: none !important;

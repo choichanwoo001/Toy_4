@@ -20,7 +20,6 @@
                     <li class="nav-item">
                         <a th:href="@{/}" class="nav-link">홈</a>
                     </li>
-
                     <!-- 로그인 상태 확인: session에 'user'가 없으면 버튼 비활성화 -->
                     <li class="nav-item">
                         <a th:href="@{/diary}"
@@ -51,6 +50,7 @@
                         th:classappend="${session.user} == null ? ' disabled-link' : ''"
                         th:attr="tabindex=${session.user} == null ? -1 : null"
                         class="nav-link">포인트샵</a>
+
                     </li>
                 </ul>
             </div>
