@@ -113,20 +113,8 @@ public class DiaryService {
         System.out.println("DailyComment saved with ID: " + savedComment.getId());
         System.out.println("UserStamp ID: " + (savedComment.getUserStamp() != null ? savedComment.getUserStamp().getUserStampId() : "null"));
         
-        // 감정 분석 및 CommentEmotionMapping 저장
-        try {
-            System.out.println("Starting emotion analysis...");
-            List<String> emotions = analyzeEmotionsFromContent(content);
-            System.out.println("Analyzed emotions: " + emotions);
-            
-            // 감정들을 CommentEmotionMapping에 저장
-            saveEmotionMappings(savedComment, emotions);
-            System.out.println("Emotion mappings saved successfully");
-        } catch (Exception e) {
-            System.err.println("Error in emotion analysis: " + e.getMessage());
-            e.printStackTrace();
-            // 감정 분석 실패해도 코멘트는 저장됨
-        }
+        // 감정 분석은 프론트엔드에서 전달받은 감정 키워드를 사용하므로 여기서는 수행하지 않음
+        // 감정 키워드는 DiaryController에서 별도로 처리됨
         
         return savedComment;
     }
@@ -181,7 +169,7 @@ public class DiaryService {
     }
     
     // 감정들을 CommentEmotionMapping에 저장
-    private void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
+    void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
         System.out.println("Saving emotion mappings for comment ID: " + dailyComment.getId());
         System.out.println("Emotions to save: " + emotions);
         

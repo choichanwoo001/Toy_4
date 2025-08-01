@@ -839,10 +839,10 @@ async function analyzeDiaryWithAI(content) {
                 
                 console.log('AI Comment updated successfully');
                 
-                // ===================== NEW DAILY COMMENT SAVE =====================
-                // 2025-01-XX: AI 분석 결과를 DailyComment로 저장
+                // ===================== NEW DAILY COMMENT SAVE WITH EMOTIONS =====================
+                // 2025-01-XX: AI 분석 결과를 DailyComment로 저장 (감정 키워드 포함)
                 try {
-                    console.log('=== Saving Daily Comment ===');
+                    console.log('=== Saving Daily Comment with Emotions ===');
                     console.log('AI Result:', aiResult);
                     console.log('User ID:', userId);
                     
@@ -852,11 +852,19 @@ async function analyzeDiaryWithAI(content) {
                     const diaryDate = today.toISOString().replace('Z', '');
                     console.log('Diary Date:', diaryDate);
                     
-                    // DailyComment 저장 API 호출
+                    // DailyComment 저장 API 호출 (감정 키워드 포함)
                     const commentFormData = new FormData();
                     commentFormData.append('userId', userId);
                     commentFormData.append('content', aiResult.comment || 'AI가 생성한 코멘트입니다.');
                     commentFormData.append('diaryDate', diaryDate);
+                    
+                    // 감정 키워드들을 추가
+                    if (aiResult.emotion_keywords && aiResult.emotion_keywords.length > 0) {
+                        // 감정 키워드들을 JSON 문자열로 변환하여 전송
+                        const emotionKeywordsJson = JSON.stringify(aiResult.emotion_keywords);
+                        commentFormData.append('emotionKeywords', emotionKeywordsJson);
+                        console.log('Emotion keywords to save:', aiResult.emotion_keywords);
+                    }
                     
                     console.log('FormData contents:');
                     for (let [key, value] of commentFormData.entries()) {
@@ -889,7 +897,7 @@ async function analyzeDiaryWithAI(content) {
                         console.log('Calling fetchAndRender() to refresh calendar...');
                         await fetchAndRender();
                         
-                        showSuccessMessage('AI 코멘트가 성공적으로 저장되었습니다!');
+                        showSuccessMessage('AI 코멘트와 감정 키워드가 성공적으로 저장되었습니다!');
                     } else {
                         console.error('❌ DailyComment 저장 실패:', commentData.message);
                         showErrorMessage('AI 코멘트 저장에 실패했습니다.');
@@ -899,7 +907,7 @@ async function analyzeDiaryWithAI(content) {
                     console.error('Error stack:', error.stack);
                     showErrorMessage('AI 코멘트 저장 중 오류가 발생했습니다.');
                 }
-                // ===================== END NEW DAILY COMMENT SAVE =====================
+                // ===================== END NEW DAILY COMMENT SAVE WITH EMOTIONS =====================
             }
             
             // 조언이 있는 경우 표시
@@ -948,9 +956,9 @@ async function analyzeDiaryWithAIAndSave(content) {
         if (isSuccess && data.data) {
             const aiResult = data.data;
 
-            // ===================== NEW DAILY COMMENT SAVE =====================
+            // ===================== NEW DAILY COMMENT SAVE WITH EMOTIONS =====================
             try {
-                console.log('=== Saving Daily Comment ===');
+                console.log('=== Saving Daily Comment with Emotions ===');
                 const today = new Date();
                 const diaryDate = today.toISOString().replace('Z', '');
                 
@@ -958,6 +966,14 @@ async function analyzeDiaryWithAIAndSave(content) {
                 commentFormData.append('userId', userId);
                 commentFormData.append('content', aiResult.comment || 'AI가 생성한 코멘트입니다.');
                 commentFormData.append('diaryDate', diaryDate);
+                
+                // 감정 키워드들을 추가
+                if (aiResult.emotion_keywords && aiResult.emotion_keywords.length > 0) {
+                    // 감정 키워드들을 JSON 문자열로 변환하여 전송
+                    const emotionKeywordsJson = JSON.stringify(aiResult.emotion_keywords);
+                    commentFormData.append('emotionKeywords', emotionKeywordsJson);
+                    console.log('Emotion keywords to save:', aiResult.emotion_keywords);
+                }
 
                 const commentResponse = await fetch('/api/daily-comments', {
                     method: 'POST',
@@ -985,7 +1001,7 @@ async function analyzeDiaryWithAIAndSave(content) {
                 showErrorMessage('AI 코멘트 저장 중 오류가 발생했습니다.');
                 return null;
             }
-            // ===================== END NEW DAILY COMMENT SAVE =====================
+            // ===================== END NEW DAILY COMMENT SAVE WITH EMOTIONS =====================
         } else {
             console.warn('AI analysis completed but no data returned');
             return null;
