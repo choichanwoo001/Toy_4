@@ -257,7 +257,7 @@ public class PointshopService {
         
         // 기본 스탬프 정보 설정
         defaultDto.setStampName("기본 스탬프");
-        defaultDto.setStampImage("default_stamp.png");
+        defaultDto.setStampImage("image/default_stamp.png");
         defaultDto.setStampDescription("기본 스탬프입니다.");
         defaultDto.setStampPrice(0);
         
