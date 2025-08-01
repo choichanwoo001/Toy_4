@@ -169,7 +169,7 @@ public class DiaryService {
     }
     
     // 감정들을 CommentEmotionMapping에 저장
-    public void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
+    void saveEmotionMappings(DailyComment dailyComment, List<String> emotions) {
         System.out.println("Saving emotion mappings for comment ID: " + dailyComment.getId());
         System.out.println("Emotions to save: " + emotions);
         
